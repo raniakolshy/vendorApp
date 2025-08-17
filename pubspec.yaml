@@ -14,7 +14,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
+  fl_chart: ^0.68.0
   flutter_lints: ^5.0.0
 flutter:
 
@@ -23,6 +23,7 @@ flutter:
   assets:
     # Logo
     - assets/kolshy_logo_noir.gif
+    - assets/kolshy_logo.gif
 
     # Avatar placeholder
     - assets/avatar_placeholder.jpg
@@ -43,8 +44,12 @@ flutter:
     - assets/icons/review_on.png
     - assets/icons/review_off.png
 
+
+
     # Bottom navigation icons
     - assets/icons/menu.png
     - assets/icons/home.png
     - assets/icons/chat.png
     - assets/icons/bell.png
+
+    - assets/welcome_background.jpeg
