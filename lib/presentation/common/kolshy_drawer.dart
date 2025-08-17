@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vendor_app/presentation/auth/login/welcome_screen.dart';
 import 'nav_key.dart';
 
 class KolshyDrawer extends StatefulWidget {
@@ -323,16 +324,26 @@ class _ProfileButton extends StatelessWidget {
         context: context,
         builder: (c) => SimpleDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          children: const [
-            _PM('Profile Settings'),
-            _PM('Print PDF'),
-            _PM('Customer Dashboard'),
-            _PM('Admin News'),
-            _PM('Language'),
-            Divider(),
-            _PM('Ask for support'),
-            Divider(),
-            _PM('Log out', color: kRedLogout),
+          children: [
+            const _PM('Profile Settings'),
+            const _PM('Print PDF'),
+            const _PM('Customer Dashboard'),
+            const _PM('Admin News'),
+            const _PM('Language'),
+            const Divider(),
+            const _PM('Ask for support'),
+            const Divider(),
+            _PM(
+              'Log out',
+              color: kRedLogout,
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                      (route) => false,
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -367,13 +378,25 @@ class _ProfileButton extends StatelessWidget {
 class _PM extends StatelessWidget {
   final String text;
   final Color color;
-  const _PM(this.text, {this.color = kTextGray});
+  final VoidCallback? onPressed;
+
+  const _PM(this.text, {this.color = kTextGray, this.onPressed});
+
   @override
   Widget build(BuildContext context) => SimpleDialogOption(
-    onPressed: () => Navigator.pop(context),
+    onPressed: () {
+      Navigator.pop(context); // always close the dialog first
+      if (onPressed != null) {
+        onPressed!();
+      }
+    },
     child: Text(
       text,
-      style: TextStyle(color: color, fontWeight: color == kRedLogout ? FontWeight.w700 : FontWeight.w500),
+      style: TextStyle(
+        color: color,
+        fontWeight:
+        color == kRedLogout ? FontWeight.w700 : FontWeight.w500,
+      ),
     ),
   );
 }

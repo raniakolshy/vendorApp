@@ -28,12 +28,11 @@ class KolshyApp extends StatelessWidget {
         fontFamily: 'Inter',
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const WelcomeScreen(),
+      home: const Home(),
     );
   }
 }
 
-// Add the missing Home StatefulWidget class here
 class Home extends StatefulWidget {
   const Home({super.key});
 

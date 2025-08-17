@@ -13,23 +13,23 @@ class WelcomeScreen extends StatelessWidget {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Couche 1 : fond avec l'image seule
+
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/welcome_background.jpeg'),  // Assurez-vous que le chemin est correct
-                fit: BoxFit.cover,  // L'image couvre toute la zone
-                alignment: Alignment.topLeft, // L'image est centrée
+                image: AssetImage('assets/welcome_background.jpeg'),
+                fit: BoxFit.cover,
+                alignment: Alignment.topLeft,
               ),
             ),
           ),
 
-          // Léger voile sombre pour contraster les textes
+
           Container(
             color: Colors.black.withOpacity(0.25),
           ),
 
-          // Contenu
+
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -38,7 +38,6 @@ class WelcomeScreen extends StatelessWidget {
                 children: [
                   const SizedBox(height: 25
                   ),
-                  // Gros titre en haut à gauche
                   Text(
                     "Manage Your Business,\nAnytime, Anywhere",
                     style: theme.textTheme.headlineMedium?.copyWith(
@@ -50,24 +49,21 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-
-                  // Logo / marque KOLSHY avec "KO" coloré (image)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Image.asset(
-                        'assets/kolshy_logo.gif',  // Assurez-vous que le chemin est correct
-                        width: 200,  // Ajustez la taille selon besoin
-                        height: 120,  // Ajustez la taille selon besoin
+                        'assets/kolshy_logo.gif',
+                        width: 200,
+                        height: 120,
                       ),
                     ],
                   ),
 
-                  // Sous-titre centré
+
                   const _Subtitle(),
                   const SizedBox(height: 28),
 
-                  // Boutons
                   _PrimaryButton(
                     label: "Sign up",
                     onPressed: () {

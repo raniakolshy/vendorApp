@@ -1,13 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-/// Dashboard screen inspired by the provided mock.
-///
-/// Notes
-/// - Uses [fl_chart] for line, bar, and pie (donut) charts.
-/// - Extracted small reusable widgets for section cards and stat tiles.
-/// - Replace the placeholder avatar images with your assets/network images.
-/// - Hook this screen into your Navigator or AppShell as needed.
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -28,74 +21,65 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Removed the _Header since the AppShell already provides the top navbar
-              const SizedBox(height: 16),
 
-              // Greeting + quick stat tiles
-              Text('Hello, Mr Jake', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Text("Let's Check Your Store!", style: textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
-              const SizedBox(height: 12),
-              _StatRow(),
-              const SizedBox(height: 16),
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Text('Hello, Mr Jake', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text("Let's Check Your Store!", style: textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+            const SizedBox(height: 12),
+            _StatRow(),
+            const SizedBox(height: 16),
 
-              // Total Sales
-              SectionCard(
-                title: 'Total Sales',
-                trailing: _RangeDropDown(
-                  value: _salesRange,
-                  ranges: _ranges,
-                  onChanged: (v) => setState(() => _salesRange = v!),
-                ),
-                child: _SalesSection(range: _salesRange),
+            SectionCard(
+              title: 'Total Sales',
+              trailing: _RangeDropDown(
+                value: _salesRange,
+                ranges: _ranges,
+                onChanged: (v) => setState(() => _salesRange = v!),
               ),
-              const SizedBox(height: 16),
+              child: _SalesSection(range: _salesRange),
+            ),
+            const SizedBox(height: 16),
 
-              // Total customers
-              SectionCard(
-                title: 'Total customers',
-                trailing: _RangeDropDown(
-                  value: _customersRange,
-                  ranges: _ranges,
-                  onChanged: (v) => setState(() => _customersRange = v!),
-                ),
-                child: _CustomersSection(range: _customersRange),
+            SectionCard(
+              title: 'Total customers',
+              trailing: _RangeDropDown(
+                value: _customersRange,
+                ranges: _ranges,
+                onChanged: (v) => setState(() => _customersRange = v!),
               ),
-              const SizedBox(height: 16),
+              child: _CustomersSection(range: _customersRange),
+            ),
+            const SizedBox(height: 16),
 
-              // Orders views
-              SectionCard(
-                title: 'Orders views',
-                trailing: _RangeDropDown(
-                  value: _ordersRange,
-                  ranges: _ranges,
-                  onChanged: (v) => setState(() => _ordersRange = v!),
-                ),
-                child: _OrdersSection(range: _ordersRange),
+            SectionCard(
+              title: 'Orders views',
+              trailing: _RangeDropDown(
+                value: _ordersRange,
+                ranges: _ranges,
+                onChanged: (v) => setState(() => _ordersRange = v!),
               ),
-              const SizedBox(height: 16),
+              child: _OrdersSection(range: _ordersRange),
+            ),
+            const SizedBox(height: 16),
 
-              // AOV
-              SectionCard(
-                title: 'Average Order Value',
-                trailing: _RangeDropDown(
-                  value: _aovRange,
-                  ranges: _ranges,
-                  onChanged: (v) => setState(() => _aovRange = v!),
-                ),
-                child: _AOVSection(range: _aovRange),
+            SectionCard(
+              title: 'Average Order Value',
+              trailing: _RangeDropDown(
+                value: _aovRange,
+                ranges: _ranges,
+                onChanged: (v) => setState(() => _aovRange = v!),
               ),
-              const SizedBox(height: 32),
-            ],
-          ),
+              child: const _AOVSection(range: 'All time'),
+            ),
+            const SizedBox(height: 32),
+          ],
         ),
       ),
     );
