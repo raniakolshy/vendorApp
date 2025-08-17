@@ -9,7 +9,7 @@ enum NavKey {
   analytics,
   transactions,
   revenue,
-  review,
+  review, payouts,
 }
 
 // central colors (same as before)

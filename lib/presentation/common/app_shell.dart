@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:vendor_app/presentation/orders/orders_list_screen.dart';
+import '../dashboard/dashboard_screen.dart';
 import 'kolshy_drawer.dart';
 import 'nav_key.dart';
 
@@ -55,12 +57,22 @@ class AppShell extends StatelessWidget {
                 _TopBtn(
                   name: 'home',
                   active: bottomIndex == 1,
-                  onTap: () => onBottomTap(1),
+                  onTap: () {
+                    onBottomTap(1);
+                    // The navigation logic to switch the child widget should be handled
+                    // in the parent widget that creates the AppShell.
+                    // This onTap should only update the bottomIndex.
+                  },
                 ),
                 _TopBtn(
                   name: 'chat',
                   active: bottomIndex == 2,
-                  onTap: () => onBottomTap(2),
+                  onTap: () {
+                    onBottomTap(2);
+                    // The navigation logic to switch the child widget should be handled
+                    // in the parent widget that creates the AppShell.
+                    // This onTap should only update the bottomIndex.
+                  },
                 ),
                 Stack(
                   clipBehavior: Clip.none,
@@ -94,11 +106,12 @@ class AppShell extends StatelessWidget {
           child: KolshyDrawer(selected: selected, onSelect: onSelect),
         ),
       ),
-      body: child,
+      body: child, // Keep the child as the body of the AppShell.
     );
   }
 }
 
+// Add the missing helper widgets here
 class _TopBtn extends StatelessWidget {
   final String name;
   final bool active;
@@ -132,8 +145,8 @@ class _TopBtn extends StatelessWidget {
         ),
         child: Image.asset(
           'assets/icons/$name.png',
-          width: 20, // smaller icon size
-          height: 20,
+          width: 18, // smaller icon size
+          height: 18,
         ),
       ),
     );

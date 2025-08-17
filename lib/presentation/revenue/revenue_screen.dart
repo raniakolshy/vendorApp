@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 
-class ReviewsScreen extends StatelessWidget {
-  const ReviewsScreen({super.key});
+class RevenueScreen extends StatelessWidget {
+  const RevenueScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Reviews Screen', style: TextStyle(fontSize: 24)));
+    return const Center(child: Text('Revenue Screen', style: TextStyle(fontSize: 24)));
   }
 }
