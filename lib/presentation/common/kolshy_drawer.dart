@@ -1,11 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:vendor_app/presentation/Translation/Language.dart';
+import 'package:vendor_app/presentation/admin/admin_news_screen.dart';
+import 'package:vendor_app/presentation/admin/ask_admin_screen.dart';
+import 'package:vendor_app/presentation/analytics/customer_analytics_screen.dart';
 import 'package:vendor_app/presentation/auth/login/welcome_screen.dart';
+import 'package:vendor_app/presentation/pdf/print_pdf_screen.dart';
+import '../profile/edit_profile_screen.dart';
 import 'nav_key.dart';
+
+/// ---- theme constants (delete if you already have these) ----
+const kIconGray = Color(0xFF8E9196);
+const kTextGray = Color(0xFF2E2F32);
+const kDividerGray = Color(0xFFE7E8EA);
+const kDrawerActive = Color(0xFFF4F5F7);
+const kMutedOrange = Color(0xFFFF8A00);
+const kRedLogout = Color(0xFFE64949);
+/// -----------------------------------------------------------
 
 class KolshyDrawer extends StatefulWidget {
   final NavKey selected;
   final ValueChanged<NavKey> onSelect;
-  const KolshyDrawer({super.key, required this.selected, required this.onSelect});
+
+  const KolshyDrawer({
+    super.key,
+    required this.selected,
+    required this.onSelect,
+  });
 
   @override
   State<KolshyDrawer> createState() => _KolshyDrawerState();
@@ -34,13 +54,11 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
           padding: const EdgeInsets.fromLTRB(8, 4, 12, 8),
           child: Row(
             children: [
-              // you said you didn't bring an X icon; use Material close icon
               IconButton(
                 icon: const Icon(Icons.close, color: kIconGray),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               const Spacer(),
-              // use your GIF logo here too
               Image.asset(
                 'assets/kolshy_logo_noir.gif',
                 height: 30,
@@ -115,7 +133,11 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
               ),
               const SizedBox(height: 12),
               const Divider(color: kDividerGray, height: 24),
+
+              // Profile row → opens figma-style popup
               const _ProfileButton(),
+
+              // Extra CTA
               InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {},
@@ -123,12 +145,15 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
                   padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                   child: Row(
                     children: [
-                      Icon(Icons.download_for_offline_outlined, color: Colors.black45),
+                      Icon(Icons.download_for_offline_outlined,
+                          color: Colors.black45),
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Install main application',
-                          style: TextStyle(color: Colors.black45, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              color: Colors.black45,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -144,12 +169,16 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
   }
 }
 
-// drawer icon uses your "<name>_on.png" / "<name>_off.png"
+// drawer icon uses "<name>_on.png" / "<name>_off.png"
 class _AssetIcon extends StatelessWidget {
   final String base;
   final bool active;
   final double size;
-  const _AssetIcon({required this.base, required this.active, this.size = 22});
+  const _AssetIcon({
+    required this.base,
+    required this.active,
+    this.size = 22,
+  });
   @override
   Widget build(BuildContext context) {
     final path = 'assets/icons/${base}_${active ? 'on' : 'off'}.png';
@@ -178,7 +207,13 @@ class _DrawerItem extends StatelessWidget {
     required VoidCallback onTap,
     Widget? trailing,
   }) =>
-      _DrawerItem(base: base, label: label, active: active, onTap: onTap, trailing: trailing);
+      _DrawerItem(
+        base: base,
+        label: label,
+        active: active,
+        onTap: onTap,
+        trailing: trailing,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +233,10 @@ class _DrawerItem extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(color: kTextGray, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: kTextGray,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             if (trailing != null) trailing!,
@@ -224,43 +262,49 @@ class _Expandable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-          decoration: BoxDecoration(
-            color: open ? kDrawerActive : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              // you didn’t bring a dropdown icon – use Material chevron here
-              const _AssetIcon(base: 'product', active: true),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(color: kTextGray, fontWeight: FontWeight.w600),
+    return Column(
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            decoration: BoxDecoration(
+              color: open ? kDrawerActive : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                const _AssetIcon(base: 'product', active: true),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: kTextGray,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
-              AnimatedRotation(
-                turns: open ? .5 : 0,
-                duration: const Duration(milliseconds: 160),
-                child: const Icon(Icons.expand_more_rounded, color: kIconGray),
-              ),
-            ],
+                AnimatedRotation(
+                  turns: open ? .5 : 0,
+                  duration: const Duration(milliseconds: 160),
+                  child:
+                  const Icon(Icons.expand_more_rounded, color: kIconGray),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-      AnimatedCrossFade(
-        crossFadeState: open ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-        duration: const Duration(milliseconds: 150),
-        firstChild: const SizedBox.shrink(),
-        secondChild: Column(children: children),
-      ),
-    ]);
+        AnimatedCrossFade(
+          crossFadeState:
+          open ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 150),
+          firstChild: const SizedBox.shrink(),
+          secondChild: Column(children: children),
+        ),
+      ],
+    );
   }
 }
 
@@ -268,7 +312,11 @@ class _Child extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
-  const _Child({required this.label, required this.active, required this.onTap});
+  const _Child({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -282,18 +330,20 @@ class _Child extends StatelessWidget {
             color: active ? kDrawerActive : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Row(children: [
-            const SizedBox(width: 2),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: kTextGray,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+          child: Row(
+            children: [
+              const SizedBox(width: 2),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: kTextGray,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                  ),
                 ),
               ),
-            ),
-          ]),
+            ],
+          ),
         ),
       ),
     );
@@ -306,10 +356,18 @@ class _RevenueBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(color: kMutedOrange, borderRadius: BorderRadius.circular(10)),
+    decoration: BoxDecoration(
+      color: kMutedOrange,
+      borderRadius: BorderRadius.circular(10),
+    ),
     child: Text(
       '$count',
-      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12, height: 1),
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w800,
+        fontSize: 12,
+        height: 1,
+      ),
     ),
   );
 }
@@ -322,30 +380,8 @@ class _ProfileButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       onTap: () => showDialog(
         context: context,
-        builder: (c) => SimpleDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          children: [
-            const _PM('Profile Settings'),
-            const _PM('Print PDF'),
-            const _PM('Customer Dashboard'),
-            const _PM('Admin News'),
-            const _PM('Language'),
-            const Divider(),
-            const _PM('Ask for support'),
-            const Divider(),
-            _PM(
-              'Log out',
-              color: kRedLogout,
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                      (route) => false,
-                );
-              },
-            ),
-          ],
-        ),
+        barrierColor: Colors.black.withOpacity(.25),
+        builder: (_) => const _ProfileMenuDialog(),
       ),
       child: const Padding(
         padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
@@ -361,9 +397,15 @@ class _ProfileButton extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Annette Black', style: TextStyle(fontWeight: FontWeight.w700, color: kTextGray)),
+                  Text('Annette Black',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, color: kTextGray)),
                   SizedBox(height: 2),
-                  Text('Kolshy Store', style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w500, fontSize: 12)),
+                  Text('Kolshy Store',
+                      style: TextStyle(
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12)),
                 ],
               ),
             ),
@@ -375,28 +417,181 @@ class _ProfileButton extends StatelessWidget {
   }
 }
 
-class _PM extends StatelessWidget {
-  final String text;
-  final Color color;
-  final VoidCallback? onPressed;
-
-  const _PM(this.text, {this.color = kTextGray, this.onPressed});
+/// Figma-style popup menu with icons + navigation (no DropdownMenuItem)
+class _ProfileMenuDialog extends StatelessWidget {
+  const _ProfileMenuDialog();
 
   @override
-  Widget build(BuildContext context) => SimpleDialogOption(
-    onPressed: () {
-      Navigator.pop(context); // always close the dialog first
-      if (onPressed != null) {
-        onPressed!();
-      }
-    },
-    child: Text(
-      text,
-      style: TextStyle(
-        color: color,
-        fontWeight:
-        color == kRedLogout ? FontWeight.w700 : FontWeight.w500,
+  Widget build(BuildContext context) {
+    return Dialog(
+      elevation: 20,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      backgroundColor: Colors.white,
+      shadowColor: Colors.black.withOpacity(.25),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _MenuRow(
+                icon: Icons.person_outline,
+                label: 'Profile Settings',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProfileScreen(),
+                    ),
+                  );
+                },
+              ),
+
+              const _DividerLine(),
+
+              _MenuRow(
+                icon: Icons.picture_as_pdf_outlined,
+                label: 'Print PDF',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PrintPdfScreen()),
+                  );
+                },
+              ),
+              _MenuRow(
+                icon: Icons.space_dashboard_outlined,
+                label: 'Customer Dashboard',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const CustomerAnalyticsScreen()),
+                  );
+                },
+              ),
+              _MenuRow(
+                icon: Icons.article_outlined,
+                label: 'Admin News',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminNewsScreen()),
+                  );
+                },
+              ),
+              _MenuRow(
+                icon: Icons.translate_outlined,
+                label: 'Language',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LanguageScreen()),
+                  );
+                },
+              ),
+
+              const _DividerLine(),
+
+              _MenuRow(
+                icon: Icons.support_agent_outlined,
+                label: 'Ask for support',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AskAdminScreen()),
+                  );
+                },
+              ),
+
+              // Destructive action
+              InkWell(
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                        (route) => false,
+                  );
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+                  child: Text(
+                    'Log out',
+                    style: TextStyle(
+                      color: kRedLogout,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _MenuRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: Colors.black45),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: kTextGray,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DividerLine extends StatelessWidget {
+  const _DividerLine();
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Divider(
+        height: 1,
+        thickness: 1,
+        color: kDividerGray,
+      ),
+    );
+  }
 }

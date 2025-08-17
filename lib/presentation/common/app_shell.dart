@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vendor_app/presentation/orders/orders_list_screen.dart';
-import '../dashboard/dashboard_screen.dart';
 import 'kolshy_drawer.dart';
 import 'nav_key.dart';
 
@@ -13,7 +11,6 @@ class AppShell extends StatelessWidget {
   final ValueChanged<int> onBottomTap;
 
   final int unreadCount;
-  final Future<void> Function() onOpenNotifications;
   final Widget child;
 
   const AppShell({
@@ -24,7 +21,6 @@ class AppShell extends StatelessWidget {
     required this.bottomIndex,
     required this.onBottomTap,
     required this.unreadCount,
-    required this.onOpenNotifications,
     required this.child,
   });
 
@@ -35,8 +31,8 @@ class AppShell extends StatelessWidget {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        automaticallyImplyLeading: false, // removes the default menu icon
-        toolbarHeight: 0, // hides the main AppBar height entirely
+        automaticallyImplyLeading: false,
+        toolbarHeight: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
           child: Container(
@@ -57,32 +53,23 @@ class AppShell extends StatelessWidget {
                 _TopBtn(
                   name: 'home',
                   active: bottomIndex == 1,
-                  onTap: () {
-                    onBottomTap(1);
-                    // The navigation logic to switch the child widget should be handled
-                    // in the parent widget that creates the AppShell.
-                    // This onTap should only update the bottomIndex.
-                  },
+                  onTap: () => onBottomTap(1),
                 ),
                 _TopBtn(
                   name: 'chat',
                   active: bottomIndex == 2,
-                  onTap: () {
-                    onBottomTap(2);
-                    // The navigation logic to switch the child widget should be handled
-                    // in the parent widget that creates the AppShell.
-                    // This onTap should only update the bottomIndex.
-                  },
+                  onTap: () => onBottomTap(2),
                 ),
+                // Bell + popover
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
                     _TopBtn(
                       name: 'bell',
                       active: bottomIndex == 3,
-                      onTap: () async {
+                      onTap: () {
                         onBottomTap(3);
-                        await onOpenNotifications();
+                        _showNotificationsPopover(context);
                       },
                     ),
                     if (unreadCount > 0)
@@ -106,12 +93,52 @@ class AppShell extends StatelessWidget {
           child: KolshyDrawer(selected: selected, onSelect: onSelect),
         ),
       ),
-      body: child, // Keep the child as the body of the AppShell.
+      body: child,
+    );
+  }
+
+  // ---- Popover ----
+  void _showNotificationsPopover(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'notifications',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 160),
+      pageBuilder: (_, __, ___) => const SizedBox.shrink(),
+      transitionBuilder: (ctx, anim, _, __) {
+        return Stack(
+          children: [
+            // tap outside to close
+            Positioned.fill(
+              child: GestureDetector(onTap: () => Navigator.pop(ctx)),
+            ),
+            Positioned(
+              right: 12,
+              top: 62, // just below the dark top bar
+              child: FadeTransition(
+                opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, -0.05),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: anim,
+                    curve: Curves.easeOut,
+                  )),
+                  child: const _NotificationsCard(),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-// Add the missing helper widgets here
+// ----------------- Top bar pieces -----------------
+
 class _TopBtn extends StatelessWidget {
   final String name;
   final bool active;
@@ -129,7 +156,7 @@ class _TopBtn extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.all(6), // smaller padding
+        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: active ? Colors.white10 : Colors.transparent,
           shape: BoxShape.circle,
@@ -145,7 +172,7 @@ class _TopBtn extends StatelessWidget {
         ),
         child: Image.asset(
           'assets/icons/$name.png',
-          width: 18, // smaller icon size
+          width: 18,
           height: 18,
         ),
       ),
@@ -160,7 +187,236 @@ class _RedDot extends StatelessWidget {
     return Container(
       width: 8,
       height: 8,
-      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+      decoration:
+      const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+    );
+  }
+}
+
+// ----------------- Notifications popover -----------------
+
+class _NotificationsCard extends StatefulWidget {
+  const _NotificationsCard();
+
+  @override
+  State<_NotificationsCard> createState() => _NotificationsCardState();
+}
+
+class _NotificationsCardState extends State<_NotificationsCard> {
+  final List<_NotifData> _items = [
+    _NotifData(
+      avatar: 'assets/avatar1.png',
+      name: 'Kristin Watson',
+      handleAndTime: 'alexandeun • 23m',
+      line1: 'Rate ⭐ 5 for 3D soothing wallp…',
+      unread: true,
+    ),
+    _NotifData(
+      avatar: 'assets/avatar2.png',
+      name: 'Leslie Alexander',
+      handleAndTime: 'flores • Aug 15',
+      line1: 'Likes 3D computer improved ve…',
+      unread: true,
+    ),
+    _NotifData(
+      avatar: 'assets/avatar3.png',
+      name: 'Annette Black',
+      handleAndTime: 'edwards • Apr 11',
+      line1: 'Comment on Gray vintage 3D co…',
+      unread: false,
+    ),
+    _NotifData(
+      avatar: 'assets/avatar4.png',
+      name: 'Brooklyn Simmons',
+      handleAndTime: 'cooper • YD',
+      line1: 'Purchased 3D dark mode wallp…',
+      unread: true,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 310,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+            BoxShadow(
+              color: Color(0x0D000000),
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Text(
+                    'Notifications',
+                    style: text.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF2E2F32),
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.black45),
+                    splashRadius: 18,
+                  ),
+                ],
+              ),
+              // Scrollable list with swipe-to-remove
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 400),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _items.length,
+                  itemBuilder: (context, index) {
+                    final data = _items[index];
+                    return Dismissible(
+                      key: ValueKey('${data.name}_${data.line1}_$index'),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (_) {
+                        setState(() {
+                          _items.removeAt(index);
+                        });
+                      },
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        color: Colors.red.withOpacity(0.85),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      child: _NotifTile(
+                        avatar: data.avatar,
+                        name: data.name,
+                        handleAndTime: data.handleAndTime,
+                        line1: data.line1,
+                        unread: data.unread,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Data model
+class _NotifData {
+  final String avatar, name, handleAndTime, line1;
+  final bool unread;
+  _NotifData({
+    required this.avatar,
+    required this.name,
+    required this.handleAndTime,
+    required this.line1,
+    required this.unread,
+  });
+}
+
+// A single notification row (with avatar, text, unread dot)
+class _NotifTile extends StatelessWidget {
+  final String avatar;
+  final String name;
+  final String handleAndTime;
+  final String line1;
+  final bool unread;
+
+  const _NotifTile({
+    required this.avatar,
+    required this.name,
+    required this.handleAndTime,
+    required this.line1,
+    required this.unread,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundImage: AssetImage(avatar),
+            backgroundColor: const Color(0xFFEAECEE),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // name + meta
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: text.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF2E2F32),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      handleAndTime,
+                      style: text.bodySmall?.copyWith(
+                        color: Colors.black45,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  line1,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.bodyMedium?.copyWith(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // blue unread dot
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: unread ? const Color(0xFF2F80ED) : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
