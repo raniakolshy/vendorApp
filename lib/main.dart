@@ -1,17 +1,16 @@
+import 'package:app_vendor/presentation/analytics/customer_analytics_screen.dart';
+import 'package:app_vendor/presentation/dashboard/dashboard_screen.dart';
+import 'package:app_vendor/presentation/orders/orders_list_screen.dart';
+import 'package:app_vendor/presentation/payouts/payouts_screen.dart';
+import 'package:app_vendor/presentation/products/add_product_screen.dart';
+import 'package:app_vendor/presentation/products/drafts_list_screen.dart';
+import 'package:app_vendor/presentation/products/products_list_screen.dart';
+import 'package:app_vendor/presentation/revenue/revenue_screen.dart';
+import 'package:app_vendor/presentation/reviews/reviews_screen.dart';
+import 'package:app_vendor/presentation/transactions/transactions_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:vendor_app/presentation/auth/login/welcome_screen.dart';
-import 'package:vendor_app/presentation/reviews/reviews_screen.dart';
 import 'presentation/common/app_shell.dart';
 import 'presentation/common/nav_key.dart';
-import 'package:vendor_app/presentation/analytics/customer_analytics_screen.dart';
-import 'package:vendor_app/presentation/dashboard/dashboard_screen.dart';
-import 'package:vendor_app/presentation/orders/orders_list_screen.dart';
-import 'package:vendor_app/presentation/payouts/payouts_screen.dart';
-import 'package:vendor_app/presentation/products/add_product_screen.dart';
-import 'package:vendor_app/presentation/products/drafts_list_screen.dart';
-import 'package:vendor_app/presentation/products/products_list_screen.dart';
-import 'package:vendor_app/presentation/revenue/revenue_screen.dart';
-import 'package:vendor_app/presentation/transactions/transactions_screen.dart';
 
 void main() => runApp(const KolshyApp());
 

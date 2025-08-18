@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:vendor_app/presentation/Translation/Language.dart';
-import 'package:vendor_app/presentation/admin/admin_news_screen.dart';
-import 'package:vendor_app/presentation/admin/ask_admin_screen.dart';
-import 'package:vendor_app/presentation/analytics/customer_analytics_screen.dart';
-import 'package:vendor_app/presentation/auth/login/welcome_screen.dart';
-import 'package:vendor_app/presentation/pdf/print_pdf_screen.dart';
+
+import '../Translation/Language.dart';
+import '../admin/admin_news_screen.dart';
+import '../admin/ask_admin_screen.dart';
+import '../analytics/customer_analytics_screen.dart';
+import '../auth/login/welcome_screen.dart';
+import '../pdf/print_pdf_screen.dart';
 import '../profile/edit_profile_screen.dart';
 import 'nav_key.dart';
 
