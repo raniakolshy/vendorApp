@@ -53,3 +53,8 @@ flutter:
     - assets/icons/bell.png
 
     - assets/welcome_background.jpeg
+    - assets/icons/people_alt_outlined.png
+    - assets/icons/shopping_bag_outlined.png
+    - assets/icons/payments_outlined.png
+    - assets/img_square.jpg
+    - assets/icons/loading.png
