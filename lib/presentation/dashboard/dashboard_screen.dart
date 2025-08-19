@@ -1454,7 +1454,7 @@ class _RatingCard extends StatelessWidget {
 }
 
 /// =============================================================
-/// Reviews list
+/// Modern Reviews list
 /// =============================================================
 class LatestReviewsList extends StatelessWidget {
   final List<Review> reviews;
@@ -1462,58 +1462,204 @@ class LatestReviewsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (reviews.isEmpty) return const _EmptyStripe(message: 'No comment & review available');
+    if (reviews.isEmpty) return const _EmptyReviewState();
+
     return Column(
       children: [
         for (final r in reviews) ...[
-          _ReviewTile(r: r),
-          const Divider(height: 20),
+          _ModernReviewCard(r: r),
+          const SizedBox(height: 16),
         ]
       ],
     );
   }
 }
 
-class _ReviewTile extends StatelessWidget {
+class _ModernReviewCard extends StatelessWidget {
   final Review r;
-  const _ReviewTile({required this.r});
+  const _ModernReviewCard({required this.r});
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CircleAvatar(
-          radius: 18,
-          backgroundColor: const Color(0xFF97ADFF).withOpacity(.2),
-          child: Text(
-            r.user.isNotEmpty ? r.user.trim().split(RegExp(r'\s+')).map((w)=>w[0]).take(2).join().toUpperCase() : '?',
-            style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(child: Text(r.user, style: text.labelLarge?.copyWith(fontWeight: FontWeight.w700))),
-              Text(r.timeAgo, style: text.labelSmall?.copyWith(color: const Color(0xFF6B7280))),
-            ]),
-            const SizedBox(height: 4),
-            Row(
-              children: List.generate(5, (i) => Icon(
-                i < r.rating ? Icons.star : Icons.star_border,
-                size: 16, color: const Color(0xFFF59E0B),
-              )),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with user info and rating
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // User avatar with gradient background
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    r.user.isNotEmpty
+                        ? r.user.trim().split(RegExp(r'\s+')).map((w) => w[0]).take(2).join().toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        fontSize: 14
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      r.user,
+                      style: textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Star rating
+                    Row(
+                      children: [
+                        Wrap(
+                          children: List.generate(5, (i) => Icon(
+                            i < r.rating ? Icons.star : Icons.star_border,
+                            size: 16,
+                            color: const Color(0xFFF59E0B),
+                          )),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          r.timeAgo,
+                          style: textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Product name if available
+          if (r.product != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                r.product!,
+                style: textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF4B5563),
+                ),
+              ),
             ),
-            const SizedBox(height: 6),
-            if (r.product != null)
-              Text(r.product!, style: text.labelSmall?.copyWith(color: const Color(0xFF111827))),
-            const SizedBox(height: 4),
-            Text(r.comment, maxLines: 3, overflow: TextOverflow.ellipsis),
-          ]),
-        ),
-      ],
+            const SizedBox(height: 12),
+          ],
+
+          // Review comment
+          Text(
+            r.comment,
+            style: textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF374151),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Interactive buttons
+          Row(
+            children: [
+              _InteractiveButton(
+                icon: Icons.thumb_up_outlined,
+                label: 'Helpful',
+                onPressed: () {},
+              ),
+              const SizedBox(width: 16),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InteractiveButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const _InteractiveButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: const Color(0xFF6B7280)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF6B7280),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyReviewState extends StatelessWidget {
+  const _EmptyReviewState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
     );
   }
 }
