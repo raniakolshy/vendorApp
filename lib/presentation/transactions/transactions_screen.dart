@@ -1,398 +1,225 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const TransactionsApp());
+void main() => runApp(const TransactionsScreen());
 
-class TransactionsApp extends StatelessWidget {
-  const TransactionsApp({super.key});
+/// A custom widget for a gap with a specific height.
+class Gap extends StatelessWidget {
+  /// The height of the gap.
+  final double h;
+
+  /// Creates a [Gap] widget with the specified height.
+  const Gap(this.h, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    final baseTheme = ThemeData(
-      useMaterial3: true,
-      colorSchemeSeed: const Color(0xFF111111),
-      fontFamily: 'Roboto',
-    );
+    return SizedBox(height: h);
+  }
+}
+
+/// The main application widget for the Payouts UI.
+class TransactionsScreen extends StatelessWidget {
+  const TransactionsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: baseTheme.copyWith(
+      title: 'Payouts',
+      theme: ThemeData(
+        useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF3F3F4),
-        textTheme: baseTheme.textTheme.apply(
-          bodyColor: const Color(0xFF1B1B1B),
-          displayColor: const Color(0xFF1B1B1B),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1B1B1B),
+          primary: const Color(0xFF1B1B1B),
+          onPrimary: Colors.white,
+          secondary: const Color(0xFFD3D3D3),
+          onSecondary: const Color(0xFF4A4A4A),
+          surface: Colors.white,
+          onSurface: const Color(0xFF1B1B1B),
+          background: const Color(0xFFF3F3F4),
+          onBackground: const Color(0xFF1B1B1B),
+        ),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Color(0xFF1B1B1B)),
+          bodyMedium: TextStyle(color: Color(0xFF1B1B1B)),
+          bodySmall: TextStyle(color: Color(0xFF6B6B6B)),
+          headlineSmall: TextStyle(
+            color: Color(0xFF1B1B1B),
+            fontWeight: FontWeight.bold,
+          ),
+          titleLarge: TextStyle(
+            color: Color(0xFF1B1B1B),
+            fontWeight: FontWeight.bold,
+          ),
+          titleSmall: TextStyle(color: Color(0xFF6B6B6B)),
         ),
       ),
-      home: const TransactionsScreen(),
+      home: const PayoutsScreen(),
     );
   }
 }
 
-class TransactionsScreen extends StatefulWidget {
-  const TransactionsScreen({super.key});
+/// A screen that displays the user's payouts.
+class PayoutsScreen extends StatefulWidget {
+  const PayoutsScreen({super.key});
 
   @override
-  State<TransactionsScreen> createState() => _TransactionsScreenState();
+  State<PayoutsScreen> createState() => _PayoutsScreenState();
 }
 
-class _TransactionsScreenState extends State<TransactionsScreen> {
+/// The state for the [PayoutsScreen].
+class _PayoutsScreenState extends State<PayoutsScreen> {
   static const int _pageSize = 5;
-  int _shown = _pageSize;
-  bool _loadingMore = false;
+  int _shownCount = _pageSize;
+  bool _isLoadingMore = false;
 
-  final List<Transaction> _transactions = [
-    Transaction(
-      id: 'TRX-001',
-      transactionId: 'PAY-789456',
-      status: TransactionStatus.paid,
-      earnings: '\$1,234.56',
-      purchasedOn: '10/10/2025',
+  final List<Transaction> _allTransactions = List.generate(
+    10,
+        (index) => Transaction(
+      id: '12345',
+      transactionId: 'TXN${1000 + index}',
+      status: index.isEven ? TransactionStatus.paid : TransactionStatus.onProcess,
+      earnings: r'$7,750.88',
+      purchasedOn: '12 / 12 / 2025',
     ),
-    Transaction(
-      id: 'TRX-002',
-      transactionId: 'PAY-123456',
-      status: TransactionStatus.onProcess,
-      earnings: '\$987.65',
-      purchasedOn: '09/10/2025',
-    ),
-    Transaction(
-      id: 'TRX-003',
-      transactionId: 'PAY-456789',
-      status: TransactionStatus.paid,
-      earnings: '\$2,345.67',
-      purchasedOn: '08/10/2025',
-    ),
-    Transaction(
-      id: 'TRX-004',
-      transactionId: 'PAY-987654',
-      status: TransactionStatus.failed,
-      earnings: '\$543.21',
-      purchasedOn: '07/10/2025',
-    ),
-    Transaction(
-      id: 'TRX-005',
-      transactionId: 'PAY-654321',
-      status: TransactionStatus.paid,
-      earnings: '\$1,876.54',
-      purchasedOn: '06/10/2025',
-    ),
-    Transaction(
-      id: 'TRX-006',
-      transactionId: 'PAY-321654',
-      status: TransactionStatus.onProcess,
-      earnings: '\$765.43',
-      purchasedOn: '05/10/2025',
-    ),
-  ];
+  );
 
+  /// Loads more transactions.
   Future<void> _loadMore() async {
-    setState(() => _loadingMore = true);
+    if (_shownCount >= _allTransactions.length || _isLoadingMore) return;
+
+    setState(() => _isLoadingMore = true);
     await Future.delayed(const Duration(seconds: 1));
+
     setState(() {
-      _shown = (_shown + _pageSize).clamp(0, _transactions.length);
-      _loadingMore = false;
+      _shownCount = (_shownCount + _pageSize).clamp(0, _allTransactions.length);
+      _isLoadingMore = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final visible = _transactions.take(_shown).toList();
-    final canLoadMore = _shown < _transactions.length && !_loadingMore;
+    final visibleTransactions = _allTransactions.take(_shownCount).toList();
+    final canLoadMore = _shownCount < _allTransactions.length;
 
     return Scaffold(
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Title
+            const Gap(50),
+            _buildAppBar(),
+            const Gap(30),
             Text(
               'Payouts',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 24,
-              ),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 24),
             ),
-            const SizedBox(height: 20),
-
-            // Balance Overview Card
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0F000000),
-                    blurRadius: 16,
-                    offset: Offset(0, 8),
-                  )
-                ],
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Current Balance
-                  _BalanceCard(
-                    icon: Icons.account_balance_wallet_rounded,
-                    iconColor: Colors.green,
-                    label: 'Current account balance',
-                    amount: '\$5,432.10',
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Available for Withdrawal
-                  _BalanceCard(
-                    icon: Icons.monetization_on_rounded,
-                    iconColor: Colors.orange,
-                    label: 'Available for withdrawal',
-                    amount: '\$3,210.50',
-                  ),
-                ],
-              ),
+            const Gap(20),
+            const BalanceCard(
+              label: 'Current balance',
+              amount: r'$128k',
+              icon: Icons.trending_up,
             ),
-            const SizedBox(height: 24),
-
-            // Transaction History Header
-            Row(
-              children: [
-                Text(
-                  'Payout history',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.filter_list, size: 20),
-                  onPressed: () {},
-                  color: Colors.black54,
-                ),
-                const VerticalDivider(width: 16, thickness: 1),
-                IconButton(
-                  icon: const Icon(Icons.sort, size: 20),
-                  onPressed: () {},
-                  color: Colors.black54,
-                ),
-              ],
+            const Gap(16),
+            const BalanceCard(
+              label: 'Available for withdrawal',
+              amount: r'$512.64',
+              icon: Icons.attach_money,
             ),
-            const SizedBox(height: 16),
-
-            // Transaction List
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0F000000),
-                    blurRadius: 16,
-                    offset: Offset(0, 8),
-                  )
-                ],
-              ),
-              child: ListView.separated(
-                physics: const NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                itemCount: visible.length,
-                separatorBuilder: (_, __) => const Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: Color(0x11000000),
-                ),
-                itemBuilder: (context, i) => _TransactionRow(transaction: visible[i]),
-              ),
+            const Gap(24),
+            _PayoutHistory(
+              transactions: visibleTransactions,
+              canLoadMore: canLoadMore,
+              isLoadingMore: _isLoadingMore,
+              onLoadMore: _loadMore,
             ),
-            const SizedBox(height: 16),
-
-            // Load More Button
-            if (_transactions.isNotEmpty)
-              Center(
-                child: Opacity(
-                  opacity: canLoadMore ? 1 : 0.6,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(28),
-                    onTap: canLoadMore ? _loadMore : null,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: const Color(0x22000000)),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x0C000000),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 12),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (_loadingMore)
-                              const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            else
-                              Image.asset(
-                                'assets/icons/loading.png',
-                                width: 18,
-                                height: 18,
-                              ),
-                            const SizedBox(width: 10),
-                            const Text(
-                              'Load more',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            const Gap(30),
           ],
         ),
       ),
     );
   }
-}
 
-class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.amount,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String amount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEDEEEF)),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
+  Widget _buildAppBar() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.menu),
+        ),
+        Row(
+          children: [
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.home),
             ),
-            child: Icon(icon, color: iconColor),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.black54,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  amount,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.person),
             ),
-          ),
-          const Icon(Icons.info_outline, color: Colors.black54),
-        ],
-      ),
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.notifications),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
 
-class _TransactionRow extends StatelessWidget {
-  const _TransactionRow({required this.transaction});
-  final Transaction transaction;
+/// A card displaying a balance amount.
+class BalanceCard extends StatelessWidget {
+  final String label;
+  final String amount;
+  final IconData icon;
+
+  const BalanceCard({
+    super.key,
+    required this.label,
+    required this.amount,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final keyStyle = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(color: Colors.black.withOpacity(.65));
-    final valStyle = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(
-        fontWeight: FontWeight.w600, color: Colors.black.withOpacity(.85));
-
-    return Padding(
+    return Container(
       padding: const EdgeInsets.all(16),
-      child: Column(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEDEEEF)),
+      ),
+      child: Row(
         children: [
-          Row(
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.background,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              size: 24,
+              color: const Color(0xFF333333),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _RowKVText(
-                      k: 'ID',
-                      vText: transaction.id,
-                      keyStyle: keyStyle,
-                      valStyle: valStyle,
-                    ),
-                    const SizedBox(height: 8),
-                    _RowKVText(
-                      k: 'Transaction ID',
-                      vText: transaction.transactionId,
-                      keyStyle: keyStyle,
-                      valStyle: valStyle,
-                    ),
-                    const SizedBox(height: 8),
-                    _RowKVText(
-                      k: 'Status',
-                      v: _StatusPill(status: transaction.status),
-                      keyStyle: keyStyle,
-                      valStyle: valStyle,
-                      isWidgetValue: true,
-                    ),
-                  ],
-                ),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _RowKVText(
-                      k: 'Earnings',
-                      vText: transaction.earnings,
-                      keyStyle: keyStyle,
-                      valStyle: valStyle,
-                    ),
-                    const SizedBox(height: 8),
-                    _RowKVText(
-                      k: 'Purchased on',
-                      vText: transaction.purchasedOn,
-                      keyStyle: keyStyle,
-                      valStyle: valStyle,
-                    ),
-                  ],
+              const Gap(4),
+              Text(
+                amount,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 24,
                 ),
               ),
             ],
@@ -403,43 +230,164 @@ class _TransactionRow extends StatelessWidget {
   }
 }
 
-class _RowKVText extends StatelessWidget {
-  const _RowKVText({
-    required this.k,
-    this.vText,
-    this.v,
-    required this.keyStyle,
-    required this.valStyle,
-    this.isWidgetValue = false,
-  }) : assert((vText != null) ^ (v != null), 'Provide either vText or v');
+/// The section for payout history.
+class _PayoutHistory extends StatelessWidget {
+  final List<Transaction> transactions;
+  final bool canLoadMore;
+  final bool isLoadingMore;
+  final VoidCallback onLoadMore;
 
-  final String k;
-  final String? vText;
-  final Widget? v;
-  final TextStyle? keyStyle;
-  final TextStyle? valStyle;
-  final bool isWidgetValue;
+  const _PayoutHistory({
+    required this.transactions,
+    required this.canLoadMore,
+    required this.isLoadingMore,
+    required this.onLoadMore,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Payout history',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.filter_list_rounded),
+                  ),
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.file_download_outlined),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const Gap(16),
+          ListView.separated(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: transactions.length,
+            separatorBuilder: (_, __) => const Gap(20),
+            itemBuilder: (context, i) =>
+                TransactionItem(transaction: transactions[i]),
+          ),
+          const Gap(16),
+          if (transactions.isNotEmpty && canLoadMore)
+            Center(
+              child: _LoadMoreButton(
+                onPressed: onLoadMore,
+                isLoading: isLoadingMore,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A single row for a transaction item.
+class TransactionItem extends StatelessWidget {
+  final Transaction transaction;
+
+  const TransactionItem({super.key, required this.transaction});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
       children: [
-        Expanded(child: Text(k, style: keyStyle)),
-        const SizedBox(width: 8),
-        if (isWidgetValue && v != null)
-          v!
-        else
-          Text(vText ?? '', style: valStyle),
+        _TransactionDetailRow(
+          label: 'ID',
+          value: transaction.id,
+        ),
+        _TransactionDetailRow(
+          label: 'Transaction ID',
+          value: transaction.transactionId,
+        ),
+        _TransactionDetailRow(
+          label: 'Status',
+          status: transaction.status,
+        ),
+        _TransactionDetailRow(
+          label: 'Earnings',
+          value: transaction.earnings,
+        ),
+        _TransactionDetailRow(
+          label: 'Purchased on',
+          value: transaction.purchasedOn,
+        ),
+        const Gap(20),
+        const Divider(height: 1),
       ],
     );
   }
 }
 
+/// A row displaying a transaction detail.
+class _TransactionDetailRow extends StatelessWidget {
+  final String label;
+  final String? value;
+  final TransactionStatus? status;
+
+  const _TransactionDetailRow({
+    required this.label,
+    this.value,
+    this.status,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (status != null)
+            _StatusPill(status: status!)
+          else
+            Text(
+              value!,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A small pill-shaped widget for displaying transaction status.
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.status});
   final TransactionStatus status;
 
-  Color get _bg {
+  const _StatusPill({required this.status});
+
+  Color get _bgColor {
     switch (status) {
       case TransactionStatus.paid:
         return const Color(0xFFDFF7E3);
@@ -474,31 +422,90 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: _bg,
+        color: _bgColor,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Text(
-          _label,
-          style: Theme.of(context)
-              .textTheme
-              .labelLarge
-              ?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: _textColor,
-          ),
+      child: Text(
+        _label,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: _textColor,
+          fontSize: 12,
         ),
       ),
     );
   }
 }
 
+/// A button for loading more items.
+class _LoadMoreButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final bool isLoading;
+
+  const _LoadMoreButton({
+    required this.onPressed,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: isLoading ? null : onPressed,
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.black.withOpacity(0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isLoading)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              const Icon(Icons.restart_alt_rounded, size: 18),
+            const SizedBox(width: 10),
+            Text(
+              'Load more',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The status of a transaction.
 enum TransactionStatus { paid, onProcess, failed }
 
+/// A model class for a single transaction.
 class Transaction {
+  final String id;
+  final String transactionId;
+  final TransactionStatus status;
+  final String earnings;
+  final String purchasedOn;
+
   Transaction({
     required this.id,
     required this.transactionId,
@@ -506,10 +513,4 @@ class Transaction {
     required this.earnings,
     required this.purchasedOn,
   });
-
-  final String id;
-  final String transactionId;
-  final TransactionStatus status;
-  final String earnings;
-  final String purchasedOn;
 }

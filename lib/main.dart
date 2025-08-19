@@ -92,7 +92,7 @@ class _HomeState extends State<Home> {
       case NavKey.transactions:
         return const TransactionsScreen();
       case NavKey.payouts:
-        return const PayoutsScreen();
+        return const TransactionsScreen();
       case NavKey.revenue:
         return const RevenueScreen();
       case NavKey.review:

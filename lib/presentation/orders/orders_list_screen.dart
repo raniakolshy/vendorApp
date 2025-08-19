@@ -40,6 +40,8 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
   String _filter = 'All Orders';
   static const int _pageSize = 2;
   int _shown = _pageSize;
+  bool _loadingMore = false;
+
 
   // ----- Data
   final List<Order> _allOrders = [
@@ -140,7 +142,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
   @override
   Widget build(BuildContext context) {
     final visible = _filtered.take(_shown).toList();
-    final canLoadMore = _shown < _filtered.length;
+    final canLoadMore = _shown < _filtered.length && !_loadingMore;
 
     return Scaffold(
       body: Column(
@@ -148,11 +150,11 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
           // Main card
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x0F000000),
@@ -161,7 +163,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                     )
                   ],
                 ),
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -171,75 +173,90 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                       style: Theme.of(context)
                           .textTheme
                           .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w800, fontSize: 22),
+                          ?.copyWith(fontWeight: FontWeight.w800, fontSize: 24),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
-                    // Search
-                    _InputSurface(
-                      child: TextField(
-                        controller: _searchCtrl,
-                        decoration: InputDecoration(
-                          hintText: 'Search product',
-                          hintStyle: TextStyle(
-                            color: Colors.black.withOpacity(.35),
-                          ),
-                          border: InputBorder.none,
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            size: 22,
-                            color: Colors.black54,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 14,
+                    // Search and Filter row
+                    Row(
+                      children: [
+                        // Search
+                        Expanded(
+                          flex: 3,
+                          child: _InputSurface(
+                            child: TextField(
+                              controller: _searchCtrl,
+                              decoration: InputDecoration(
+                                hintText: 'Search product',
+                                hintStyle: TextStyle(
+                                  color: Colors.black.withOpacity(.35),
+                                ),
+                                border: InputBorder.none,
+                                prefixIcon: const Icon(
+                                  Icons.search,
+                                  size: 22,
+                                  color: Colors.black54,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 14,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
+                        const SizedBox(width: 12),
 
-                    // Filter
-                    DropdownButtonFormField<String>(
-                      value: _filter,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                        // Filter
+                        Expanded(
+                          flex: 2,
+                          child: DropdownButtonFormField<String>(
+                            value: _filter,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                                color: Colors.black54),
+                            dropdownColor: Colors.white,
+                            elevation: 8,
+                            borderRadius: BorderRadius.circular(12),
+                            isExpanded: true,
+                            style: const TextStyle(color: Colors.black, fontSize: 16),
+                            items: const [
+                              'All Orders',
+                              'Delivered',
+                              'Processing',
+                              'Cancelled',
+                            ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                                .toList(),
+                            onChanged: _onFilterChanged,
+                          ),
                         ),
-                      ),
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                          color: Colors.black54),
-                      dropdownColor: Colors.white,
-                      elevation: 8,
-                      borderRadius: BorderRadius.circular(12),
-                      isExpanded: true,
-                      style: const TextStyle(color: Colors.black, fontSize: 16),
-                      items: const [
-                        'All Orders',
-                        'Delivered',
-                        'Processing',
-                        'Cancelled',
-                      ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                          .toList(),
-                      onChanged: _onFilterChanged,
+                      ],
                     ),
 
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 24),
 
                     // Orders list with soft dividers
-                    ListView.builder(
+                    ListView.separated(
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       itemCount: visible.length,
+                      separatorBuilder: (context, index) => const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Divider(height: 1, thickness: 1, color: Color(0x11000000)),
+                      ),
                       itemBuilder: (context, i) => _OrderRow(order: visible[i]),
                     ),
 
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 24),
 
                     // Load more button with static asset icon
                     if (_filtered.isNotEmpty)
@@ -270,11 +287,18 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Image.asset(
-                                      'assets/icons/loading.png',
-                                      width: 18,
-                                      height: 18,
-                                    ),
+                                    if (_loadingMore)
+                                      const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    else
+                                      Image.asset(
+                                        'assets/icons/loading.png',
+                                        width: 18,
+                                        height: 18,
+                                      ),
                                     const SizedBox(width: 10),
                                     const Text(
                                       'Load more',
@@ -292,11 +316,11 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
                     if (_filtered.isEmpty)
                       const Padding(
-                        padding: EdgeInsets.only(top: 12),
+                        padding: EdgeInsets.only(top: 24),
                         child: Center(
                           child: Text(
                             'No orders match your search.',
-                            style: TextStyle(color: Colors.black54),
+                            style: TextStyle(color: Colors.black54, fontSize: 16),
                           ),
                         ),
                       ),
@@ -335,15 +359,15 @@ class _OrderRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               child: Container(
-                width: 86,
-                height: 86,
+                width: 90,
+                height: 90,
                 color: const Color(0xFFEDEEEF),
                 child: Image.asset(order.thumbnailAsset, fit: BoxFit.cover),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,10 +378,12 @@ class _OrderRow extends StatelessWidget {
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontWeight: FontWeight.w700),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   _PriceChip('\$${order.price.toStringAsFixed(2)}'),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     order.type,
                     style: Theme.of(context)
@@ -373,31 +399,31 @@ class _OrderRow extends StatelessWidget {
                     valStyle: valStyle,
                     isWidgetValue: true,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   _RowKVText(
                       k: 'Order Id',
                       vText: order.orderId,
                       keyStyle: keyStyle,
                       valStyle: valStyle),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   _RowKVText(
                       k: 'Purchased on',
                       vText: order.purchasedOn,
                       keyStyle: keyStyle,
                       valStyle: valStyle),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   _RowKVText(
                       k: 'Base Total',
                       vText: order.baseTotal,
                       keyStyle: keyStyle,
                       valStyle: valStyle),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   _RowKVText(
                       k: 'Purchased Total',
                       vText: order.purchasedTotal,
                       keyStyle: keyStyle,
                       valStyle: valStyle),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   _RowKVText(
                       k: 'Customer',
                       vText: order.customer,
@@ -408,8 +434,6 @@ class _OrderRow extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        const Divider(height: 1, thickness: 1, color: Color(0x11000000)),
       ],
     );
   }
@@ -436,12 +460,17 @@ class _RowKVText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Text(k, style: keyStyle)),
-        const SizedBox(width: 8),
-        if (isWidgetValue && v != null)
-          v!
-        else
-          Text(vText ?? '', style: valStyle),
+        Expanded(
+          flex: 2,
+          child: Text(k, style: keyStyle),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 3,
+          child: isWidgetValue && v != null
+              ? v!
+              : Text(vText ?? '', style: valStyle),
+        ),
       ],
     );
   }
@@ -460,7 +489,7 @@ class _PriceChip extends StatelessWidget {
         border: Border.all(color: const Color(0x3382A9FF)),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Text(
           text,
           style: Theme.of(context)
@@ -497,7 +526,7 @@ class _StatusPill extends StatelessWidget {
   String get _label {
     switch (status) {
       case OrderStatus.delivered:
-        return 'Deliverd';
+        return 'Delivered';
       case OrderStatus.processing:
         return 'Processing';
       case OrderStatus.cancelled:
@@ -517,7 +546,7 @@ class _StatusPill extends StatelessWidget {
       decoration:
       BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(10)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Text(
           _label,
           style: Theme.of(context)

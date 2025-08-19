@@ -22,6 +22,25 @@ class ProductsApp extends StatelessWidget {
         ),
       ),
       home: const ProductsListScreen(),
+      routes: {
+        '/edit_product': (context) => const EditProductScreen(),
+      },
+    );
+  }
+}
+
+class EditProductScreen extends StatelessWidget {
+  const EditProductScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Edit Product'),
+      ),
+      body: const Center(
+        child: Text('Edit Product Screen'),
+      ),
     );
   }
 }
@@ -143,6 +162,40 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     setState(() => _shown = (_shown + _pageSize).clamp(0, _filtered.length));
   }
 
+  void _deleteProduct(Product product) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Product'),
+          content: Text('Are you sure you want to delete "${product.name}"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _allProducts.remove(product);
+                });
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('"${product.name}" has been deleted')),
+                );
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _editProduct(Product product) {
+    Navigator.pushNamed(context, '/edit_product');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -194,60 +247,71 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Search
-                    _InputSurface(
-                      child: TextField(
-                        controller: _searchCtrl,
-                        decoration: InputDecoration(
-                          hintText: 'Search product',
-                          hintStyle: TextStyle(
-                            color: Colors.black.withOpacity(.35),
-                          ),
-                          border: InputBorder.none,
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            size: 22,
-                            color: Colors.black54,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 14,
+                    // Search and Filter row
+                    Row(
+                      children: [
+                        // Search
+                        Expanded(
+                          flex: 3,
+                          child: _InputSurface(
+                            child: TextField(
+                              controller: _searchCtrl,
+                              decoration: InputDecoration(
+                                hintText: 'Search product',
+                                hintStyle: TextStyle(
+                                  color: Colors.black.withOpacity(.35),
+                                ),
+                                border: InputBorder.none,
+                                prefixIcon: const Icon(
+                                  Icons.search,
+                                  size: 22,
+                                  color: Colors.black54,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 14,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
+                        const SizedBox(width: 12),
 
-                    // Filter
-                    DropdownButtonFormField<String>(
-                      value: _filter,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                        // Filter
+                        Expanded(
+                          flex: 2,
+                          child: DropdownButtonFormField<String>(
+                            value: _filter,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                                color: Colors.black54),
+                            dropdownColor: Colors.white,
+                            elevation: 8,
+                            borderRadius: BorderRadius.circular(12),
+                            isExpanded: true,
+                            style: const TextStyle(color: Colors.black, fontSize: 16),
+                            items: const [
+                              'All Products',
+                              'Enabled Products',
+                              'Disabled Products',
+                              'Low Stock',
+                              'Out of Stock',
+                              'Denied Product',
+                            ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                                .toList(),
+                            onChanged: _onFilterChanged,
+                          ),
                         ),
-                      ),
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                          color: Colors.black54),
-                      dropdownColor: Colors.white,
-                      elevation: 8,
-                      borderRadius: BorderRadius.circular(12),
-                      isExpanded: true,
-                      style: const TextStyle(color: Colors.black, fontSize: 16),
-                      items: const [
-                        'All Products',
-                        'Enabled Products',
-                        'Disabled Products',
-                        'Low Stock',
-                        'Out of Stock',
-                        'Denied Product',
-                      ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                          .toList(),
-                      onChanged: _onFilterChanged,
+                      ],
                     ),
 
                     const SizedBox(height: 18),
@@ -265,7 +329,11 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                           color: Color(0x11000000),
                         ),
                       ),
-                      itemBuilder: (context, i) => _ProductRow(product: visible[i]),
+                      itemBuilder: (context, i) => _ProductRow(
+                        product: visible[i],
+                        onEdit: () => _editProduct(visible[i]),
+                        onDelete: () => _deleteProduct(visible[i]),
+                      ),
                     ),
 
                     const SizedBox(height: 22),
@@ -343,8 +411,15 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 // ===== UI pieces
 
 class _ProductRow extends StatelessWidget {
-  const _ProductRow({required this.product});
+  const _ProductRow({
+    required this.product,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
   final Product product;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -395,52 +470,47 @@ class _ProductRow extends StatelessWidget {
                         ?.copyWith(color: Colors.black54),
                   ),
                   const SizedBox(height: 16),
-                  _RowKVText(
-                    k: 'ID',
-                    vText: product.id,
+
+                  // Product details with consistent spacing
+                  _ProductDetailRow(
+                    label: 'ID',
+                    value: product.id,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'SKU',
-                    vText: product.sku,
+                  _ProductDetailRow(
+                    label: 'SKU',
+                    value: product.sku,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Status',
-                    v: _StatusPill(status: product.status),
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                    isWidgetValue: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Created at',
-                    vText: product.createdAt,
+                  _ProductDetailRow(
+                    label: 'Status',
+                    valueWidget: _StatusPill(status: product.status),
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Quantity Per Source',
-                    vText: product.quantityPerSource,
+                  _ProductDetailRow(
+                    label: 'Created at',
+                    value: product.createdAt,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Salable Quantity',
-                    vText: product.salableQuantity,
+                  _ProductDetailRow(
+                    label: 'Quantity Per Source',
+                    value: product.quantityPerSource,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Quantity Sold',
-                    v: Row(
+                  _ProductDetailRow(
+                    label: 'Salable Quantity',
+                    value: product.salableQuantity,
+                    keyStyle: keyStyle,
+                    valStyle: valStyle,
+                  ),
+                  _ProductDetailRow(
+                    label: 'Quantity Sold',
+                    valueWidget: Row(
                       children: [
                         Text(product.quantitySold.split(' ')[0],
                             style: valStyle),
@@ -454,98 +524,101 @@ class _ProductRow extends StatelessWidget {
                     ),
                     keyStyle: keyStyle,
                     valStyle: valStyle,
-                    isWidgetValue: true,
                   ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Quantity Confirmed',
-                    vText: product.quantityConfirmed,
+                  _ProductDetailRow(
+                    label: 'Quantity Confirmed',
+                    value: product.quantityConfirmed,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Quantity Pending',
-                    vText: product.quantityPending,
+                  _ProductDetailRow(
+                    label: 'Quantity Pending',
+                    value: product.quantityPending,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Price',
-                    vText: '\$${product.price.toStringAsFixed(2)}',
+                  _ProductDetailRow(
+                    label: 'Price',
+                    value: '\$${product.price.toStringAsFixed(2)}',
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Visibility',
-                    v: _VisibilityPill(visibility: product.visibility),
+                  _ProductDetailRow(
+                    label: 'Visibility',
+                    valueWidget: _VisibilityPill(visibility: product.visibility),
                     keyStyle: keyStyle,
                     valStyle: valStyle,
-                    isWidgetValue: true,
                   ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Action',
-                    v: Row(
+                  _ProductDetailRow(
+                    label: 'Action',
+                    valueWidget: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.edit, size: 20),
-                          onPressed: () {},
-                          color: Colors.black54,
+                          onPressed: onEdit,
+                          icon: Image.asset(
+                            'assets/icons/pen.png',
+                            width: 20,
+                            height: 20,
+                            color: Colors.black54,
+                          ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete, size: 20),
-                          onPressed: () {},
-                          color: Colors.black54,
+                          onPressed: onDelete,
+                          icon: Image.asset(
+                            'assets/icons/trash.png',
+                            width: 20,
+                            height: 20,
+                            color: Colors.black54,
+                          ),
                         ),
                       ],
                     ),
                     keyStyle: keyStyle,
                     valStyle: valStyle,
-                    isWidgetValue: true,
                   ),
                 ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        const Divider(height: 1, thickness: 1, color: Color(0x11000000)),
+        // Only one divider - removed the extra divider that was causing the double line
       ],
     );
   }
 }
 
-class _RowKVText extends StatelessWidget {
-  const _RowKVText({
-    required this.k,
-    this.vText,
-    this.v,
+class _ProductDetailRow extends StatelessWidget {
+  const _ProductDetailRow({
+    required this.label,
+    this.value,
+    this.valueWidget,
     required this.keyStyle,
     required this.valStyle,
-    this.isWidgetValue = false,
-  }) : assert((vText != null) ^ (v != null), 'Provide either vText or v');
+  }) : assert(value != null || valueWidget != null, 'Provide either value or valueWidget');
 
-  final String k;
-  final String? vText;
-  final Widget? v;
+  final String label;
+  final String? value;
+  final Widget? valueWidget;
   final TextStyle? keyStyle;
   final TextStyle? valStyle;
-  final bool isWidgetValue;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: Text(k, style: keyStyle)),
-        const SizedBox(width: 8),
-        if (isWidgetValue && v != null)
-          v!
-        else
-          Text(vText ?? '', style: valStyle),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12), // Consistent spacing
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(label, style: keyStyle),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: valueWidget ?? Text(value ?? '', style: valStyle),
+          ),
+        ],
+      ),
     );
   }
 }

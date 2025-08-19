@@ -10,8 +10,6 @@ class RevenueScreen extends StatefulWidget {
 }
 
 class _RevenueScreenState extends State<RevenueScreen> {
-  final TextEditingController _searchCtrl = TextEditingController();
-
   // Pagination variables
   static const int _pageSize = 2;
   int _shown = _pageSize;
@@ -19,28 +17,28 @@ class _RevenueScreenState extends State<RevenueScreen> {
   // Fake history data
   final List<Map<String, String>> _historyData = [
     {
-      'interval': 'Today, 10:30 AM',
-      'orderId': '#12345',
-      'totalAmount': '\$128.00',
-      'totalEarning': '\$112.00',
-      'discount': '\$16.00',
-      'commission': '\$5.60',
+      'interval': 'From 15 / 11 to 01 / 25',
+      'orderId': '12345',
+      'totalAmount': '\$7,750.88',
+      'totalEarning': '\$7,750.88',
+      'discount': '20%',
+      'commission': '\$7,750.88',
     },
     {
-      'interval': 'Today, 09:15 AM',
-      'orderId': '#12344',
-      'totalAmount': '\$85.50',
-      'totalEarning': '\$75.00',
-      'discount': '\$10.50',
-      'commission': '\$3.75',
+      'interval': 'From 15 / 11 to 01 / 25',
+      'orderId': '12345',
+      'totalAmount': '\$7,750.88',
+      'totalEarning': '\$7,750.88',
+      'discount': '20%',
+      'commission': '\$7,750.88',
     },
     {
-      'interval': 'Yesterday, 4:30 PM',
-      'orderId': '#12343',
-      'totalAmount': '\$210.00',
-      'totalEarning': '\$185.00',
-      'discount': '\$25.00',
-      'commission': '\$9.25',
+      'interval': 'From 15 / 11 to 01 / 25',
+      'orderId': '12345',
+      'totalAmount': '\$7,750.88',
+      'totalEarning': '\$7,750.88',
+      'discount': '20%',
+      'commission': '\$7,750.88',
     },
   ];
 
@@ -62,53 +60,60 @@ class _RevenueScreenState extends State<RevenueScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Page Title
-            const Text(
-              'Earnings',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Key Metrics Cards
+            // Page Title and Icon
             Row(
               children: [
-                _buildMetricCard(
-                  icon: Icons.trending_up,
-                  color: const Color(0xFFEAF3FF),
-                  accentColor: const Color(0xFF4285F4),
-                  label: 'Earning',
-                  value: '\$128k',
-                  change: '+37.8% this week',
-                  isPositive: true,
+                const Text(
+                  'Earning',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-                const SizedBox(width: 12),
-                _buildMetricCard(
-                  icon: Icons.account_balance_wallet,
-                  color: const Color(0xFFFEEAE6),
-                  accentColor: const Color(0xFFEA4335),
-                  label: 'Balance',
-                  value: '\$512.64',
-                  change: '-2.1% this week',
-                  isPositive: false,
-                ),
-                const SizedBox(width: 12),
-                _buildMetricCard(
-                  icon: Icons.shopping_bag,
-                  color: const Color(0xFFE6F4EA),
-                  accentColor: const Color(0xFF34A853),
-                  label: 'Total Sales',
-                  value: '\$64k',
-                  change: '+12.4% this week',
-                  isPositive: true,
+                const Spacer(),
+                Image.asset(
+                  'assets/icons/trending_up.png', // Specified image asset
+                  width: 38,
+                  height: 38,
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+
+            // Earning Metric
+            _buildMetricCard(
+              label: 'Earning',
+              value: '\$128k',
+              change: '+37.8% this week',
+              isPositive: true,
+              iconPath: 'assets/icons/trending_up.png',
+              backgroundColor: const Color(0xFFD0E0FF), // Adjusted color
+            ),
+            const SizedBox(height: 16),
+
+            // Balance Metric
+            _buildMetricCard(
+              label: 'Balance',
+              value: '\$512.64',
+              change: '-37.8% this week',
+              isPositive: false,
+              iconPath: 'assets/icons/balance.png',
+              backgroundColor: const Color(0xFFF9D1CF), // Adjusted color
+            ),
+            const SizedBox(height: 16),
+
+            // Total Value of Sales
+            _buildMetricCard(
+              label: 'Total value of sales',
+              value: '\$64k',
+              change: '+37.8% this week',
+              isPositive: true,
+              iconPath: 'assets/icons/cart.png',
+              backgroundColor: const Color(0xFFD6F6E6), // Adjusted color
+            ),
             const SizedBox(height: 24),
 
-            // Product Sales Chart Card
+            // Product Views Chart Card
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -125,28 +130,51 @@ class _RevenueScreenState extends State<RevenueScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Chart Title
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Product Sales',
+                        'Product views',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      DropdownButton<String>(
-                        value: 'All time',
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'All time',
-                            child: Text('All time'),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F3F4),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: DropdownButton<String>(
+                              value: 'All time',
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'All time',
+                                  child: Text('All time'),
+                                ),
+                              ],
+                              onChanged: (_) {},
+                              underline: Container(),
+                              icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F3F4),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Image.asset(
+                              'assets/icons/download.png', // Specified image asset
+                              width: 20,
+                              height: 20,
+                            ),
                           ),
                         ],
-                        onChanged: (_) {},
-                        underline: Container(),
-                        icon: const Icon(Icons.keyboard_arrow_down, size: 20),
                       ),
                     ],
                   ),
@@ -155,10 +183,18 @@ class _RevenueScreenState extends State<RevenueScreen> {
                   SizedBox(
                     height: 220,
                     child: SfCartesianChart(
+                      margin: EdgeInsets.zero,
                       primaryXAxis: CategoryAxis(
+                        majorGridLines: const MajorGridLines(width: 0),
+                        axisLine: const AxisLine(width: 0),
                         labelStyle: const TextStyle(fontSize: 12),
                       ),
                       primaryYAxis: NumericAxis(
+                        majorGridLines: const MajorGridLines(
+                          width: 1,
+                          color: Color(0x11000000),
+                        ),
+                        axisLine: const AxisLine(width: 0),
                         labelStyle: const TextStyle(fontSize: 12),
                         numberFormat: NumberFormat.compactCurrency(
                           decimalDigits: 0,
@@ -168,37 +204,48 @@ class _RevenueScreenState extends State<RevenueScreen> {
                       series: <CartesianSeries<ChartData, String>>[
                         ColumnSeries<ChartData, String>(
                           dataSource: [
-                            ChartData('Jan', 35, 20),
-                            ChartData('Feb', 28, 15),
-                            ChartData('Mar', 34, 18),
-                            ChartData('Apr', 32, 22),
-                            ChartData('May', 40, 25),
-                            ChartData('Jun', 38, 20),
+                            ChartData('Jan', 8.2, 50),
+                            ChartData('Feb', 8.4, 70),
+                            ChartData('Mar', 8.3, 60),
+                            ChartData('Apr', 8.1, 40),
+                            ChartData('May', 8.7, 120),
+                            ChartData('Jun', 8.3, 55),
                           ],
                           xValueMapper: (ChartData data, _) => data.x,
                           yValueMapper: (ChartData data, _) => data.y1,
                           name: 'Lifetime Value',
                           color: const Color(0xFF4285F4),
+                          width: 0.6,
+                          spacing: 0.1,
+                          borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(8),
+                              topRight: Radius.circular(8)),
                         ),
                         ColumnSeries<ChartData, String>(
                           dataSource: [
-                            ChartData('Jan', 35, 20),
-                            ChartData('Feb', 28, 15),
-                            ChartData('Mar', 34, 18),
-                            ChartData('Apr', 32, 22),
-                            ChartData('May', 40, 25),
-                            ChartData('Jun', 38, 20),
+                            ChartData('Jan', 8.2, 50),
+                            ChartData('Feb', 8.4, 70),
+                            ChartData('Mar', 8.3, 60),
+                            ChartData('Apr', 8.1, 40),
+                            ChartData('May', 8.7, 120),
+                            ChartData('Jun', 8.3, 55),
                           ],
                           xValueMapper: (ChartData data, _) => data.x,
                           yValueMapper: (ChartData data, _) => data.y2,
                           name: 'Customer Cost',
                           color: const Color(0xFFFBBC05),
+                          width: 0.6,
+                          spacing: 0.1,
+                          borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(8),
+                              topRight: Radius.circular(8)),
                         ),
                       ],
                       legend: Legend(
                         isVisible: true,
                         position: LegendPosition.bottom,
                         textStyle: const TextStyle(fontSize: 12),
+                        overflowMode: LegendItemOverflowMode.wrap,
                       ),
                     ),
                   ),
@@ -225,20 +272,15 @@ class _RevenueScreenState extends State<RevenueScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Earning History',
+                    'Earning history',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Show only visible items
                   ...visible.map((item) => _buildHistoryItem(item)),
-
                   const SizedBox(height: 12),
-
-                  // Load more button
                   if (_historyData.isNotEmpty)
                     Center(
                       child: Opacity(
@@ -250,7 +292,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(28),
-                              border: Border.all(color: const Color(0x22000000)),
+                              border: Border.all(color: const Color(0x44000000)), // Adjusted border color
                               boxShadow: const [
                                 BoxShadow(
                                   color: Color(0x0C000000),
@@ -328,66 +370,71 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   Widget _buildMetricCard({
-    required IconData icon,
-    required Color color,
-    required Color accentColor,
     required String label,
     required String value,
     required String change,
     required bool isPositive,
+    required String iconPath,
+    required Color backgroundColor,
   }) {
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0F000000),
-              blurRadius: 20,
-              offset: Offset(0, 10),
-            )
-          ],
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              child: Icon(icon, color: accentColor, size: 20),
-            ),
-            const SizedBox(height: 12),
-            Text(label,
-                style: TextStyle(
-                    color: Colors.black.withOpacity(0.6), fontSize: 12)),
-            const SizedBox(height: 8),
-            Text(value,
-                style:
-                const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                  color: isPositive
-                      ? const Color(0xFF34A853)
-                      : const Color(0xFFEA4335),
-                  size: 14,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F000000),
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          )
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                      color: Colors.black.withOpacity(0.6), fontSize: 14)),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
+                child: Image.asset(
+                  iconPath,
+                  width: 20,
+                  height: 20,
                 ),
-                const SizedBox(width: 4),
-                Text(change,
-                    style: TextStyle(
-                      color: isPositive
-                          ? const Color(0xFF34A853)
-                          : const Color(0xFFEA4335),
-                      fontSize: 12,
-                    )),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(value,
+              style:
+              const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                isPositive ? Icons.arrow_upward : Icons.arrow_downward,
+                color: isPositive
+                    ? const Color(0xFF34A853)
+                    : const Color(0xFFEA4335),
+                size: 14,
+              ),
+              const SizedBox(width: 4),
+              Text(change,
+                  style: TextStyle(
+                    color: isPositive
+                        ? const Color(0xFF34A853)
+                        : const Color(0xFFEA4335),
+                    fontSize: 12,
+                  )),
+            ],
+          ),
+        ],
       ),
     );
   }
