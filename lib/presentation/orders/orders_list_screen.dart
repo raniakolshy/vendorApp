@@ -232,18 +232,10 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                     const SizedBox(height: 18),
 
                     // Orders list with soft dividers
-                    ListView.separated(
+                    ListView.builder(
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       itemCount: visible.length,
-                      separatorBuilder: (_, __) => const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        child: Divider(
-                          height: 1,
-                          thickness: 1,
-                          color: Color(0x11000000),
-                        ),
-                      ),
                       itemBuilder: (context, i) => _OrderRow(order: visible[i]),
                     ),
 
@@ -505,7 +497,7 @@ class _StatusPill extends StatelessWidget {
   String get _label {
     switch (status) {
       case OrderStatus.delivered:
-        return 'Deliverd'; // matches screenshot text
+        return 'Deliverd';
       case OrderStatus.processing:
         return 'Processing';
       case OrderStatus.cancelled:

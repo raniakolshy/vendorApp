@@ -54,6 +54,7 @@ dependencies:
   sign_in_with_apple: ^6.0.0 # For Apple Sign-In
   flutter_web_auth_2: ^4.0.0
   flutter_html: ^3.0.0-alpha.6
+  syncfusion_flutter_charts: ^30.2.5
 
 dev_dependencies:
   flutter_test:

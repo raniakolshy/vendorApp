@@ -27,6 +27,11 @@ android {
         versionName = flutter.versionName
     }
 
+    repositories {
+        mavenCentral()
+        google()
+    }
+
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")

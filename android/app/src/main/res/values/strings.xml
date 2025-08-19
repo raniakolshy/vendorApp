@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">kolshy_app</string>
+    <!-- Replace YOUR_FACEBOOK_APP_ID with the App ID you copied from Facebook Developer Console -->
+    <string name="facebook_app_id">1663314834347268</string>
+    <!-- Replace YOUR_FACEBOOK_CLIENT_TOKEN with the Client Token from Facebook Developer Console (Settings > Basic > Advanced Settings) -->
+    <string name="facebook_client_token">378c69e3ac1851442a9b96aced97f8b7</string>
+    <string name="fb_login_protocol_scheme">fb1663314834347268</string>
+</resources>
