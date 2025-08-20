@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../Translation/Language.dart';
 import '../admin/admin_news_screen.dart';
 import '../admin/ask_admin_screen.dart';
@@ -241,6 +240,7 @@ class _DrawerItem extends StatelessWidget {
               ),
             ),
             if (trailing != null) trailing!,
+
           ],
         ),
       ),
@@ -418,7 +418,6 @@ class _ProfileButton extends StatelessWidget {
   }
 }
 
-/// Figma-style popup menu with icons + navigation (no DropdownMenuItem)
 class _ProfileMenuDialog extends StatelessWidget {
   const _ProfileMenuDialog();
 
@@ -495,7 +494,9 @@ class _ProfileMenuDialog extends StatelessWidget {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const LanguageScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const LanguageScreen(), // Redirection vers la page Language.dart
+                    ),
                   );
                 },
               ),

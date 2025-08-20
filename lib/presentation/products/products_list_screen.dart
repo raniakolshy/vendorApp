@@ -247,69 +247,64 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Search and Filter row
-                    Row(
+                    // Search and Filter in a column (stacked vertically)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // Search
-                        Expanded(
-                          flex: 3,
-                          child: _InputSurface(
-                            child: TextField(
-                              controller: _searchCtrl,
-                              decoration: InputDecoration(
-                                hintText: 'Search product',
-                                hintStyle: TextStyle(
-                                  color: Colors.black.withOpacity(.35),
-                                ),
-                                border: InputBorder.none,
-                                prefixIcon: const Icon(
-                                  Icons.search,
-                                  size: 22,
-                                  color: Colors.black54,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 14,
-                                ),
+                        _InputSurface(
+                          child: TextField(
+                            controller: _searchCtrl,
+                            decoration: InputDecoration(
+                              hintText: 'Search product',
+                              hintStyle: TextStyle(
+                                color: Colors.black.withOpacity(.35),
+                              ),
+                              border: InputBorder.none,
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                size: 22,
+                                color: Colors.black54,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 14,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(height: 12),
 
                         // Filter
-                        Expanded(
-                          flex: 2,
-                          child: DropdownButtonFormField<String>(
-                            value: _filter,
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
+                        DropdownButtonFormField<String>(
+                          value: _filter,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
                             ),
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                                color: Colors.black54),
-                            dropdownColor: Colors.white,
-                            elevation: 8,
-                            borderRadius: BorderRadius.circular(12),
-                            isExpanded: true,
-                            style: const TextStyle(color: Colors.black, fontSize: 16),
-                            items: const [
-                              'All Products',
-                              'Enabled Products',
-                              'Disabled Products',
-                              'Low Stock',
-                              'Out of Stock',
-                              'Denied Product',
-                            ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                                .toList(),
-                            onChanged: _onFilterChanged,
                           ),
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                              color: Colors.black54),
+                          dropdownColor: Colors.white,
+                          elevation: 8,
+                          borderRadius: BorderRadius.circular(12),
+                          isExpanded: true,
+                          style: const TextStyle(color: Colors.black, fontSize: 16),
+                          items: const [
+                            'All Products',
+                            'Enabled Products',
+                            'Disabled Products',
+                            'Low Stock',
+                            'Out of Stock',
+                            'Denied Product',
+                          ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                              .toList(),
+                          onChanged: _onFilterChanged,
                         ),
                       ],
                     ),

@@ -25,6 +25,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 14.88,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.draft,
+      gender: Gender.male, // Added gender property
     ),
     _Draft(
       name: '3D computer improved version',
@@ -33,6 +34,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 8.99,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.draft,
+      gender: Gender.female, // Added gender property
     ),
     _Draft(
       name: '3D dark mode wallpaper',
@@ -41,6 +43,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 213.99,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.pendingReview,
+      gender: Gender.male, // Added gender property
     ),
   ];
 
@@ -71,6 +74,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
         price: 9.99 + i,
         created: DateTime.now(),
         status: DraftStatus.draft,
+        gender: i.isEven ? Gender.male : Gender.female, // Added gender property
       )));
       _loadingMore = false;
       _shown = (_shown + _pageSize).clamp(0, _filtered.length);
@@ -335,105 +339,112 @@ class _DraftRow extends StatelessWidget {
         ?.copyWith(
         fontWeight: FontWeight.w600, color: Colors.black.withOpacity(.85));
 
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Thumbnail
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                width: 86,
-                height: 86,
-                color: const Color(0xFFEDEEEF),
-                child: const Icon(Icons.image, size: 28, color: Colors.black54),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20), // Added space between items
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Thumbnail with gender-specific avatar
+              Container(
+                margin: const EdgeInsets.only(right: 20), // Added space between image and content
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: 86,
+                    height: 86,
+                    color: const Color(0xFFEDEEEF),
+                    child: draft.gender == Gender.male
+                        ? Image.asset('assets/avatar_placeholder.jpg', fit: BoxFit.cover)
+                        : Image.asset('assets/female.jpg', fit: BoxFit.cover),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 14),
 
-            // Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    draft.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 6),
-                  _PriceChip('\$${draft.price.toStringAsFixed(2)}'),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Draft',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.black54),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Key-value pairs
-                  _RowKVText(
-                    k: 'SKU',
-                    vText: draft.sku,
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                  ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Quantity',
-                    vText: draft.qty.toString(),
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                  ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Created',
-                    vText: _fmtDate(draft.created),
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                  ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Status',
-                    v: _StatusPill(status: draft.status),
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                    isWidgetValue: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Action',
-                    v: Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, size: 20),
-                          onPressed: onEdit,
-                          color: Colors.black54,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, size: 20),
-                          onPressed: onDelete,
-                          color: Colors.black54,
-                        ),
-                      ],
+              // Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      draft.name,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                    isWidgetValue: true,
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    _PriceChip('\$${draft.price.toStringAsFixed(2)}'),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Draft',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.black54),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Key-value pairs
+                    _RowKVText(
+                      k: 'SKU',
+                      vText: draft.sku,
+                      keyStyle: keyStyle,
+                      valStyle: valStyle,
+                    ),
+                    const SizedBox(height: 12),
+                    _RowKVText(
+                      k: 'Quantity',
+                      vText: draft.qty.toString(),
+                      keyStyle: keyStyle,
+                      valStyle: valStyle,
+                    ),
+                    const SizedBox(height: 12),
+                    _RowKVText(
+                      k: 'Created',
+                      vText: _fmtDate(draft.created),
+                      keyStyle: keyStyle,
+                      valStyle: valStyle,
+                    ),
+                    const SizedBox(height: 12),
+                    _RowKVText(
+                      k: 'Status',
+                      v: _StatusPill(status: draft.status),
+                      keyStyle: keyStyle,
+                      valStyle: valStyle,
+                      isWidgetValue: true,
+                    ),
+                    const SizedBox(height: 12),
+                    _RowKVText(
+                      k: 'Action',
+                      v: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: onEdit,
+                            color: Colors.black54,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, size: 20),
+                            onPressed: onDelete,
+                            color: Colors.black54,
+                          ),
+                        ],
+                      ),
+                      keyStyle: keyStyle,
+                      valStyle: valStyle,
+                      isWidgetValue: true,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        const Divider(height: 1, thickness: 1, color: Color(0x11000000)),
-      ],
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, thickness: 1, color: Color(0x11000000)),
+        ],
+      ),
     );
   }
 }
@@ -580,6 +591,11 @@ enum DraftStatus {
   pendingReview,
 }
 
+enum Gender {
+  male,
+  female,
+}
+
 class _Draft {
   _Draft({
     required this.name,
@@ -588,6 +604,7 @@ class _Draft {
     required this.price,
     required this.created,
     required this.status,
+    required this.gender,
   });
 
   final String name;
@@ -596,6 +613,22 @@ class _Draft {
   final double price;
   final DateTime created;
   final DraftStatus status;
+  final Gender gender; // Added gender property
+}
+
+// Product model for passing to AddProductScreen
+class Product {
+  Product({
+    required this.name,
+    required this.sku,
+    required this.quantity,
+    required this.price,
+  });
+
+  final String name;
+  final String sku;
+  final int quantity;
+  final double price;
 }
 
 // ===== Utils =====

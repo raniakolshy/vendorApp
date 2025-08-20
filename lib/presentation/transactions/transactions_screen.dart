@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
 void main() => runApp(const TransactionsScreen());
 
 /// A custom widget for a gap with a specific height.
 class Gap extends StatelessWidget {
-  /// The height of the gap.
   final double h;
-
-  /// Creates a [Gap] widget with the specified height.
   const Gap(this.h, {super.key});
 
   @override
@@ -16,7 +14,7 @@ class Gap extends StatelessWidget {
   }
 }
 
-/// The main application widget for the Payouts UI.
+/// The main application widget
 class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
 
@@ -39,63 +37,179 @@ class TransactionsScreen extends StatelessWidget {
           background: const Color(0xFFF3F3F4),
           onBackground: const Color(0xFF1B1B1B),
         ),
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Color(0xFF1B1B1B)),
-          bodyMedium: TextStyle(color: Color(0xFF1B1B1B)),
-          bodySmall: TextStyle(color: Color(0xFF6B6B6B)),
-          headlineSmall: TextStyle(
-            color: Color(0xFF1B1B1B),
-            fontWeight: FontWeight.bold,
-          ),
-          titleLarge: TextStyle(
-            color: Color(0xFF1B1B1B),
-            fontWeight: FontWeight.bold,
-          ),
-          titleSmall: TextStyle(color: Color(0xFF6B6B6B)),
-        ),
       ),
       home: const PayoutsScreen(),
     );
   }
 }
 
-/// A screen that displays the user's payouts.
 class PayoutsScreen extends StatefulWidget {
   const PayoutsScreen({super.key});
-
   @override
   State<PayoutsScreen> createState() => _PayoutsScreenState();
 }
 
-/// The state for the [PayoutsScreen].
 class _PayoutsScreenState extends State<PayoutsScreen> {
   static const int _pageSize = 5;
   int _shownCount = _pageSize;
   bool _isLoadingMore = false;
+
+  DateTimeRange? _selectedRange;
 
   final List<Transaction> _allTransactions = List.generate(
     10,
         (index) => Transaction(
       id: '12345',
       transactionId: 'TXN${1000 + index}',
-      status: index.isEven ? TransactionStatus.paid : TransactionStatus.onProcess,
+      status: index.isEven
+          ? TransactionStatus.paid
+          : TransactionStatus.onProcess,
       earnings: r'$7,750.88',
       purchasedOn: '12 / 12 / 2025',
     ),
   );
 
-  /// Loads more transactions.
   Future<void> _loadMore() async {
     if (_shownCount >= _allTransactions.length || _isLoadingMore) return;
-
     setState(() => _isLoadingMore = true);
     await Future.delayed(const Duration(seconds: 1));
-
     setState(() {
-      _shownCount = (_shownCount + _pageSize).clamp(0, _allTransactions.length);
+      _shownCount =
+          (_shownCount + _pageSize).clamp(0, _allTransactions.length);
       _isLoadingMore = false;
     });
   }
+
+  void _showDownloadNotification() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Download started..."),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _pickDateRange() async {
+    DateTimeRange tempRange =
+        _selectedRange ??
+            DateTimeRange(
+              start: DateTime.now(),
+              end: DateTime.now().add(const Duration(days: 7)),
+            );
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Filter by date",
+                    style: Theme.of(context).textTheme.titleMedium),
+                const Gap(16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white, // 🔥 force white background
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: SfDateRangePicker(
+                    selectionMode: DateRangePickerSelectionMode.range,
+                    initialSelectedRange: PickerDateRange(
+                      tempRange.start,
+                      tempRange.end,
+                    ),
+                    showActionButtons: false,
+                    backgroundColor: Colors.white,
+                    headerStyle: const DateRangePickerHeaderStyle(
+                      backgroundColor: Colors.white,
+                      textAlign: TextAlign.center,
+                      textStyle: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    monthCellStyle: const DateRangePickerMonthCellStyle(
+                      textStyle: TextStyle(color: Colors.black87),
+                      todayTextStyle: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    selectionColor: Color(0xFFE51742),
+                    startRangeSelectionColor: Color(0xFFE51742),
+                    endRangeSelectionColor: Color(0xFFE51742),
+                    rangeSelectionColor: Color(0xFFE51742).withOpacity(0.2),
+                    todayHighlightColor: Color(0xFF273647), // 🔵 your brand dark blue
+                    onSelectionChanged: (args) {
+                      if (args.value is PickerDateRange) {
+                        final PickerDateRange range = args.value;
+                        tempRange = DateTimeRange(
+                          start: range.startDate!,
+                          end: range.endDate ?? range.startDate!,
+                        );
+                      }
+                    },
+                  ),
+                ),
+                const Gap(20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text("Cancel"),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() => _selectedRange = tempRange);
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "Filtered: ${tempRange.start.toLocal()} → ${tempRange.end.toLocal()}",
+                              ),
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE51742),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text("Apply"),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -108,24 +222,38 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Gap(50),
-            _buildAppBar(),
             const Gap(30),
             Text(
               'Payouts',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 24),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+              ),
             ),
             const Gap(20),
-            const BalanceCard(
+            BalanceCard(
               label: 'Current balance',
               amount: r'$128k',
-              icon: Icons.trending_up,
+              icon: Image.asset(
+                'assets/icons/trending_up.png',
+                width: 24,
+                height: 24,
+                color: Colors.white,
+              ),
+              backgroundColor: const Color(0xFF32A06E),
             ),
             const Gap(16),
-            const BalanceCard(
+            BalanceCard(
               label: 'Available for withdrawal',
-              amount: r'$512.64',
-              icon: Icons.attach_money,
+              amount: r'$512k',
+              icon: Image.asset(
+                'assets/icons/balance.png',
+                width: 24,
+                height: 24,
+                color: Colors.white,
+              ),
+              backgroundColor: const Color(0xFFFFB800),
             ),
             const Gap(24),
             _PayoutHistory(
@@ -133,6 +261,8 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
               canLoadMore: canLoadMore,
               isLoadingMore: _isLoadingMore,
               onLoadMore: _loadMore,
+              onDownload: _showDownloadNotification,
+              onFilter: _pickDateRange,
             ),
             const Gap(30),
           ],
@@ -140,47 +270,21 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
       ),
     );
   }
-
-  Widget _buildAppBar() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.menu),
-        ),
-        Row(
-          children: [
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.home),
-            ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.person),
-            ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.notifications),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
 
-/// A card displaying a balance amount.
+/// Balance Card
 class BalanceCard extends StatelessWidget {
   final String label;
   final String amount;
-  final IconData icon;
+  final Widget icon;
+  final Color backgroundColor;
 
   const BalanceCard({
     super.key,
     required this.label,
     required this.amount,
     required this.icon,
+    required this.backgroundColor,
   });
 
   @override
@@ -197,23 +301,16 @@ class BalanceCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.background,
+              color: backgroundColor,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: const Color(0xFF333333),
-            ),
+            child: icon,
           ),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              Text(label, style: Theme.of(context).textTheme.bodySmall),
               const Gap(4),
               Text(
                 amount,
@@ -230,18 +327,22 @@ class BalanceCard extends StatelessWidget {
   }
 }
 
-/// The section for payout history.
+/// Payout History Section
 class _PayoutHistory extends StatelessWidget {
   final List<Transaction> transactions;
   final bool canLoadMore;
   final bool isLoadingMore;
   final VoidCallback onLoadMore;
+  final VoidCallback onDownload;
+  final VoidCallback onFilter;
 
   const _PayoutHistory({
     required this.transactions,
     required this.canLoadMore,
     required this.isLoadingMore,
     required this.onLoadMore,
+    required this.onDownload,
+    required this.onFilter,
   });
 
   @override
@@ -265,19 +366,21 @@ class _PayoutHistory extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Payout history',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text('Payout history',
+                  style: Theme.of(context).textTheme.titleLarge),
               Row(
                 children: [
                   IconButton(
-                    onPressed: () {},
+                    onPressed: onFilter,
                     icon: const Icon(Icons.filter_list_rounded),
                   ),
                   IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.file_download_outlined),
+                    onPressed: onDownload,
+                    icon: Image.asset(
+                      'assets/icons/download.png',
+                      width: 20,
+                      height: 20,
+                    ),
                   ),
                 ],
               ),
@@ -306,36 +409,41 @@ class _PayoutHistory extends StatelessWidget {
   }
 }
 
-/// A single row for a transaction item.
+/// Transaction Model
+enum TransactionStatus { paid, onProcess, failed }
+
+class Transaction {
+  final String id;
+  final String transactionId;
+  final TransactionStatus status;
+  final String earnings;
+  final String purchasedOn;
+
+  Transaction({
+    required this.id,
+    required this.transactionId,
+    required this.status,
+    required this.earnings,
+    required this.purchasedOn,
+  });
+}
+
+/// Transaction Item
 class TransactionItem extends StatelessWidget {
   final Transaction transaction;
-
   const TransactionItem({super.key, required this.transaction});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        _TransactionDetailRow(label: 'ID', value: transaction.id),
         _TransactionDetailRow(
-          label: 'ID',
-          value: transaction.id,
-        ),
+            label: 'Transaction ID', value: transaction.transactionId),
+        _TransactionDetailRow(label: 'Status', status: transaction.status),
+        _TransactionDetailRow(label: 'Earnings', value: transaction.earnings),
         _TransactionDetailRow(
-          label: 'Transaction ID',
-          value: transaction.transactionId,
-        ),
-        _TransactionDetailRow(
-          label: 'Status',
-          status: transaction.status,
-        ),
-        _TransactionDetailRow(
-          label: 'Earnings',
-          value: transaction.earnings,
-        ),
-        _TransactionDetailRow(
-          label: 'Purchased on',
-          value: transaction.purchasedOn,
-        ),
+            label: 'Purchased on', value: transaction.purchasedOn),
         const Gap(20),
         const Divider(height: 1),
       ],
@@ -343,17 +451,12 @@ class TransactionItem extends StatelessWidget {
   }
 }
 
-/// A row displaying a transaction detail.
 class _TransactionDetailRow extends StatelessWidget {
   final String label;
   final String? value;
   final TransactionStatus? status;
 
-  const _TransactionDetailRow({
-    required this.label,
-    this.value,
-    this.status,
-  });
+  const _TransactionDetailRow({required this.label, this.value, this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -362,18 +465,16 @@ class _TransactionDetailRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
           if (status != null)
             _StatusPill(status: status!)
           else
             Text(
               value!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
             ),
         ],
       ),
@@ -381,10 +482,8 @@ class _TransactionDetailRow extends StatelessWidget {
   }
 }
 
-/// A small pill-shaped widget for displaying transaction status.
 class _StatusPill extends StatelessWidget {
   final TransactionStatus status;
-
   const _StatusPill({required this.status});
 
   Color get _bgColor {
@@ -440,7 +539,7 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-/// A button for loading more items.
+/// Load More Button
 class _LoadMoreButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isLoading;
@@ -479,13 +578,17 @@ class _LoadMoreButton extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             else
-              const Icon(Icons.restart_alt_rounded, size: 18),
+              Image.asset(
+                'assets/icons/loading.png',
+                width: 18,
+                height: 18,
+              ),
             const SizedBox(width: 10),
             Text(
-              'Load more',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w600,
+              isLoading ? 'Loading...' : 'Load more',
+              style: const TextStyle(
                 fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -493,24 +596,4 @@ class _LoadMoreButton extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The status of a transaction.
-enum TransactionStatus { paid, onProcess, failed }
-
-/// A model class for a single transaction.
-class Transaction {
-  final String id;
-  final String transactionId;
-  final TransactionStatus status;
-  final String earnings;
-  final String purchasedOn;
-
-  Transaction({
-    required this.id,
-    required this.transactionId,
-    required this.status,
-    required this.earnings,
-    required this.purchasedOn,
-  });
 }

@@ -49,7 +49,6 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
       address: '123 Main St, New York',
       baseTotal: '\$1,234.00',
       orders: '5',
-      imageAsset: 'assets/male_avatar.png',
     ),
     Customer(
       name: 'Jane Smith',
@@ -59,7 +58,6 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
       address: '456 Oak Ave, Los Angeles',
       baseTotal: '\$2,345.00',
       orders: '8',
-      imageAsset: 'assets/female_avatar.png',
     ),
     Customer(
       name: 'Robert Johnson',
@@ -69,7 +67,6 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
       address: '789 Pine Rd, Chicago',
       baseTotal: '\$3,456.00',
       orders: '12',
-      imageAsset: 'assets/male_avatar.png',
     ),
     Customer(
       name: 'Emily Wilson',
@@ -79,13 +76,25 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
       address: '321 Elm Blvd, Houston',
       baseTotal: '\$1,987.00',
       orders: '7',
-      imageAsset: 'assets/female_avatar.png',
     ),
   ];
 
   List<Customer> get _filtered {
     final q = _searchCtrl.text.trim().toLowerCase();
-    return _allCustomers.where((c) =>
+
+    // Apply time filter if not "All time"
+    List<Customer> timeFiltered = _allCustomers;
+    if (_timeFilter != 'All time') {
+      // In a real app, you would filter by actual date/time
+      // For this example, we'll just filter by name for demonstration
+      timeFiltered = _allCustomers.where((c) =>
+      _timeFilter == 'Last 7 days' ? c.name.startsWith('J') :
+      _timeFilter == 'Last 30 days' ? c.name.startsWith('J') || c.name.startsWith('R') :
+      _timeFilter == 'Last year' ? c.name.startsWith('E') : true
+      ).toList();
+    }
+
+    return timeFiltered.where((c) =>
     c.name.toLowerCase().contains(q) ||
         c.email.toLowerCase().contains(q)
     ).toList();
@@ -223,7 +232,9 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  '1,368',
+                                  _timeFilter == 'All time' ? '1,368' :
+                                  _timeFilter == 'Last 7 days' ? '342' :
+                                  _timeFilter == 'Last 30 days' ? '856' : '1,024',
                                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -267,7 +278,9 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    '\$68,192',
+                                    _timeFilter == 'All time' ? '\$68,192' :
+                                    _timeFilter == 'Last 7 days' ? '\$12,456' :
+                                    _timeFilter == 'Last 30 days' ? '\$45,678' : '\$59,123',
                                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -331,11 +344,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       itemCount: visible.length,
-                      separatorBuilder: (_, __) => const Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Color(0x11000000),
-                      ),
+                      separatorBuilder: (_, __) => const SizedBox(height: 20), // Added space between items
                       itemBuilder: (context, i) => _CustomerRow(customer: visible[i]),
                     ),
 
@@ -434,94 +443,95 @@ class _CustomerRow extends StatelessWidget {
         ?.copyWith(
         fontWeight: FontWeight.w600, color: Colors.black.withOpacity(.85));
 
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Customer avatar
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFEDEEEF),
-                image: DecorationImage(
-                  image: AssetImage(customer.imageAsset),
-                  fit: BoxFit.cover,
+    return Container(
+      padding: const EdgeInsets.only(bottom: 20), // Added space at the bottom
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Customer avatar with space
+          Container(
+            margin: const EdgeInsets.only(right: 20), // Added space between image and content
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFEDEEEF),
+              image: DecorationImage(
+                image: AssetImage(customer.gender == Gender.male
+                    ? 'assets/avatar_placeholder.jpg'
+                    : 'assets/female.jpg'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+          // Customer details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  customer.name,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
-              ),
-            ),
-            const SizedBox(width: 14),
+                const SizedBox(height: 4),
+                Text(
+                  customer.email,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Colors.black54),
+                ),
+                const SizedBox(height: 16),
 
-            // Customer details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    customer.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    customer.email,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.black54),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Key-value pairs
-                  _RowKVText(
-                    k: 'Contact',
-                    v: _InfoChip(customer.contact),
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                    isWidgetValue: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Gender',
-                    v: _GenderChip(gender: customer.gender),
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                    isWidgetValue: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Address',
-                    vText: customer.address,
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                  ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Base Total',
-                    vText: customer.baseTotal,
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                  ),
-                  const SizedBox(height: 12),
-                  _RowKVText(
-                    k: 'Orders',
-                    vText: customer.orders,
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                  ),
-                ],
-              ),
+                // Key-value pairs
+                _RowKVText(
+                  k: 'Contact',
+                  v: _InfoChip(customer.contact),
+                  keyStyle: keyStyle,
+                  valStyle: valStyle,
+                  isWidgetValue: true,
+                ),
+                const SizedBox(height: 12),
+                _RowKVText(
+                  k: 'Gender',
+                  v: _GenderChip(gender: customer.gender),
+                  keyStyle: keyStyle,
+                  valStyle: valStyle,
+                  isWidgetValue: true,
+                ),
+                const SizedBox(height: 12),
+                _RowKVText(
+                  k: 'Address',
+                  vText: customer.address,
+                  keyStyle: keyStyle,
+                  valStyle: valStyle,
+                ),
+                const SizedBox(height: 12),
+                _RowKVText(
+                  k: 'Base Total',
+                  vText: customer.baseTotal,
+                  keyStyle: keyStyle,
+                  valStyle: valStyle,
+                ),
+                const SizedBox(height: 12),
+                _RowKVText(
+                  k: 'Orders',
+                  vText: customer.orders,
+                  keyStyle: keyStyle,
+                  valStyle: valStyle,
+                ),
+              ],
             ),
-          ],
-        ),
-        // Only keep this divider if you're NOT using ListView.separated
-        // Otherwise remove this divider completely
-        // const Divider(height: 1, thickness: 1, color: Color(0x11000000)),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -675,7 +685,6 @@ class Customer {
     required this.address,
     required this.baseTotal,
     required this.orders,
-    required this.imageAsset,
   });
 
   final String name;
@@ -685,5 +694,4 @@ class Customer {
   final String address;
   final String baseTotal;
   final String orders;
-  final String imageAsset;
 }

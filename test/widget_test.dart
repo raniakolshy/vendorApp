@@ -5,15 +5,19 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:app_vendor/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app_vendor/main.dart';
+import 'package:app_vendor/state_management/locale_provider.dart'; // Import the provider
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const KolshyApp());
+    // Create an instance of the provider required by MyApp
+    final localeProvider = LocaleProvider();
+
+    // Build our app and trigger a frame, passing the required provider.
+    await tester.pumpWidget(MyApp(localeProvider: localeProvider));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

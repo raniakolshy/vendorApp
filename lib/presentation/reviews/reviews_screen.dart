@@ -306,11 +306,11 @@ class _ReviewRow extends StatelessWidget {
             // Product Image
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: Container(
+              child: Image.asset(
+                review.productImage,
                 width: 86,
                 height: 86,
-                color: const Color(0xFFEDEEEF),
-                child: const Icon(Icons.image, color: Color(0xFF888888)),
+                fit: BoxFit.cover,
               ),
             ),
             const SizedBox(width: 14),
@@ -366,8 +366,9 @@ class _ReviewRow extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24), // Increased space before the divider
         const Divider(height: 1, thickness: 1, color: Color(0x11000000)),
+        const SizedBox(height: 16), // Added space after the divider
       ],
     );
   }

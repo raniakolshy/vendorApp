@@ -1,5 +1,10 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 class RevenueScreen extends StatefulWidget {
@@ -10,11 +15,12 @@ class RevenueScreen extends StatefulWidget {
 }
 
 class _RevenueScreenState extends State<RevenueScreen> {
-  // Pagination variables
+  // Pagination for history
   static const int _pageSize = 2;
   int _shown = _pageSize;
+  bool _isLoading = false;
 
-  // Fake history data
+  // History dummy data
   final List<Map<String, String>> _historyData = [
     {
       'interval': 'From 15 / 11 to 01 / 25',
@@ -26,26 +32,124 @@ class _RevenueScreenState extends State<RevenueScreen> {
     },
     {
       'interval': 'From 15 / 11 to 01 / 25',
-      'orderId': '12345',
-      'totalAmount': '\$7,750.88',
-      'totalEarning': '\$7,750.88',
-      'discount': '20%',
-      'commission': '\$7,750.88',
+      'orderId': '12346',
+      'totalAmount': '\$6,120.20',
+      'totalEarning': '\$6,120.20',
+      'discount': '10%',
+      'commission': '\$820.00',
     },
     {
       'interval': 'From 15 / 11 to 01 / 25',
-      'orderId': '12345',
-      'totalAmount': '\$7,750.88',
-      'totalEarning': '\$7,750.88',
-      'discount': '20%',
-      'commission': '\$7,750.88',
+      'orderId': '12347',
+      'totalAmount': '\$5,010.90',
+      'totalEarning': '\$5,010.90',
+      'discount': '0%',
+      'commission': '\$610.00',
     },
   ];
 
-  void _loadMore() {
+  Future<void> _loadMore() async {
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(seconds: 1)); // fake delay for loading
     setState(() {
       _shown = (_shown + _pageSize).clamp(0, _historyData.length);
+      _isLoading = false;
     });
+  }
+
+  // ----- FILTER + CHART DATA -----
+  final List<String> _filters = [
+    'All time',
+    'Last 7 days',
+    'Last 30 days',
+    'This year',
+  ];
+  String _selectedFilter = 'All time';
+
+  List<ChartData> _dataAllTime = const [
+    ChartData('Jan', 8.2, 50),
+    ChartData('Feb', 8.4, 70),
+    ChartData('Mar', 8.3, 60),
+    ChartData('Apr', 8.1, 40),
+    ChartData('May', 8.7, 120),
+    ChartData('Jun', 8.3, 55),
+  ];
+
+  List<ChartData> _getFilteredData() {
+    switch (_selectedFilter) {
+      case 'Last 7 days':
+        return const [
+          ChartData('Mon', 5.0, 20),
+          ChartData('Tue', 6.2, 30),
+          ChartData('Wed', 4.8, 25),
+          ChartData('Thu', 7.0, 40),
+          ChartData('Fri', 6.5, 35),
+          ChartData('Sat', 8.0, 45),
+          ChartData('Sun', 7.2, 38),
+        ];
+      case 'Last 30 days':
+        return List.generate(
+          30,
+              (i) => ChartData('D${i + 1}', (5 + (i % 4)).toDouble(), 20 + (i % 10)),
+        );
+      case 'This year':
+        return const [
+          ChartData('Jan', 8.2, 50),
+          ChartData('Feb', 8.4, 70),
+          ChartData('Mar', 8.3, 60),
+          ChartData('Apr', 8.1, 40),
+          ChartData('May', 8.7, 120),
+          ChartData('Jun', 8.3, 55),
+          ChartData('Jul', 8.9, 90),
+          ChartData('Aug', 7.9, 65),
+          ChartData('Sep', 8.6, 110),
+          ChartData('Oct', 8.4, 95),
+          ChartData('Nov', 8.2, 70),
+          ChartData('Dec', 8.8, 130),
+        ];
+      default:
+        return _dataAllTime;
+    }
+  }
+
+  // ----- DOWNLOAD (no plugin) -----
+  final GlobalKey _chartKey = GlobalKey();
+
+  Future<void> _downloadChart() async {
+    await Future.delayed(Duration.zero);
+    try {
+      final boundary = _chartKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Oops, chart not ready yet.')),
+        );
+        return;
+      }
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final Uint8List bytes = byteData!.buffer.asUint8List();
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/product_views_chart.png');
+      await file.writeAsBytes(bytes);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Exported to ${file.path}'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to export: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -54,82 +158,66 @@ class _RevenueScreenState extends State<RevenueScreen> {
     final canLoadMore = _shown < _historyData.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F3F4),
+      backgroundColor: const Color(0xFFFAFAFA),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Page Title and Icon
+            // Page Title
             Row(
               children: [
-                const Text(
-                  'Earning',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
+                Text(
+                  'Earning',  // Same title text as before
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontSize: 24,  // Ensure same font size
+                    fontWeight: FontWeight.w800,  // Ensure same font weight
+                    color: Colors.black,  // Ensure title is dark enough
                   ),
                 ),
                 const Spacer(),
-                Image.asset(
-                  'assets/icons/trending_up.png', // Specified image asset
-                  width: 38,
-                  height: 38,
-                ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
 
-            // Earning Metric
+            // Metrics
             _buildMetricCard(
               label: 'Earning',
               value: '\$128k',
               change: '+37.8% this week',
               isPositive: true,
               iconPath: 'assets/icons/trending_up.png',
-              backgroundColor: const Color(0xFFD0E0FF), // Adjusted color
+              backgroundColor: const Color(0xFFD6F6E6),
             ),
             const SizedBox(height: 16),
-
-            // Balance Metric
             _buildMetricCard(
               label: 'Balance',
               value: '\$512.64',
               change: '-37.8% this week',
               isPositive: false,
               iconPath: 'assets/icons/balance.png',
-              backgroundColor: const Color(0xFFF9D1CF), // Adjusted color
+              backgroundColor: const Color(0xFFFFE7D1),
             ),
             const SizedBox(height: 16),
-
-            // Total Value of Sales
             _buildMetricCard(
               label: 'Total value of sales',
               value: '\$64k',
               change: '+37.8% this week',
               isPositive: true,
               iconPath: 'assets/icons/cart.png',
-              backgroundColor: const Color(0xFFD6F6E6), // Adjusted color
+              backgroundColor: const Color(0xFFD0E0FF),
             ),
+
             const SizedBox(height: 24),
 
-            // Product Views Chart Card
+            // Product views card
             Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0F000000),
-                    blurRadius: 20,
-                    offset: Offset(0, 10),
-                  )
-                ],
-              ),
+              decoration: _boxDecoration(),
               padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Header row with title + filter + download
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -140,39 +228,68 @@ class _RevenueScreenState extends State<RevenueScreen> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
+                      // inside your Row with filter + download
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F3F4),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: DropdownButton<String>(
-                              value: 'All time',
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'All time',
-                                  child: Text('All time'),
+                          Theme(
+                            data: Theme.of(context).copyWith(
+                              dropdownMenuTheme: DropdownMenuThemeData(
+                                menuStyle: MenuStyle(
+                                  backgroundColor: WidgetStateProperty.all(Colors.white), // white menu
+                                  elevation: WidgetStateProperty.all(8), // shadow
+                                  shape: WidgetStateProperty.all(
+                                    RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12), // rounded
+                                    ),
+                                  ),
+                                  side: WidgetStateProperty.all(BorderSide.none), // no border
                                 ),
-                              ],
-                              onChanged: (_) {},
-                              underline: Container(),
-                              icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                              ),
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F3F4),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedFilter,
+                                  borderRadius: BorderRadius.circular(12),
+                                  dropdownColor: Colors.white, // just in case
+                                  items: _filters
+                                      .map(
+                                        (f) => DropdownMenuItem(
+                                      value: f,
+                                      child: Text(
+                                        f,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                      .toList(),
+                                  onChanged: (v) => setState(() {
+                                    _selectedFilter = v!;
+                                  }),
+                                  icon: const Icon(Icons.expand_more),
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F3F4),
-                              borderRadius: BorderRadius.circular(16),
+                          // Download button
+                          IconButton(
+                            onPressed: _downloadChart,
+                            style: ButtonStyle(
+                              backgroundColor: WidgetStateProperty.all(const Color(0xFFF3F3F4)),
+                              shape: WidgetStateProperty.all(
+                                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
                             ),
-                            child: Image.asset(
-                              'assets/icons/download.png', // Specified image asset
-                              width: 20,
-                              height: 20,
-                            ),
+                            icon: const Icon(Icons.download_rounded, color: Colors.black),
                           ),
                         ],
                       ),
@@ -180,93 +297,70 @@ class _RevenueScreenState extends State<RevenueScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  SizedBox(
-                    height: 220,
-                    child: SfCartesianChart(
-                      margin: EdgeInsets.zero,
-                      primaryXAxis: CategoryAxis(
-                        majorGridLines: const MajorGridLines(width: 0),
-                        axisLine: const AxisLine(width: 0),
-                        labelStyle: const TextStyle(fontSize: 12),
-                      ),
-                      primaryYAxis: NumericAxis(
-                        majorGridLines: const MajorGridLines(
-                          width: 1,
-                          color: Color(0x11000000),
+                  // Chart wrapped with RepaintBoundary for export
+                  RepaintBoundary(
+                    key: _chartKey,
+                    child: SizedBox(
+                      height: 220,
+                      child: SfCartesianChart(
+                        margin: EdgeInsets.zero,
+                        primaryXAxis: CategoryAxis(
+                          majorGridLines: const MajorGridLines(width: 0),
+                          axisLine: const AxisLine(width: 0),
+                          labelStyle: const TextStyle(fontSize: 12),
                         ),
-                        axisLine: const AxisLine(width: 0),
-                        labelStyle: const TextStyle(fontSize: 12),
-                        numberFormat: NumberFormat.compactCurrency(
-                          decimalDigits: 0,
-                          symbol: '\$',
+                        primaryYAxis: NumericAxis(
+                          majorGridLines: const MajorGridLines(
+                            width: 1,
+                            color: Color(0x11000000),
+                          ),
+                          axisLine: const AxisLine(width: 0),
+                          labelStyle: const TextStyle(fontSize: 12),
+                          numberFormat: NumberFormat.compactCurrency(
+                            decimalDigits: 0,
+                            symbol: '\$',
+                          ),
                         ),
-                      ),
-                      series: <CartesianSeries<ChartData, String>>[
-                        ColumnSeries<ChartData, String>(
-                          dataSource: [
-                            ChartData('Jan', 8.2, 50),
-                            ChartData('Feb', 8.4, 70),
-                            ChartData('Mar', 8.3, 60),
-                            ChartData('Apr', 8.1, 40),
-                            ChartData('May', 8.7, 120),
-                            ChartData('Jun', 8.3, 55),
-                          ],
-                          xValueMapper: (ChartData data, _) => data.x,
-                          yValueMapper: (ChartData data, _) => data.y1,
-                          name: 'Lifetime Value',
-                          color: const Color(0xFF4285F4),
-                          width: 0.6,
-                          spacing: 0.1,
-                          borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(8),
-                              topRight: Radius.circular(8)),
+                        series: <CartesianSeries<ChartData, String>>[
+                          ColumnSeries<ChartData, String>(
+                            dataSource: _getFilteredData(),
+                            xValueMapper: (ChartData d, _) => d.x,
+                            yValueMapper: (ChartData d, _) => d.y1,
+                            name: 'Lifetime Value',
+                            color: const Color(0xFF4285F4),
+                            width: 0.6,
+                            spacing: 0.1,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          ColumnSeries<ChartData, String>(
+                            dataSource: _getFilteredData(),
+                            xValueMapper: (ChartData d, _) => d.x,
+                            yValueMapper: (ChartData d, _) => d.y2,
+                            name: 'Customer Cost',
+                            color: const Color(0xFFFBBC05),
+                            width: 0.6,
+                            spacing: 0.1,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ],
+                        legend: Legend(
+                          isVisible: true,
+                          position: LegendPosition.bottom,
+                          textStyle: const TextStyle(fontSize: 12),
+                          overflowMode: LegendItemOverflowMode.wrap,
                         ),
-                        ColumnSeries<ChartData, String>(
-                          dataSource: [
-                            ChartData('Jan', 8.2, 50),
-                            ChartData('Feb', 8.4, 70),
-                            ChartData('Mar', 8.3, 60),
-                            ChartData('Apr', 8.1, 40),
-                            ChartData('May', 8.7, 120),
-                            ChartData('Jun', 8.3, 55),
-                          ],
-                          xValueMapper: (ChartData data, _) => data.x,
-                          yValueMapper: (ChartData data, _) => data.y2,
-                          name: 'Customer Cost',
-                          color: const Color(0xFFFBBC05),
-                          width: 0.6,
-                          spacing: 0.1,
-                          borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(8),
-                              topRight: Radius.circular(8)),
-                        ),
-                      ],
-                      legend: Legend(
-                        isVisible: true,
-                        position: LegendPosition.bottom,
-                        textStyle: const TextStyle(fontSize: 12),
-                        overflowMode: LegendItemOverflowMode.wrap,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+
             const SizedBox(height: 24),
 
             // Earning History Card
             Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0F000000),
-                    blurRadius: 20,
-                    offset: Offset(0, 10),
-                  )
-                ],
-              ),
+              decoration: _boxDecoration(),
               padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,49 +375,12 @@ class _RevenueScreenState extends State<RevenueScreen> {
                   const SizedBox(height: 16),
                   ...visible.map((item) => _buildHistoryItem(item)),
                   const SizedBox(height: 12),
-                  if (_historyData.isNotEmpty)
+
+                  if (_historyData.isNotEmpty && canLoadMore)
                     Center(
-                      child: Opacity(
-                        opacity: canLoadMore ? 1 : 0.6,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(28),
-                          onTap: canLoadMore ? _loadMore : null,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(color: const Color(0x44000000)), // Adjusted border color
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x0C000000),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
-                                )
-                              ],
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 18, vertical: 12),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Image.asset(
-                                    'assets/icons/loading.png',
-                                    width: 18,
-                                    height: 18,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  const Text(
-                                    'Load more',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                      child: _LoadMoreButton(
+                        onPressed: _loadMore,
+                        isLoading: _isLoading,
                       ),
                     ),
                 ],
@@ -335,6 +392,19 @@ class _RevenueScreenState extends State<RevenueScreen> {
     );
   }
 
+  BoxDecoration _boxDecoration() => BoxDecoration(
+    color: Colors.white,  // Card background color
+    borderRadius: BorderRadius.circular(18),
+    boxShadow: const [
+      BoxShadow(
+        color: Color(0x0F000000),
+        blurRadius: 20,
+        offset: Offset(0, 10),
+      ),
+    ],
+  );
+
+  // ----- UI helpers -----
   Widget _buildHistoryItem(Map<String, String> item) {
     return Column(
       children: [
@@ -358,12 +428,8 @@ class _RevenueScreenState extends State<RevenueScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: TextStyle(
-                  color: Colors.black.withOpacity(0.65), fontSize: 14)),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w600)),
+          Text(label, style: TextStyle(color: Colors.black.withOpacity(0.65), fontSize: 14)),
+          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -378,17 +444,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
     required Color backgroundColor,
   }) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0F000000),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          )
-        ],
-      ),
+      decoration: _boxDecoration(),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,42 +452,35 @@ class _RevenueScreenState extends State<RevenueScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label,
-                  style: TextStyle(
-                      color: Colors.black.withOpacity(0.6), fontSize: 14)),
+              Text(label, style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 14)),
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
-                child: Image.asset(
-                  iconPath,
-                  width: 20,
-                  height: 20,
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  shape: BoxShape.circle,
                 ),
+                child: Image.asset(iconPath, width: 20, height: 20),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(value,
-              style:
-              const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+          Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           Row(
             children: [
               Icon(
                 isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                color: isPositive
-                    ? const Color(0xFF34A853)
-                    : const Color(0xFFEA4335),
+                color: isPositive ? const Color(0xFF34A853) : const Color(0xFFEA4335),
                 size: 14,
               ),
               const SizedBox(width: 4),
-              Text(change,
-                  style: TextStyle(
-                    color: isPositive
-                        ? const Color(0xFF34A853)
-                        : const Color(0xFFEA4335),
-                    fontSize: 12,
-                  )),
+              Text(
+                change,
+                style: TextStyle(
+                  color: isPositive ? const Color(0xFF34A853) : const Color(0xFFEA4335),
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
         ],
@@ -440,10 +489,68 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 }
 
+// Custom Load More Button
+class _LoadMoreButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final bool isLoading;
+
+  const _LoadMoreButton({
+    required this.onPressed,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: isLoading ? null : onPressed,
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.black.withOpacity(0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isLoading)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Image.asset(
+                'assets/icons/loading.png',
+                width: 18,
+                height: 18,
+              ),
+            const SizedBox(width: 10),
+            Text(
+              isLoading ? 'Loading...' : 'Load more',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class ChartData {
+  const ChartData(this.x, this.y1, this.y2);
   final String x;
   final double y1;
   final double y2;
-
-  ChartData(this.x, this.y1, this.y2);
 }
