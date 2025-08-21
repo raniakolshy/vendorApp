@@ -1,5 +1,10 @@
 // main.dart
 
+import 'package:app_vendor/presentation/Translation/Language.dart';
+import 'package:app_vendor/presentation/admin/admin_news_screen.dart';
+import 'package:app_vendor/presentation/admin/ask_admin_screen.dart';
+import 'package:app_vendor/presentation/pdf/print_pdf_screen.dart';
+import 'package:app_vendor/presentation/profile/edit_profile_screen.dart';
 import 'package:app_vendor/state_management/locale_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -117,13 +122,23 @@ class _HomeState extends State<Home> {
       case NavKey.analytics:
         return const CustomerAnalyticsScreen();
       case NavKey.transactions:
-        return const transactions_screen.TransactionsScreen(); // <-- UTILISATION DE L'ALIAS
+        return const transactions_screen.TransactionsScreen();
       case NavKey.payouts:
         return const PayoutsScreen();
       case NavKey.revenue:
         return const RevenueScreen();
       case NavKey.review:
         return const ReviewsScreen();
+      case NavKey.profileSettings:
+        return const ProfileScreen();
+      case NavKey.printPdf:
+        return const PrintPdfScreen();
+      case NavKey.adminNews:
+        return const AdminNewsScreen();
+      case NavKey.askadmin:
+        return const AskAdminScreen();
+      case NavKey.language:
+        return const LanguageScreen();
       default:
         return const DashboardScreen();
     }

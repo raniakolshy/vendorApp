@@ -9,7 +9,14 @@ enum NavKey {
   analytics,
   transactions,
   revenue,
-  review, payouts,
+  review,
+  payouts,
+  profileSettings,
+  printPdf,
+  customerDashboard,
+  adminNews,
+  language,
+  askadmin,
 }
 
 // central colors (same as before)

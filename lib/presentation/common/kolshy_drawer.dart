@@ -135,7 +135,7 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
               const Divider(color: kDividerGray, height: 24),
 
               // Profile row → opens figma-style popup
-              const _ProfileButton(),
+              _ProfileButton(onSelect: widget.onSelect),
 
               // Extra CTA
               InkWell(
@@ -374,7 +374,10 @@ class _RevenueBadge extends StatelessWidget {
 }
 
 class _ProfileButton extends StatelessWidget {
-  const _ProfileButton();
+  final ValueChanged<NavKey> onSelect;
+
+  const _ProfileButton({required this.onSelect});
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -382,7 +385,7 @@ class _ProfileButton extends StatelessWidget {
       onTap: () => showDialog(
         context: context,
         barrierColor: Colors.black.withOpacity(.25),
-        builder: (_) => const _ProfileMenuDialog(),
+        builder: (_) => _ProfileMenuDialog(onSelect: onSelect),
       ),
       child: const Padding(
         padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
@@ -419,7 +422,9 @@ class _ProfileButton extends StatelessWidget {
 }
 
 class _ProfileMenuDialog extends StatelessWidget {
-  const _ProfileMenuDialog();
+  final ValueChanged<NavKey> onSelect;
+
+  const _ProfileMenuDialog({required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -442,12 +447,7 @@ class _ProfileMenuDialog extends StatelessWidget {
                 label: 'Profile Settings',
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ProfileScreen(),
-                    ),
-                  );
+                  onSelect(NavKey.profileSettings);
                 },
               ),
 
@@ -458,22 +458,7 @@ class _ProfileMenuDialog extends StatelessWidget {
                 label: 'Print PDF',
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PrintPdfScreen()),
-                  );
-                },
-              ),
-              _MenuRow(
-                icon: Icons.space_dashboard_outlined,
-                label: 'Customer Dashboard',
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const CustomerAnalyticsScreen()),
-                  );
+                  onSelect(NavKey.printPdf);
                 },
               ),
               _MenuRow(
@@ -481,10 +466,7 @@ class _ProfileMenuDialog extends StatelessWidget {
                 label: 'Admin News',
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AdminNewsScreen()),
-                  );
+                  onSelect(NavKey.adminNews);
                 },
               ),
               _MenuRow(
@@ -492,26 +474,17 @@ class _ProfileMenuDialog extends StatelessWidget {
                 label: 'Language',
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const LanguageScreen(), // Redirection vers la page Language.dart
-                    ),
-                  );
+                  onSelect(NavKey.language);
                 },
               ),
 
               const _DividerLine(),
-
               _MenuRow(
                 icon: Icons.support_agent_outlined,
                 label: 'Ask for support',
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AskAdminScreen()),
-                  );
+                  onSelect(NavKey.askadmin);
                 },
               ),
 
