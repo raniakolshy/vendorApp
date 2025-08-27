@@ -1,3 +1,6 @@
+import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:app_vendor/l10n/app_localizations_ar.dart';
+import 'package:app_vendor/l10n/app_localizations_en.dart';
 import 'package:flutter/material.dart';
 
 class AdminNewsScreen extends StatefulWidget {
@@ -8,104 +11,82 @@ class AdminNewsScreen extends StatefulWidget {
 }
 
 class _AdminNewsScreenState extends State<AdminNewsScreen> {
-  // Liste de données d'exemple pour les actualités avec types
   final List<Map<String, dynamic>> _newsItems = [
     {
-      'title': 'Issue Fixed',
-      'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.',
-      'time': '2 m ago',
-      'type': 'fix', // fix, feature, maintenance, delivery, payment, security
-      'icon': Icons.check_circle,
-      'color': Colors.green,
+      'title': 'issueFixed',
+      'content': 'issueFixedContent',
+      'time': 'time2mAgo',
+      'type': 'fix',
     },
     {
-      'title': 'New Feature Added',
-      'content': 'A new feature has been added to improve your experience. Check it out now!',
-      'time': '10 m ago',
+      'title': 'newFeature',
+      'content': 'newFeatureContent',
+      'time': 'time10mAgo',
       'type': 'feature',
-      'icon': Icons.new_releases,
-      'color': Colors.blue,
     },
     {
-      'title': 'Server Maintenance',
-      'content': 'Scheduled server maintenance will occur on Thursday at 2 AM UTC.',
-      'time': '1 h ago',
+      'title': 'serverMaintenance',
+      'content': 'serverMaintenanceContent',
+      'time': 'time1hAgo',
       'type': 'maintenance',
-      'icon': Icons.build,
-      'color': Colors.orange,
     },
     {
-      'title': 'Delivery Issues',
-      'content': 'Some delivery routes are experiencing delays due to weather conditions.',
-      'time': '3 h ago',
+      'title': 'deliveryIssues',
+      'content': 'deliveryIssuesContent',
+      'time': 'time3hAgo',
       'type': 'delivery',
-      'icon': Icons.local_shipping,
-      'color': Colors.purple,
     },
     {
-      'title': 'Payment System Update',
-      'content': 'We have updated our payment processing system for better security.',
-      'time': '5 h ago',
+      'title': 'paymentUpdate',
+      'content': 'paymentUpdateContent',
+      'time': 'time5hAgo',
       'type': 'payment',
-      'icon': Icons.payment,
-      'color': Colors.teal,
     },
     {
-      'title': 'Security Alert',
-      'content': 'Important security update required. Please update your app immediately.',
-      'time': '1 d ago',
+      'title': 'securityAlert',
+      'content': 'securityAlertContent',
+      'time': 'time1dAgo',
       'type': 'security',
-      'icon': Icons.security,
-      'color': Colors.red,
     },
   ];
 
   void _refreshNews() {
-    // Cette fonction simule un rafraîchissement de la liste d'actualités.
     setState(() {
       _newsItems.clear();
       _newsItems.addAll([
         {
-          'title': 'Refreshed News 1',
-          'content': 'This is a new news item fetched after a refresh.',
-          'time': 'just now',
+          'title': 'refreshed1',
+          'content': 'refreshed1Content',
+          'time': 'timeJustNow',
           'type': 'feature',
-          'icon': Icons.new_releases,
-          'color': Colors.blue,
         },
         {
-          'title': 'Delivery System Improved',
-          'content': 'We have optimized our delivery routes for faster shipping.',
-          'time': '2 m ago',
+          'title': 'deliveryImproved',
+          'content': 'deliveryImprovedContent',
+          'time': 'time2mAgo',
           'type': 'delivery',
-          'icon': Icons.local_shipping,
-          'color': Colors.purple,
         },
         {
-          'title': 'Payment Gateway Updated',
-          'content': 'Added support for new payment methods including cryptocurrency.',
-          'time': '5 m ago',
+          'title': 'paymentGatewayUpdated',
+          'content': 'paymentGatewayUpdatedContent',
+          'time': 'time5mAgo',
           'type': 'payment',
-          'icon': Icons.payment,
-          'color': Colors.teal,
         },
         {
-          'title': 'Bug Fixes',
-          'content': 'Fixed several minor bugs reported by users in the last update.',
-          'time': '10 m ago',
+          'title': 'bugFixes',
+          'content': 'bugFixesContent',
+          'time': 'time10mAgo',
           'type': 'fix',
-          'icon': Icons.bug_report,
-          'color': Colors.green,
         },
       ]);
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('News list refreshed!'),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.newsRefreshed),
         backgroundColor: Colors.blue,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(8)),
         ),
       ),
@@ -120,14 +101,14 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('News deleted successfully.'),
+        content: Text(AppLocalizations.of(context)!.newsDeleted),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(8)),
         ),
         action: SnackBarAction(
-          label: 'Undo',
+          label: AppLocalizations.of(context)!.undo,
           textColor: Colors.white,
           onPressed: () {
             setState(() {
@@ -179,6 +160,7 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       body: SafeArea(
@@ -187,9 +169,9 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Admin News',
-                style: TextStyle(
+              Text(
+                loc.adminNews,
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF333333),
@@ -217,9 +199,9 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Recent Updates',
-                            style: TextStyle(
+                          Text(
+                            loc.recentUpdates,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF333333),
@@ -228,17 +210,17 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                           IconButton(
                             icon: const Icon(Icons.refresh, color: Colors.grey),
                             onPressed: _refreshNews,
-                            tooltip: 'Refresh news',
+                            tooltip: loc.refreshNews,
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
                       Expanded(
                         child: _newsItems.isEmpty
-                            ? const Center(
+                            ? Center(
                           child: Text(
-                            'No news updates available',
-                            style: TextStyle(
+                            loc.noNews,
+                            style: const TextStyle(
                               color: Colors.grey,
                               fontSize: 16,
                             ),
@@ -263,11 +245,11 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                               ),
                               onDismissed: (direction) => _deleteNewsItem(index),
                               child: _buildNewsItem(
-                                title: newsItem['title']!,
-                                content: newsItem['content']!,
-                                time: newsItem['time']!,
-                                icon: newsItem['icon']!,
-                                color: newsItem['color']!,
+                                title: loc.getString(newsItem['title']),
+                                content: loc.getString(newsItem['content']),
+                                time: loc.getString(newsItem['time']),
+                                icon: _getIconForType(newsItem['type']),
+                                color: _getColorForType(newsItem['type']),
                               ),
                             );
                           },
@@ -303,11 +285,7 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
               color: color.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 20,
-            ),
+            child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -349,5 +327,68 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
         ],
       ),
     );
+  }
+}
+
+extension LocalizationExtension on AppLocalizations {
+  String getString(String key) {
+    switch (key) {
+      case 'issueFixed':
+        return issueFixed;
+      case 'issueFixedContent':
+        return issueFixedContent;
+      case 'newFeature':
+        return newFeature;
+      case 'newFeatureContent':
+        return newFeatureContent;
+      case 'serverMaintenance':
+        return serverMaintenance;
+      case 'serverMaintenanceContent':
+        return serverMaintenanceContent;
+      case 'deliveryIssues':
+        return deliveryIssues;
+      case 'deliveryIssuesContent':
+        return deliveryIssuesContent;
+      case 'paymentUpdate':
+        return paymentUpdate;
+      case 'paymentUpdateContent':
+        return paymentUpdateContent;
+      case 'securityAlert':
+        return securityAlert;
+      case 'securityAlertContent':
+        return securityAlertContent;
+      case 'refreshed1':
+        return refreshed1;
+      case 'refreshed1Content':
+        return refreshed1Content;
+      case 'deliveryImproved':
+        return deliveryImproved;
+      case 'deliveryImprovedContent':
+        return deliveryImprovedContent;
+      case 'paymentGatewayUpdated':
+        return paymentGatewayUpdated;
+      case 'paymentGatewayUpdatedContent':
+        return paymentGatewayUpdatedContent;
+      case 'bugFixes':
+        return bugFixes;
+      case 'bugFixesContent':
+        return bugFixesContent;
+      case 'time2mAgo':
+        return time2mAgo;
+      case 'time10mAgo':
+        return time10mAgo;
+      case 'time1hAgo':
+        return time1hAgo;
+      case 'time3hAgo':
+        return time3hAgo;
+      case 'time5hAgo':
+        return time5hAgo;
+      case 'time1dAgo':
+        return time1dAgo;
+      case 'timeJustNow':
+        return timeJustNow;
+      default:
+        return key;
+    }
   }
 }

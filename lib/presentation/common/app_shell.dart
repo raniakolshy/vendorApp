@@ -1,3 +1,4 @@
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'kolshy_drawer.dart';
 import 'nav_key.dart';
@@ -26,6 +27,8 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
     return Scaffold(
       key: scaffoldKey,
       appBar: AppBar(
@@ -43,7 +46,8 @@ class AppShell extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _TopBtn(
-                  name: 'menu',
+                  name: loc.menu,
+                  icon: 'menu',
                   active: bottomIndex == 0,
                   onTap: () {
                     onBottomTap(0);
@@ -51,12 +55,14 @@ class AppShell extends StatelessWidget {
                   },
                 ),
                 _TopBtn(
-                  name: 'home',
+                  name: loc.home,
+                  icon: 'home',
                   active: bottomIndex == 1,
                   onTap: () => onBottomTap(1),
                 ),
                 _TopBtn(
-                  name: 'chat',
+                  name: loc.chat,
+                  icon: 'chat',
                   active: bottomIndex == 2,
                   onTap: () => onBottomTap(2),
                 ),
@@ -65,7 +71,8 @@ class AppShell extends StatelessWidget {
                   clipBehavior: Clip.none,
                   children: [
                     _TopBtn(
-                      name: 'bell',
+                      name: loc.notifications,
+                      icon: 'bell',
                       active: bottomIndex == 3,
                       onTap: () {
                         onBottomTap(3);
@@ -99,10 +106,11 @@ class AppShell extends StatelessWidget {
 
   // ---- Popover ----
   void _showNotificationsPopover(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'notifications',
+      barrierLabel: loc.notifications,
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 160),
       pageBuilder: (_, __, ___) => const SizedBox.shrink(),
@@ -141,39 +149,44 @@ class AppShell extends StatelessWidget {
 
 class _TopBtn extends StatelessWidget {
   final String name;
+  final String icon;
   final bool active;
   final VoidCallback onTap;
 
   const _TopBtn({
     required this.name,
+    required this.icon,
     required this.active,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: active ? Colors.white10 : Colors.transparent,
-          shape: BoxShape.circle,
-          boxShadow: active
-              ? const [
-            BoxShadow(
-              blurRadius: 8,
-              spreadRadius: 0.5,
-              color: Colors.white24,
-            ),
-          ]
-              : null,
-        ),
-        child: Image.asset(
-          'assets/icons/$name.png',
-          width: 18,
-          height: 18,
+    return Tooltip( // <-- accessibilité multi-langue
+      message: name,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: active ? Colors.white10 : Colors.transparent,
+            shape: BoxShape.circle,
+            boxShadow: active
+                ? const [
+              BoxShadow(
+                blurRadius: 8,
+                spreadRadius: 0.5,
+                color: Colors.white24,
+              ),
+            ]
+                : null,
+          ),
+          child: Image.asset(
+            'assets/icons/$icon.png',
+            width: 18,
+            height: 18,
+          ),
         ),
       ),
     );
@@ -187,8 +200,7 @@ class _RedDot extends StatelessWidget {
     return Container(
       width: 8,
       height: 8,
-      decoration:
-      const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
     );
   }
 }
@@ -237,6 +249,7 @@ class _NotificationsCardState extends State<_NotificationsCard> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final loc = AppLocalizations.of(context)!;
 
     return Material(
       color: Colors.transparent,
@@ -267,7 +280,7 @@ class _NotificationsCardState extends State<_NotificationsCard> {
               Row(
                 children: [
                   Text(
-                    'Notifications',
+                    loc.notifications,
                     style: text.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF2E2F32),

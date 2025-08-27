@@ -351,10 +351,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_plugin_android_lifecycle
-      sha256: "6382ce712ff69b0f719640ce957559dde459e55ecd433c767e06d139ddf16cab"
+      sha256: b0694b7fb1689b0e6cc193b3f1fcac6423c4f93c74fb20b806c6b6f196db0c31
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.29"
+    version: "2.0.30"
   flutter_quill:
     dependency: "direct main"
     description:
@@ -553,10 +553,10 @@ packages:
     dependency: transitive
     description:
       name: image_picker_android
-      sha256: e83b2b05141469c5e19d77e1dfa11096b6b1567d09065b2265d7c6904560050c
+      sha256: "28f3987ca0ec702d346eae1d90eda59603a2101b52f1e234ded62cff1d5cfa6e"
       url: "https://pub.dev"
     source: hosted
-    version: "0.8.13"
+    version: "0.8.13+1"
   image_picker_for_web:
     dependency: transitive
     description:
@@ -753,10 +753,10 @@ packages:
     dependency: transitive
     description:
       name: path_provider_android
-      sha256: d0d310befe2c8ab9e7f393288ccbb11b60c019c6b5afc21973eeee4dda2b35e9
+      sha256: "993381400e94d18469750e5b9dcb8206f15bc09f9da86b9e44a9b0092a0066db"
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.17"
+    version: "2.2.18"
   path_provider_foundation:
     dependency: transitive
     description:
@@ -897,10 +897,10 @@ packages:
     dependency: transitive
     description:
       name: shared_preferences_android
-      sha256: "5bcf0772a761b04f8c6bf814721713de6f3e5d9d89caf8d3fe031b02a342379e"
+      sha256: a2608114b1ffdcbc9c120eb71a0e207c71da56202852d4aab8a5e30a82269e74
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.11"
+    version: "2.4.12"
   shared_preferences_foundation:
     dependency: transitive
     description:
@@ -1022,26 +1022,26 @@ packages:
     dependency: "direct main"
     description:
       name: syncfusion_flutter_charts
-      sha256: "620ab07355f2fdb587b0db7e73c33ec2e72d6a54ed299b1b75411025b173d312"
+      sha256: "68fdb029dad34a46e4c9cfad8ad66fe29db7b303bd96849261ab2b23a168d0e8"
       url: "https://pub.dev"
     source: hosted
-    version: "30.2.6"
+    version: "30.2.7"
   syncfusion_flutter_core:
     dependency: transitive
     description:
       name: syncfusion_flutter_core
-      sha256: "6b8b8cb5b4647e6a5858d47fceda9b7e5a9a2be57cff28120acb65edbd92a48c"
+      sha256: bfd026c0f9822b49ff26fed11cd3334519acb6a6ad4b0c81d9cd18df6af1c4c0
       url: "https://pub.dev"
     source: hosted
-    version: "30.2.6"
+    version: "30.2.7"
   syncfusion_flutter_datepicker:
     dependency: "direct main"
     description:
       name: syncfusion_flutter_datepicker
-      sha256: "873038041c87626bb0d1ea40ab43e881d18781120a4d11922d9a69efc9147a5b"
+      sha256: b5f35cc808e91b229d41613efe71dadab1549a35bfd493f922fc06ccc2fe908c
       url: "https://pub.dev"
     source: hosted
-    version: "30.2.6"
+    version: "30.2.7"
   term_glyph:
     dependency: transitive
     description:
@@ -1078,10 +1078,10 @@ packages:
     dependency: transitive
     description:
       name: url_launcher_android
-      sha256: "0aedad096a85b49df2e4725fa32118f9fa580f3b14af7a2d2221896a02cd5656"
+      sha256: "69ee86740f2847b9a4ba6cffa74ed12ce500bbe2b07f3dc1e643439da60637b7"
       url: "https://pub.dev"
     source: hosted
-    version: "6.3.17"
+    version: "6.3.18"
   url_launcher_ios:
     dependency: transitive
     description:

@@ -1,39 +1,32 @@
-// main.dart
-
-import 'package:app_vendor/presentation/Translation/Language.dart';
-import 'package:app_vendor/presentation/admin/admin_news_screen.dart';
-import 'package:app_vendor/presentation/admin/ask_admin_screen.dart';
-import 'package:app_vendor/presentation/pdf/print_pdf_screen.dart';
-import 'package:app_vendor/presentation/profile/edit_profile_screen.dart';
-import 'package:app_vendor/state_management/locale_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:app_vendor/presentation/analytics/customer_analytics_screen.dart';
-import 'package:app_vendor/presentation/dashboard/dashboard_screen.dart';
-import 'package:app_vendor/presentation/orders/orders_list_screen.dart';
-import 'package:app_vendor/presentation/payouts/payouts_screen.dart';
-import 'package:app_vendor/presentation/products/add_product_screen.dart';
-import 'package:app_vendor/presentation/products/drafts_list_screen.dart';
-import 'package:app_vendor/presentation/products/products_list_screen.dart';
-import 'package:app_vendor/presentation/revenue/revenue_screen.dart';
-import 'package:app_vendor/presentation/reviews/reviews_screen.dart';
-import 'package:app_vendor/presentation/transactions/transactions_screen.dart' as transactions_screen; // <-- AJOUT DE L'ALIAS ICI
+import 'package:app_vendor/state_management/locale_provider.dart';
 import 'package:app_vendor/l10n/app_localizations.dart';
+
+import 'presentation/Translation/Language.dart';
+import 'presentation/admin/admin_news_screen.dart';
+import 'presentation/admin/ask_admin_screen.dart';
+import 'presentation/pdf/print_pdf_screen.dart';
+import 'presentation/profile/edit_profile_screen.dart';
+import 'presentation/analytics/customer_analytics_screen.dart';
+import 'presentation/dashboard/dashboard_screen.dart';
+import 'presentation/orders/orders_list_screen.dart';
+import 'presentation/payouts/payouts_screen.dart';
+import 'presentation/products/add_product_screen.dart';
+import 'presentation/products/drafts_list_screen.dart';
+import 'presentation/products/products_list_screen.dart';
+import 'presentation/revenue/revenue_screen.dart';
+import 'presentation/reviews/reviews_screen.dart';
+import 'presentation/transactions/transactions_screen.dart' as transactions_screen;
 import 'presentation/common/app_shell.dart';
 import 'presentation/common/nav_key.dart';
 
-// --- INITIALISATION ASYNCHRONE DE LA LANGUE ---
 void main() async {
-  // Garantit que les services natifs de Flutter sont initialisés
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Crée une instance du provider
   final localeProvider = LocaleProvider();
-
-  // Charge la langue sauvegardée de manière asynchrone
   await localeProvider.loadSavedLocale();
 
-  // Lance l'application en passant le provider initialisé
   runApp(MyApp(localeProvider: localeProvider));
 }
 
@@ -50,11 +43,18 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'Kolshy',
-            // --- UTILISATION DE LA LOCALE FOURNIE PAR LE PROVIDER ---
             locale: provider.locale,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            // --------------------------------------------------------
+            localeResolutionCallback: (locale, supportedLocales) {
+              if (locale == null) return supportedLocales.first;
+              for (var supported in supportedLocales) {
+                if (supported.languageCode == locale.languageCode) {
+                  return supported;
+                }
+              }
+              return supportedLocales.first;
+            },
             theme: ThemeData(
               useMaterial3: true,
               fontFamily: 'Inter',

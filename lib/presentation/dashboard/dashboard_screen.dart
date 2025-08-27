@@ -1,4 +1,5 @@
 import 'dart:math' show min, max, pi, atan2;
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -72,6 +73,113 @@ class Review {
 }
 
 /// =============================================================
+/// Ranges: internal keys + localized labels
+/// =============================================================
+const String kRangeAll   = 'all';
+const String kRange30    = 'last30';
+const String kRange7     = 'last7';
+const String kRangeYear  = 'year';
+
+List<String> rangeKeys() => const [kRangeAll, kRange30, kRange7, kRangeYear];
+
+String rangeLabel(BuildContext context, String key) {
+  final l10n = AppLocalizations.of(context)!;
+  switch (key) {
+    case kRange30: return l10n.rangeLast30Days;
+    case kRange7:  return l10n.rangeLast7Days;
+    case kRangeYear:return l10n.rangeThisYear;
+    default:       return l10n.rangeAllTime;
+  }
+}
+
+List<String> xLabelsForRangeKey(BuildContext context, String key) {
+  final l = AppLocalizations.of(context)!;
+  switch (key) {
+    case kRange7:
+      return [l.weekMon, l.weekTue, l.weekWed, l.weekThu, l.weekFri, l.weekSat, l.weekSun];
+    case kRange30:
+    // anchor ticks the same as before
+      return ['1','5','10','15','20','25','30'];
+    case kRangeYear:
+      return [l.monthJan, l.monthFeb, l.monthMar, l.monthApr, l.monthMay, l.monthJun, l.monthJul, l.monthAug, l.monthSep, l.monthOct, l.monthNov, l.monthDec];
+    default:
+      return ['2019','2020','2021','2022','2023','2024'];
+  }
+}
+
+/// Convert website daily map into FL spots according to selected range.
+List<FlSpot> spotsFromSiteByKey(Map<DateTime, double> daily, String key) {
+  final entries = daily.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+
+  if (key == kRangeYear) {
+    final now = DateTime.now();
+    final byMonth = List<double?>.filled(12, null);
+    final counts  = List<int>.filled(12, 0);
+    for (final e in entries.where((e) => e.key.year == now.year)) {
+      final m = e.key.month - 1;
+      (byMonth[m] == null) ? byMonth[m] = e.value : byMonth[m] = byMonth[m]! + e.value;
+      counts[m] += 1;
+    }
+    for (var i = 0; i < 12; i++) {
+      if (counts[i] > 0) byMonth[i] = byMonth[i]! / counts[i];
+      byMonth[i] ??= (i > 0 ? byMonth[i - 1] : (entries.isNotEmpty ? entries.first.value : 0));
+    }
+    return List.generate(12, (i) => FlSpot(i.toDouble(), byMonth[i]!.toDouble()));
+  }
+
+  if (key == kRange30) {
+    final last30 = entries.where((e) => e.key.isAfter(DateTime.now().subtract(const Duration(days: 30)))).toList();
+    final anchor = [1, 5, 10, 15, 20, 25, 30];
+    return List.generate(anchor.length, (i) {
+      final target = DateTime.now().subtract(Duration(days: 30 - anchor[i]));
+      final nearest = last30.isEmpty ? null
+          : last30.reduce((a, b) => (a.key.difference(target)).abs() < (b.key.difference(target)).abs() ? a : b);
+      return FlSpot(i.toDouble(), (nearest?.value ?? (entries.isNotEmpty ? entries.last.value : 0)));
+    });
+  }
+
+  if (key == kRange7) {
+    final last7 = entries.where((e) => e.key.isAfter(DateTime.now().subtract(const Duration(days: 7)))).toList();
+    final base = (entries.isNotEmpty ? entries.last.value : 0.0);
+    final arr = List<double>.filled(7, base);
+    for (final e in last7) {
+      final diff = DateTime.now().difference(e.key).inDays;
+      final pos = 6 - diff;
+      if (pos >= 0 && pos < 7) arr[pos] = e.value;
+    }
+    return List.generate(7, (i) => FlSpot(i.toDouble(), arr[i]));
+  }
+
+  // All time (by year, averaged)
+  final years = entries.map((e) => e.key.year).toSet().toList()..sort();
+  final byYear = <int, double>{};
+  final counts = <int, int>{};
+  for (final e in entries) {
+    byYear[e.key.year] = (byYear[e.key.year] ?? 0) + e.value;
+    counts[e.key.year] = (counts[e.key.year] ?? 0) + 1;
+  }
+  final vals = years.map((y) => (byYear[y]! / counts[y]!.clamp(1, 1 << 30))).toList();
+  return List.generate(years.length, (i) => FlSpot(i.toDouble(), vals[i]));
+}
+
+/// Compute tight Y bounds with padding so nothing clips.
+({double minY, double maxY}) yBounds(List<FlSpot> a, [List<FlSpot>? b]) {
+  final all = [...a, if (b != null) ...b];
+  if (all.isEmpty) return (minY: 0, maxY: 1);
+  var lo = all.first.y, hi = all.first.y;
+  for (final s in all) {
+    lo = min(lo, s.y);
+    hi = max(hi, s.y);
+  }
+  const pad = 0.2;
+  var minY = lo - pad, maxY = hi + pad;
+  if (minY == maxY) { minY -= 0.5; maxY += 0.5; }
+  minY = (minY * 10).floor() / 10.0;
+  maxY = (maxY * 10).ceil() / 10.0;
+  return (minY: minY, maxY: maxY);
+}
+
+/// =============================================================
 /// Dashboard Screen
 /// =============================================================
 class DashboardScreen extends StatefulWidget {
@@ -81,9 +189,8 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final _ranges = const ['All time', 'Last 30 days', 'Last 7 days', 'This year'];
-  String _salesRange = 'All time';
-  String _aovRange   = 'All time';
+  String _salesRangeKey = kRangeAll;
+  String _aovRangeKey   = kRangeAll;
 
   /// Replace with your API data; this mimics the website “flat line”
   final WebsiteSeries site = WebsiteSeries.flat(
@@ -95,6 +202,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: kPageBg,
       body: SafeArea(
@@ -140,13 +249,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Hello, Mr Jake',
+                                      Text(
+                                        l10n.helloUser('Mr Jake'),
                                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                           fontWeight: FontWeight.w700, color: Colors.white,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
-                                      Text("Let's Check Your Store!",
+                                      Text(
+                                        l10n.letsCheckStore,
                                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
                                       ),
                                     ],
@@ -181,27 +292,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     // Total sales
                     TotalSalesCard(
-                      range: _salesRange,
-                      ranges: _ranges,
+                      rangeKey: _salesRangeKey,
+                      onRangeChanged: (v) => setState(() => _salesRangeKey = v),
                       data: site.totalSales,
                       compareData: site.totalSales,
-                      onRangeChanged: (v) => setState(() => _salesRange = v),
                     ),
                     const SizedBox(height: 20),
 
-                    // Customers donut + AOV (kept); no order bar/chart anymore
+                    // Customers donut + AOV
                     _TwoUpGrid(children: [
                       SectionCard(
-                        title: 'Total customers',
+                        title: l10n.totalCustomers,
                         child: const _CustomersCard(),
                       ),
                       SectionCard(
-                        title: 'Average Order Value',
-                        child: AOVSection(range: _aovRange, siteAov: site.aov),
+                        title: l10n.averageOrderValue,
+                        child: AOVSection(rangeKey: _aovRangeKey, siteAov: site.aov),
                         trailing: _RangeDropDown(
-                          value: _aovRange,
-                          ranges: _ranges,
-                          onChanged: (v) => setState(() => _aovRange = v!),
+                          value: _aovRangeKey,
+                          items: rangeKeys().map((k) => DropdownMenuItem(value: k, child: Text(rangeLabel(context, k)))).toList(),
+                          onChanged: (v) => setState(() => _aovRangeKey = v!),
                         ),
                       ),
                     ]),
@@ -211,7 +321,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // Carousels
                     _TwoUpGrid(children: [
                       SectionCard(
-                        title: 'Top Selling Products',
+                        title: l10n.topSellingProducts,
                         child: ProductCarousel(products: [
                           ProductTileData(
                             name: 'Wireless Headphones Pro 300',
@@ -236,12 +346,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ]),
                       ),
                       SectionCard(
-                        title: 'Top Categories',
+                        title: l10n.topCategories,
                         child: CategoryCarousel(categories: [
-                          CategoryTileData(name: 'Headphones', items: 42, icon: const Icon(Icons.headphones_outlined)),
-                          CategoryTileData(name: 'Watches', items: 18, icon: const Icon(Icons.watch_outlined)),
-                          CategoryTileData(name: 'Cameras', items: 26, icon: const Icon(Icons.photo_camera_outlined)),
-                          CategoryTileData(name: 'Accessories', items: 120, icon: const Icon(Icons.extension_outlined)),
+                          CategoryTileData(name: l10n.catHeadphones, items: 42, icon: const Icon(Icons.headphones_outlined)),
+                          CategoryTileData(name: l10n.catWatches,     items: 18, icon: const Icon(Icons.watch_outlined)),
+                          CategoryTileData(name: l10n.catCameras,     items: 26, icon: const Icon(Icons.photo_camera_outlined)),
+                          CategoryTileData(name: l10n.catAccessories, items: 120, icon: const Icon(Icons.extension_outlined)),
                         ]),
                       ),
                     ]),
@@ -250,7 +360,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     // Ratings
                     SectionCard(
-                      title: 'Ratings',
+                      title: l10n.ratings,
                       child: RatingsPanel(
                         price:  const {5:12,4:18,3:32,2:21,1:17},
                         value:  const {5:15,4:20,3:30,2:20,1:15},
@@ -260,21 +370,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Reviews (overflow-safe trailing link)
+                    // Reviews
                     SectionCard(
-                      title: 'Latest Comments and Reviews',
+                      title: l10n.latestCommentsReviews,
                       child: LatestReviewsList(reviews: [
                         Review(
                           user: 'Courtney Henry',
                           rating: 5, timeAgo: '2h',
                           product: 'Wireless Headphones Pro 300',
-                          comment: 'Super comfy and the battery life is crazy good.',
+                          comment: l10n.r1,
                         ),
                         Review(
                           user: 'Jenny Wilson',
                           rating: 4, timeAgo: '1d',
                           product: 'Smartwatch Lite',
-                          comment: 'Does everything I need. Wish the strap was softer.',
+                          comment: l10n.r2,
                         ),
                       ]),
                     ),
@@ -290,14 +400,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
+
 /// Little dropdown used in cards (modern popup)
 class _RangeDropDown extends StatelessWidget {
   final String value;
-  final List<String> ranges;
+  final List<DropdownMenuItem<String>> items;
   final ValueChanged<String?> onChanged;
   const _RangeDropDown({
     required this.value,
-    required this.ranges,
+    required this.items,
     required this.onChanged,
   });
 
@@ -320,15 +431,14 @@ class _RangeDropDown extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           style: Theme.of(context).textTheme.bodyMedium,
           icon: const Icon(Icons.keyboard_arrow_down_rounded),
-          items: ranges
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-              .toList(),
+          items: items,
           onChanged: onChanged,
         ),
       ),
     );
   }
 }
+
 /// Animated painter-based donut with round caps & smooth motion.
 class AnimatedDonut extends StatelessWidget {
   final List<double> values;
@@ -445,33 +555,34 @@ class _StatRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return SizedBox(
       height: kStatCardHeight + 4,
       child: ListView(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        children: const [
+        children: [
           _MiniStatCard(
             iconPath: 'assets/icons/payments_outlined.png',
-            label: 'Revenue',
-            value: 'AED 500',
-            delta: '+50% Last Week',
+            label: l.revenue,
+            value: l.currencyAmount('AED', '500'),
+            delta: '+50% ${l.lastWeek}',
             deltaColor: Colors.green,
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           _MiniStatCard(
             iconPath: 'assets/icons/shopping_bag_outlined.png',
-            label: 'Order',
+            label: l.orders,
             value: '100',
-            delta: '-50% Last Week',
+            delta: '-50% ${l.lastWeek}',
             deltaColor: Colors.red,
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           _MiniStatCard(
             iconPath: 'assets/icons/people_alt_outlined.png',
-            label: 'Customer',
+            label: l.customers,
             value: '562',
-            delta: '+20% Last Week',
+            delta: '+20% ${l.lastWeek}',
             deltaColor: Colors.green,
           ),
         ],
@@ -592,120 +703,17 @@ class SectionCard extends StatelessWidget {
 }
 
 /// =============================================================
-/// Helpers for ranges & labels
-/// =============================================================
-List<String> xLabelsForRange(String range) {
-  switch (range) {
-    case 'Last 7 days':
-      return const ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    case 'Last 30 days':
-      return const ['1','5','10','15','20','25','30'];
-    case 'This year':
-      return const ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    default:
-      return const ['2019','2020','2021','2022','2023','2024'];
-  }
-}
-
-SideTitles bottomTitles(List<String> labels) => SideTitles(
-  showTitles: true,
-  interval: 1,
-  getTitlesWidget: (value, meta) {
-    final i = value.toInt();
-    if (i < 0 || i >= labels.length) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 8.0),
-      child: Text(labels[i], style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
-    );
-  },
-);
-
-/// Convert website daily map into FL spots according to selected range.
-List<FlSpot> spotsFromSite(Map<DateTime, double> daily, String range) {
-  final entries = daily.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
-
-  if (range == 'This year') {
-    final now = DateTime.now();
-    final byMonth = List<double?>.filled(12, null);
-    final counts  = List<int>.filled(12, 0);
-    for (final e in entries.where((e) => e.key.year == now.year)) {
-      final m = e.key.month - 1;
-      (byMonth[m] == null) ? byMonth[m] = e.value : byMonth[m] = byMonth[m]! + e.value;
-      counts[m] += 1;
-    }
-    for (var i = 0; i < 12; i++) {
-      if (counts[i] > 0) byMonth[i] = byMonth[i]! / counts[i];
-      byMonth[i] ??= (i > 0 ? byMonth[i - 1] : (entries.isNotEmpty ? entries.first.value : 0));
-    }
-    return List.generate(12, (i) => FlSpot(i.toDouble(), byMonth[i]!.toDouble()));
-  }
-
-  if (range == 'Last 30 days') {
-    final last30 = entries.where((e) => e.key.isAfter(DateTime.now().subtract(const Duration(days: 30)))).toList();
-    final anchor = [1, 5, 10, 15, 20, 25, 30];
-    return List.generate(anchor.length, (i) {
-      final target = DateTime.now().subtract(Duration(days: 30 - anchor[i]));
-      final nearest = last30.isEmpty ? null
-          : last30.reduce((a, b) => (a.key.difference(target)).abs() < (b.key.difference(target)).abs() ? a : b);
-      return FlSpot(i.toDouble(), (nearest?.value ?? (entries.isNotEmpty ? entries.last.value : 0)));
-    });
-  }
-
-  if (range == 'Last 7 days') {
-    final last7 = entries.where((e) => e.key.isAfter(DateTime.now().subtract(const Duration(days: 7)))).toList();
-    final base = (entries.isNotEmpty ? entries.last.value : 0.0);
-    final arr = List<double>.filled(7, base);
-    for (final e in last7) {
-      final diff = DateTime.now().difference(e.key).inDays;
-      final pos = 6 - diff;
-      if (pos >= 0 && pos < 7) arr[pos] = e.value;
-    }
-    return List.generate(7, (i) => FlSpot(i.toDouble(), arr[i]));
-  }
-
-  // All time (by year, averaged)
-  final years = entries.map((e) => e.key.year).toSet().toList()..sort();
-  final byYear = <int, double>{};
-  final counts = <int, int>{};
-  for (final e in entries) {
-    byYear[e.key.year] = (byYear[e.key.year] ?? 0) + e.value;
-    counts[e.key.year] = (counts[e.key.year] ?? 0) + 1;
-  }
-  final vals = years.map((y) => (byYear[y]! / counts[y]!.clamp(1, 1 << 30))).toList();
-  return List.generate(years.length, (i) => FlSpot(i.toDouble(), vals[i]));
-}
-
-/// Compute tight Y bounds with padding so nothing clips.
-({double minY, double maxY}) yBounds(List<FlSpot> a, [List<FlSpot>? b]) {
-  final all = [...a, if (b != null) ...b];
-  if (all.isEmpty) return (minY: 0, maxY: 1);
-  var lo = all.first.y, hi = all.first.y;
-  for (final s in all) {
-    lo = min(lo, s.y);
-    hi = max(hi, s.y);
-  }
-  const pad = 0.2;
-  var minY = lo - pad, maxY = hi + pad;
-  if (minY == maxY) { minY -= 0.5; maxY += 0.5; }
-  minY = (minY * 10).floor() / 10.0;
-  maxY = (maxY * 10).ceil() / 10.0;
-  return (minY: minY, maxY: maxY);
-}
-
-/// =============================================================
 /// TOTAL SALES card
 /// =============================================================
 class TotalSalesCard extends StatefulWidget {
-  final String range;
-  final List<String> ranges;
+  final String rangeKey;
   final ValueChanged<String> onRangeChanged;
   final Map<DateTime, double> data;              // main
   final Map<DateTime, double>? compareData;      // comparison
 
   const TotalSalesCard({
     super.key,
-    required this.range,
-    required this.ranges,
+    required this.rangeKey,
     required this.onRangeChanged,
     required this.data,
     this.compareData,
@@ -718,10 +726,10 @@ class TotalSalesCard extends StatefulWidget {
 class _TotalSalesCardState extends State<TotalSalesCard> {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final labels  = xLabelsForRange(widget.range);
-    final primary = spotsFromSite(widget.data, widget.range);
-    final compare = widget.compareData != null ? spotsFromSite(widget.compareData!, widget.range) : <FlSpot>[];
+    final l = AppLocalizations.of(context)!;
+    final labels  = xLabelsForRangeKey(context, widget.rangeKey);
+    final primary = spotsFromSiteByKey(widget.data, widget.rangeKey);
+    final compare = widget.compareData != null ? spotsFromSiteByKey(widget.compareData!, widget.rangeKey) : <FlSpot>[];
     final bounds  = yBounds(primary, compare.isEmpty ? null : compare);
 
     return Container(
@@ -729,25 +737,25 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text('Total Sales', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text(l.totalSales, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const Spacer(),
           _PillDropdown(
-            value: widget.range,
-            items: widget.ranges,
+            value: widget.rangeKey,
+            items: rangeKeys().map((k) => DropdownMenuItem(value: k, child: Text(rangeLabel(context, k)))).toList(),
             onChanged: (v) { if (v != null) widget.onRangeChanged(v); },
           ),
         ]),
         const SizedBox(height: 8),
         Row(children: [
-          Text('AED 0.00', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+          Text(l.currencyAmount('AED', '0.00'), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(width: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(color: const Color(0xFFE9F7EF), borderRadius: BorderRadius.circular(10)),
-            child: Row(children: const [
-              Icon(Icons.arrow_upward_rounded, size: 14, color: Colors.green),
-              SizedBox(width: 4),
-              Text('37.8% Total Sales', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600)),
+            child: Row(children: [
+              const Icon(Icons.arrow_upward_rounded, size: 14, color: Colors.green),
+              const SizedBox(width: 4),
+              Text(l.percentTotalSales('37.8'), style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600)),
             ]),
           ),
         ]),
@@ -765,8 +773,8 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
                 drawVerticalLine: true,
                 horizontalInterval: 0.2,
                 verticalInterval: 1,
-                getDrawingHorizontalLine: (v) => FlLine(color: const Color(0xFFE9ECF2), strokeWidth: 1),
-                getDrawingVerticalLine:   (v) => FlLine(color: const Color(0xFFE9ECF2), strokeWidth: 1),
+                getDrawingHorizontalLine: (v) => const FlLine(color: Color(0xFFE9ECF2), strokeWidth: 1),
+                getDrawingVerticalLine:   (v) => const FlLine(color: Color(0xFFE9ECF2), strokeWidth: 1),
               ),
               titlesData: FlTitlesData(
                 topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -778,11 +786,22 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
                     interval: 0.2,
                     getTitlesWidget: (v, _) => SizedBox(
                       width: 42,
-                      child: Text('${v.toStringAsFixed(1)}m', textAlign: TextAlign.right, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                      child: Text('${v.toStringAsFixed(1)}${AppLocalizations.of(context)!.millionsSuffix}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
                     ),
                   ),
                 ),
-                bottomTitles: AxisTitles(sideTitles: bottomTitles(labels)),
+                bottomTitles: AxisTitles(sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: 1,
+                  getTitlesWidget: (value, meta) {
+                    final i = value.toInt();
+                    if (i < 0 || i >= labels.length) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(labels[i], style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                    );
+                  },
+                )),
               ),
               borderData: FlBorderData(show: false),
               lineBarsData: [
@@ -822,10 +841,10 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
           ),
         ),
         const SizedBox(height: 8),
-        Row(children: const [
-          _LegendSwatch(label: 'Jan 1–Dec 31, 2022', color: kPrimaryLine, solid: true),
-          SizedBox(width: 18),
-          _LegendSwatch(label: 'Jan 1–Dec 31, 2023', color: kCompareLine, solid: false, dimmed: true),
+        Row(children: [
+          _LegendSwatch(label: l.legendRangeYear('2022'), color: kPrimaryLine, solid: true),
+          const SizedBox(width: 18),
+          _LegendSwatch(label: l.legendRangeYear('2023'), color: kCompareLine, solid: false, dimmed: true),
         ]),
       ]),
     );
@@ -834,7 +853,7 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
 
 class _PillDropdown extends StatelessWidget {
   final String value;
-  final List<String> items;
+  final List<DropdownMenuItem<String>> items;
   final ValueChanged<String?> onChanged;
   const _PillDropdown({required this.value, required this.items, required this.onChanged});
 
@@ -854,7 +873,7 @@ class _PillDropdown extends StatelessWidget {
           elevation: 8,
           borderRadius: BorderRadius.circular(12),
           icon: const Icon(Icons.keyboard_arrow_down_rounded),
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: items,
           onChanged: onChanged,
         ),
       ),
@@ -921,17 +940,24 @@ class _CustomersCard extends StatefulWidget {
 
 class _CustomersCardState extends State<_CustomersCard> {
   // Order matters (arc order)
-  final List<_DonutSegment> segments = const [
-    _DonutSegment(label: 'Old customer',       value: 65, color: Color(0xFFB7A6FF)), // purple
-    _DonutSegment(label: 'New customer',       value: 25, color: Color(0xFFFFC879)), // peach
-    _DonutSegment(label: 'Returning customer', value: 10, color: Color(0xFFFF96B5)), // pink
-  ];
+  late final List<_DonutSegment> segments;
 
   // UI knobs (keep in sync with painter)
   final double _size = 170;
   final double _stroke = 18;
 
   int? _hovered; // null = nothing active
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final l = AppLocalizations.of(context)!;
+    segments = [
+      _DonutSegment(label: l.oldCustomer,       value: 65, color: const Color(0xFFB7A6FF)), // purple
+      _DonutSegment(label: l.newCustomer,       value: 25, color: const Color(0xFFFFC879)), // peach
+      _DonutSegment(label: l.returningCustomer, value: 10, color: const Color(0xFFFF96B5)), // pink
+    ];
+  }
 
   void _updateFromLocalPos(Offset local) {
     final idx = _hitTestDonut(
@@ -946,6 +972,7 @@ class _CustomersCardState extends State<_CustomersCard> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final l = AppLocalizations.of(context)!;
 
     final total = segments.fold<double>(0, (p, s) => p + s.value);
     final active = _hovered != null ? segments[_hovered!] : null;
@@ -1009,10 +1036,10 @@ class _CustomersCardState extends State<_CustomersCard> {
         RichText(
           text: TextSpan(
             style: text.bodyMedium?.copyWith(color: const Color(0xFF111827)),
-            children: const [
-              TextSpan(text: 'Welcome '),
-              TextSpan(text: '291 customers', style: TextStyle(fontWeight: FontWeight.w700)),
-              TextSpan(text: ' with a personal message 🥳'),
+            children: [
+              TextSpan(text: '${l.welcome} '),
+              TextSpan(text: l.customersCount('291'), style: const TextStyle(fontWeight: FontWeight.w700)),
+              TextSpan(text: ' ${l.withPersonalMessage} 🥳'),
             ],
           ),
         ),
@@ -1020,7 +1047,6 @@ class _CustomersCardState extends State<_CustomersCard> {
     );
   }
 }
-
 
 class _FloatingInfoCard extends StatelessWidget {
   final String label;
@@ -1138,26 +1164,27 @@ class _DotLegend extends StatelessWidget {
 /// AOV section (kept simple)
 /// =============================================================
 class AOVSection extends StatelessWidget {
-  final String range;
+  final String rangeKey;
   final Map<DateTime, double> siteAov;
-  const AOVSection({super.key, required this.range, required this.siteAov});
+  const AOVSection({super.key, required this.rangeKey, required this.siteAov});
 
   @override
   Widget build(BuildContext context) {
-    final labels = xLabelsForRange(range);
-    final series = spotsFromSite(siteAov, range);
+    final l = AppLocalizations.of(context)!;
+    final labels = xLabelsForRangeKey(context, rangeKey);
+    final series = spotsFromSiteByKey(siteAov, rangeKey);
     final b = yBounds(series);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(children: [
-          Text('AED 0.00', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text(l.currencyAmount('AED', '0.00'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(color: const Color(0xFFE9F7EF), borderRadius: BorderRadius.circular(8)),
-            child: const Text('+37.8% Average Order Value', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600)),
+            child: Text(l.percentAov('+37.8'), style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ]),
         const SizedBox(height: 8),
@@ -1175,32 +1202,43 @@ class AOVSection extends StatelessWidget {
                     interval: 0.2,
                     getTitlesWidget: (v, _) => SizedBox(
                       width: 42,
-                      child: Text('${v.toStringAsFixed(1)}m', textAlign: TextAlign.right, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                      child: Text('${v.toStringAsFixed(1)}${l.millionsSuffix}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
                     ),
                   ),
                 ),
                 rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                bottomTitles: AxisTitles(sideTitles: bottomTitles(labels)),
+                bottomTitles: AxisTitles(sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: 1,
+                  getTitlesWidget: (value, meta) {
+                    final i = value.toInt();
+                    if (i < 0 || i >= labels.length) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(labels[i], style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                    );
+                  },
+                )),
               ),
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: true,
                 horizontalInterval: 0.2,
                 verticalInterval: 1,
-                getDrawingHorizontalLine: (v) => FlLine(color: const Color(0xFFEDEEF2), strokeWidth: 1),
-                getDrawingVerticalLine:   (v) => FlLine(color: const Color(0xFFEDEEF2), strokeWidth: 1),
+                getDrawingHorizontalLine: (v) => const FlLine(color: Color(0xFFEDEEF2), strokeWidth: 1),
+                getDrawingVerticalLine:   (v) => const FlLine(color: Color(0xFFEDEEF2), strokeWidth: 1),
               ),
               borderData: FlBorderData(show: false),
               lineBarsData: [
                 LineChartBarData(spots: series, isCurved: true, barWidth: 3, color: kPrimaryLine, dotData: const FlDotData(show: false)),
               ],
-              lineTouchData: LineTouchData(enabled: true),
+              lineTouchData: const LineTouchData(enabled: true),
             ),
           ),
         ),
         const SizedBox(height: 8),
-        Row(children: const [ _LegendDot(label: 'Average Order Value') ]),
+        Row(children: [ _LegendDot(label: l.averageOrderValue) ]),
       ],
     );
   }
@@ -1231,7 +1269,8 @@ class ProductCarousel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (products.isEmpty) return const _EmptyStripe(message: 'No product found');
+    final l = AppLocalizations.of(context)!;
+    if (products.isEmpty) return _EmptyStripe(message: l.noProductFound);
 
     return SizedBox(
       height: 210,
@@ -1253,6 +1292,7 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final l = AppLocalizations.of(context)!;
     return Container(
       width: 180,
       padding: const EdgeInsets.all(10),
@@ -1276,9 +1316,9 @@ class _ProductCard extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              Text('AED ${item.price.toStringAsFixed(2)}', style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w800)),
+              Text(l.currencyAmount('AED', item.price.toStringAsFixed(2)), style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w800)),
               const Spacer(),
-              Text('Sold ${item.sold}', style: text.labelSmall?.copyWith(color: const Color(0xFF6B7280))),
+              Text(l.soldCount(item.sold.toString()), style: text.labelSmall?.copyWith(color: const Color(0xFF6B7280))),
             ],
           ),
         ],
@@ -1293,7 +1333,8 @@ class CategoryCarousel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (categories.isEmpty) return const _EmptyStripe(message: 'No Category found');
+    final l = AppLocalizations.of(context)!;
+    if (categories.isEmpty) return _EmptyStripe(message: l.noCategoryFound);
 
     return SizedBox(
       height: 130,
@@ -1315,6 +1356,7 @@ class _CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final l = AppLocalizations.of(context)!;
     return Container(
       width: 180,
       padding: const EdgeInsets.all(12),
@@ -1338,7 +1380,7 @@ class _CategoryCard extends StatelessWidget {
               children: [
                 Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
-                Text('${item.items} items', style: text.labelMedium?.copyWith(color: const Color(0xFF6B7280))),
+                Text(l.itemsCount(item.items.toString()), style: text.labelMedium?.copyWith(color: const Color(0xFF6B7280))),
               ],
             ),
           ),
@@ -1373,11 +1415,12 @@ class RatingsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return _ThreeUp(
-      children: const [
-        _RatingCard(title: 'Price Rating'),
-        _RatingCard(title: 'Value Rating'),
-        _RatingCard(title: 'Quality Rating'),
+      children: [
+        _RatingCard(title: l.priceRating),
+        _RatingCard(title: l.valueRating),
+        _RatingCard(title: l.qualityRating),
       ],
       series: [price, value, quality],
     );
@@ -1483,6 +1526,7 @@ class _ModernReviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
+    final l = AppLocalizations.of(context)!;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1601,7 +1645,7 @@ class _ModernReviewCard extends StatelessWidget {
             children: [
               _InteractiveButton(
                 icon: Icons.thumb_up_outlined,
-                label: 'Helpful',
+                label: l.helpful,
                 onPressed: () {},
               ),
               const SizedBox(width: 16),
@@ -1640,8 +1684,7 @@ class _InteractiveButton extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF6B7280),
-            ),
+                color: const Color(0xFF6B7280)),
           ),
         ],
       ),

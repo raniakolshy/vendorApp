@@ -1,3 +1,4 @@
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../Translation/Language.dart';
 import '../admin/admin_news_screen.dart';
@@ -73,34 +74,34 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
             children: [
               _DrawerItem.asset(
                 base: _iconBase[NavKey.dashboard]!,
-                label: 'Dashboard',
+                label: AppLocalizations.of(context)!.dashboard,
                 active: widget.selected == NavKey.dashboard,
                 onTap: () => widget.onSelect(NavKey.dashboard),
               ),
               _DrawerItem.asset(
                 base: _iconBase[NavKey.orders]!,
-                label: 'Orders',
+                label: AppLocalizations.of(context)!.orders,
                 active: widget.selected == NavKey.orders,
                 onTap: () => widget.onSelect(NavKey.orders),
               ),
               _Expandable(
-                label: 'Product',
+                label: AppLocalizations.of(context)!.product,
                 base: 'product',
                 open: _productOpen,
                 onTap: () => setState(() => _productOpen = !_productOpen),
                 children: [
                   _Child(
-                    label: 'Add product',
+                    label: AppLocalizations.of(context)!.addProduct,
                     active: widget.selected == NavKey.productAdd,
                     onTap: () => widget.onSelect(NavKey.productAdd),
                   ),
                   _Child(
-                    label: 'My product list',
+                    label: AppLocalizations.of(context)!.myProductList,
                     active: widget.selected == NavKey.productList,
                     onTap: () => widget.onSelect(NavKey.productList),
                   ),
                   _Child(
-                    label: 'Draft Product',
+                    label: AppLocalizations.of(context)!.draftProduct,
                     active: widget.selected == NavKey.productDrafts,
                     onTap: () => widget.onSelect(NavKey.productDrafts),
                   ),
@@ -108,26 +109,26 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
               ),
               _DrawerItem.asset(
                 base: _iconBase[NavKey.analytics]!,
-                label: 'Customer Analytics',
+                label: AppLocalizations.of(context)!.customerAnalytics,
                 active: widget.selected == NavKey.analytics,
                 onTap: () => widget.onSelect(NavKey.analytics),
               ),
               _DrawerItem.asset(
                 base: _iconBase[NavKey.transactions]!,
-                label: 'Transactions',
+                label: AppLocalizations.of(context)!.transactions,
                 active: widget.selected == NavKey.transactions,
                 onTap: () => widget.onSelect(NavKey.transactions),
               ),
               _DrawerItem.asset(
                 base: _iconBase[NavKey.revenue]!,
-                label: 'Revenue',
+                label: AppLocalizations.of(context)!.revenue,
                 trailing: const _RevenueBadge(6),
                 active: widget.selected == NavKey.revenue,
                 onTap: () => widget.onSelect(NavKey.revenue),
               ),
               _DrawerItem.asset(
                 base: _iconBase[NavKey.review]!,
-                label: 'Review',
+                label: AppLocalizations.of(context)!.review,
                 active: widget.selected == NavKey.review,
                 onTap: () => widget.onSelect(NavKey.review),
               ),
@@ -141,7 +142,7 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
               InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {},
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                   child: Row(
                     children: [
@@ -150,7 +151,7 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Install main application',
+                          AppLocalizations.of(context)!.installmainapplication,
                           style: TextStyle(
                               color: Colors.black45,
                               fontWeight: FontWeight.w600),
@@ -444,7 +445,7 @@ class _ProfileMenuDialog extends StatelessWidget {
             children: [
               _MenuRow(
                 icon: Icons.person_outline,
-                label: 'Profile Settings',
+                label: AppLocalizations.of(context)!.profileSettings,
                 onTap: () {
                   Navigator.pop(context);
                   onSelect(NavKey.profileSettings);
@@ -455,7 +456,7 @@ class _ProfileMenuDialog extends StatelessWidget {
 
               _MenuRow(
                 icon: Icons.picture_as_pdf_outlined,
-                label: 'Print PDF',
+                label: AppLocalizations.of(context)!.printPDF,
                 onTap: () {
                   Navigator.pop(context);
                   onSelect(NavKey.printPdf);
@@ -463,7 +464,7 @@ class _ProfileMenuDialog extends StatelessWidget {
               ),
               _MenuRow(
                 icon: Icons.article_outlined,
-                label: 'Admin News',
+                label: AppLocalizations.of(context)!.adminNews,
                 onTap: () {
                   Navigator.pop(context);
                   onSelect(NavKey.adminNews);
@@ -471,7 +472,7 @@ class _ProfileMenuDialog extends StatelessWidget {
               ),
               _MenuRow(
                 icon: Icons.translate_outlined,
-                label: 'Language',
+                label: AppLocalizations.of(context)!.language,
                 onTap: () {
                   Navigator.pop(context);
                   onSelect(NavKey.language);
@@ -481,7 +482,7 @@ class _ProfileMenuDialog extends StatelessWidget {
               const _DividerLine(),
               _MenuRow(
                 icon: Icons.support_agent_outlined,
-                label: 'Ask for support',
+                label: AppLocalizations.of(context)!.askForSupport,
                 onTap: () {
                   Navigator.pop(context);
                   onSelect(NavKey.askadmin);
@@ -499,10 +500,10 @@ class _ProfileMenuDialog extends StatelessWidget {
                   );
                 },
                 borderRadius: BorderRadius.circular(12),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 6, vertical: 12),
                   child: Text(
-                    'Log out',
+                    AppLocalizations.of(context)!.logout,
                     style: TextStyle(
                       color: kRedLogout,
                       fontWeight: FontWeight.w700,

@@ -25,22 +25,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final email = _emailController.text.trim();
 
     if (!_isChecked) {
-      _showSnackbar('Please check the box to proceed.');
+      _showSnackbar(AppLocalizations.of(context)?.checkBoxMsg ?? 'Please check the box to proceed.');
       return;
     }
 
     if (email.isEmpty || !emailRegex.hasMatch(email)) {
-      _showSnackbar('Invalid email format');
+      _showSnackbar(AppLocalizations.of(context)?.invalidEmail ?? 'Invalid email format');
       return;
     }
 
-    _showSnackbar('Mail sent', isError: false);
+    _showSnackbar(AppLocalizations.of(context)?.mailSent ?? 'Mail sent', isError: false);
 
     Future.delayed(const Duration(seconds: 1), () {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const VerificationCodeScreen(), // <- Vérifie bien que ce fichier existe
+          builder: (_) => const VerificationCodeScreen(),
         ),
       );
     });
@@ -68,7 +68,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             children: [
               const SizedBox(height: 24),
               Text(
-                AppLocalizations.of(context)?.forgotPwd ?? "Forgot Password", // 🔹 fallback
+                AppLocalizations.of(context)?.forgotPwd ?? "Forgot Password",
                 style: GoogleFonts.poppins(
                   fontSize: 36,
                   fontWeight: FontWeight.w800,
