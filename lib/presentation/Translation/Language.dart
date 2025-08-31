@@ -43,6 +43,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
             backgroundColor: _bgScaffold,
             appBar: AppBar(
               backgroundColor: Colors.transparent,
+              automaticallyImplyLeading: false, // <-- ADD THIS
               title: Text(
                 t.language,
                 style: const TextStyle(
@@ -92,10 +93,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
+            automaticallyImplyLeading: false, // <-- ADD THIS
             title: Text(
               t.language,
               style: const TextStyle(

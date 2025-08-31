@@ -2,6 +2,7 @@ import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:app_vendor/main.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../services/api_client.dart';
 import '../login/login_screen.dart';
 
 // Imports for social sign-up
@@ -11,16 +12,15 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
-// Theme constants
+
 const Color primaryPink = Color(0xFFE51742);
 const Color inputFill = Color(0xFFF4F4F4);
 const Color lightBorder = Color(0xFFDDDDDD);
 const Color greyText = Color(0xFF777777);
 
-// A global instance for Google Sign-In, shared with the login page
+
 final GoogleSignIn _googleSignIn = GoogleSignIn(
-  clientId: '524516881115-erpl9ot3g239d893kctb06o9dnb16v11.apps.googleusercontent.com',
-  serverClientId: '524516881115-erpl9ot3g239d893kctb06o9dnb16v11.apps.googleusercontent.com',
+  clientId: '701685580916-4hv0pfq73jksr1ga8pp22p8clt80uioe.apps.googleusercontent.com',
   scopes: ['email'],
 );
 
@@ -32,7 +32,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // Controllers
+
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -71,7 +71,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  void _onRegister() {
+  Future<void> _onRegister() async {
     if (!_isChecked) {
       _showMessage('You must accept the public offer');
       return;
@@ -80,8 +80,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _showMessage('Passwords do not match');
       return;
     }
-    _showMessage('Account created successfully!', isError: false);
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+
+    final registerUrl = Uri.parse('https://kolshy.ae/rest/V1/customer');
+
+    try {
+      final response = await http.post(
+        registerUrl,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, String>{
+          'firstname': _firstNameController.text,
+          'lastname': _lastNameController.text,
+          'email': _emailController.text,
+          'password': _passwordController.text,
+          'phone': _phoneController.text,
+        }),
+      );
+
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        final String? token = responseData['token'];
+
+        if (token != null) {
+          await ApiClient().saveAuthToken(token);
+          _showMessage('Account created successfully!', isError: false);
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+        } else {
+          _showMessage('Registration successful, but no token was returned. Please try logging in.');
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+        }
+      } else {
+        final responseData = jsonDecode(response.body);
+        _showMessage('Registration failed: ${responseData['message'] ?? response.body}');
+      }
+    } catch (e) {
+      _showMessage('An error occurred: $e');
+    }
   }
 
   // --- Social Sign-Up Methods ---
@@ -118,10 +156,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        _showMessage('Google Sign-Up successful with backend: ${responseData['message']}', isError: false);
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
-      } else {
-        _showMessage('Backend authentication failed: ${response.body}');
+        final String? token = responseData['token'];
+
+        if (token != null) {
+          await ApiClient().saveAuthToken(token);
+          _showMessage('Google Sign-Up successful!', isError: false);
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+        } else {
+          _showMessage('Sign-up failed: Token not found in the response.');
+        }
       }
     } catch (e) {
       _showMessage('Google Sign-Up failed: $e');
@@ -151,8 +194,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         if (response.statusCode == 200) {
           final responseData = jsonDecode(response.body);
-          _showMessage('Facebook Sign-Up successful with backend: ${responseData['message']}', isError: false);
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+          final String? token = responseData['token'];
+
+          if (token != null) {
+            await ApiClient().saveAuthToken(token);
+            _showMessage('Facebook Sign-Up successful!', isError: false);
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+          } else {
+            _showMessage('Sign-up failed: Token not found in the response.');
+          }
         } else {
           _showMessage('Backend authentication failed: ${response.body}');
         }
@@ -180,7 +230,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final result = await FlutterWebAuth2.authenticate(
         url: authorizationUrl,
-        // NOTE: idéalement, utilisez un schéma custom (ex: "kolshy") configuré dans AndroidManifest/Info.plist
         callbackUrlScheme: "https",
       );
 
@@ -197,8 +246,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         if (response.statusCode == 200) {
           final responseData = jsonDecode(response.body);
-          _showMessage('Instagram Sign-Up successful with backend: ${responseData['message']}', isError: false);
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+          final String? token = responseData['token'];
+
+          if (token != null) {
+            await ApiClient().saveAuthToken(token);
+            _showMessage('Instagram Sign-Up successful!', isError: false);
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+          } else {
+            _showMessage('Sign-up failed: Token not found in the response.');
+          }
         } else {
           _showMessage('Backend authentication failed: ${response.body}');
         }
@@ -212,11 +268,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  // --- UI ---
 
+  // --- UI ---
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context); // peut être null si non configuré dans MaterialApp
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -307,12 +363,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     value: _isChecked,
                     onChanged: (v) => setState(() => _isChecked = v ?? false),
                   ),
-
                 ],
               ),
-
               const SizedBox(height: 16),
-
               SizedBox(
                 width: double.infinity,
                 height: 56,

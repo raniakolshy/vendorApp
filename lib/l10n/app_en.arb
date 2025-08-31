@@ -1,6 +1,7 @@
 {
   "@@locale": "en",
   "hello": "hello",
+  "hiThere": "Hi There",
   "welcome": "Welcome",
   "logout": "Logout",
   "settings": "Settings",
@@ -529,5 +530,6 @@
   "processing": "Processing",
   "cancelled": "Cancelled",
   "loadMore": "Load more",
-  "noOrders": "No orders match your search."
+  "noOrders": "No orders match your search.",
+  "markAllRead": "Mark all as read",
 }

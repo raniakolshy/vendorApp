@@ -12,6 +12,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get hello => 'hello';
 
   @override
+  String get hiThere => 'Hi There';
+
+  @override
   String get welcome => 'Welcome';
 
   @override
@@ -1159,6 +1162,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get cancelled => 'Cancelled';
+
+  @override
+  String get markAllRead => 'Mark all as read';
 
   @override
   String get noOrders => 'No orders match your search.';

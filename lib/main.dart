@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_vendor/state_management/locale_provider.dart';
 import 'package:app_vendor/l10n/app_localizations.dart';
-
+import 'presentation/auth/login/login_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'presentation/Translation/Language.dart';
 import 'presentation/admin/admin_news_screen.dart';
 import 'presentation/admin/ask_admin_screen.dart';
@@ -20,6 +21,7 @@ import 'presentation/reviews/reviews_screen.dart';
 import 'presentation/transactions/transactions_screen.dart' as transactions_screen;
 import 'presentation/common/app_shell.dart';
 import 'presentation/common/nav_key.dart';
+import 'presentation/auth/login/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,12 +29,14 @@ void main() async {
   final localeProvider = LocaleProvider();
   await localeProvider.loadSavedLocale();
 
+
   runApp(MyApp(localeProvider: localeProvider));
 }
 
 class MyApp extends StatelessWidget {
   final LocaleProvider localeProvider;
-  const MyApp({super.key, required this.localeProvider});
+
+  const MyApp({super.key, required this.localeProvider,});
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +64,7 @@ class MyApp extends StatelessWidget {
               fontFamily: 'Inter',
               scaffoldBackgroundColor: Colors.white,
             ),
-            home: const Home(),
+            home: const WelcomeScreen(),
           );
         },
       ),

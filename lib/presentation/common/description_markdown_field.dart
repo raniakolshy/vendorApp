@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' as md;
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as mk;
@@ -81,7 +80,7 @@ class _DescriptionMarkdownFieldState extends State<DescriptionMarkdownField> {
     final t = _text;
 
     // determine lines range covering selection
-    int lineStart = t.lastIndexOf('\n', s.start - 1) + 1; // -1 -> -1 + 1 = 0
+    int lineStart = t.lastIndexOf('\n', s.start - 1) + 1;
     int lineEnd = t.indexOf('\n', s.end);
     if (lineEnd == -1) lineEnd = t.length;
 
@@ -153,7 +152,7 @@ class _DescriptionMarkdownFieldState extends State<DescriptionMarkdownField> {
           _gap(),
           _btn(Icons.format_italic, () => _wrap('_', '_')),
           _gap(),
-          _btn(Icons.format_underline, () => _wrap('<u>', '</u>')), // HTML underline
+          _btn(Icons.format_underline, () => _wrap('<u>', '</u>')),
           _gapWide(),
           _btn(Icons.format_list_bulleted, () => _toggleListPrefix('- ')),
           _gap(),
@@ -183,6 +182,9 @@ class _DescriptionMarkdownFieldState extends State<DescriptionMarkdownField> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.all(16),
             ),
+            onChanged: (value) {
+              setState(() {}); // Refresh preview when text changes
+            },
           ),
         ],
       ),
@@ -203,15 +205,19 @@ class _DescriptionMarkdownFieldState extends State<DescriptionMarkdownField> {
         styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
           p: const TextStyle(fontSize: 14, height: 1.35),
         ),
-        inlineSyntaxes: [
-          UnderlineSyntax(), // <-- our custom syntax
-        ],
+        extensionSet: mk.ExtensionSet(
+          mk.ExtensionSet.commonMark.blockSyntaxes,
+          [
+            ...mk.ExtensionSet.commonMark.inlineSyntaxes,
+            UnderlineSyntax(),
+          ],
+        ),
         builders: {
           'u': UnderlineBuilder(),
         },
-      )
-
-        ): const SizedBox.shrink();
+      ),
+    )
+        : const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,42 +242,26 @@ class _DescriptionMarkdownFieldState extends State<DescriptionMarkdownField> {
   Widget _gap() => const SizedBox(width: 12);
   Widget _gapWide() => const SizedBox(width: 22);
 }
+
 class UnderlineSyntax extends mk.InlineSyntax {
-  UnderlineSyntax() : super(r'<u>(.+?)<\/u>');
+  UnderlineSyntax() : super(r'<u>(.*?)<\/u>');
 
   @override
   bool onMatch(mk.InlineParser parser, Match match) {
-    final inner = match.group(1) ?? '';
-    parser.addNode(mk.Element.text('u', inner));
+    parser.addNode(mk.Element.text('u', match.group(1) ?? ''));
     return true;
   }
 }
-/// Markdown renderer for <u>…</u> tags
+
 class UnderlineBuilder extends MarkdownElementBuilder {
   @override
   Widget? visitElementAfter(mk.Element element, TextStyle? preferredStyle) {
-    // Rebuild plain text from element children
-    final buffer = StringBuffer();
-
-    void walk(mk.Node node) {
-      if (node is mk.Text) {
-        buffer.write(node.text);
-      } else if (node is mk.Element) {
-        for (final child in node.children ?? const <mk.Node>[]) {
-          walk(child);
-        }
-      }
-    }
-
-    for (final child in element.children ?? const <mk.Node>[]) {
-      walk(child);
-    }
-
+    final textContent = element.textContent;
     return Text(
-      buffer.toString(),
-      style: (preferredStyle ?? const TextStyle())
-          .merge(const TextStyle(decoration: TextDecoration.underline)),
+      textContent,
+      style: (preferredStyle ?? const TextStyle()).copyWith(
+        decoration: TextDecoration.underline,
+      ),
     );
   }
 }
-

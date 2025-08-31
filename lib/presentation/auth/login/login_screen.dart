@@ -9,15 +9,15 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
-
+import 'package:app_vendor/services/api_client.dart';
 const Color primaryPink = Color(0xFFE51742);
 const Color inputFill = Color(0xFFF4F4F4);
 const Color lightBorder = Color(0xFFDDDDDD);
 const Color greyText = Color(0xFF777777);
 
+
 final GoogleSignIn _googleSignIn = GoogleSignIn(
-  clientId: '524516881115-erpl9ot3g239d893kctb06o9dnb16v11.apps.googleusercontent.com',
-  serverClientId: '524516881115-erpl9ot3g239d893kctb06o9dnb16v11.apps.googleusercontent.com',
+  clientId: '701685580916-4hv0pfq73jksr1ga8pp22p8clt80uioe.apps.googleusercontent.com',
   scopes: ['email'],
 );
 
@@ -50,26 +50,61 @@ class _LoginFormState extends State<LoginForm> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
-  void _onLoginPressed() {
+  static const String _fakeUsername = 'test@test.com';
+  static const String _fakePassword = 'testpassword123';
+
+  Future<void> _onLoginPressed() async {
+    // Get the values from the text controllers
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (username.isEmpty) {
-      _showMessage('Username or email is required');
+    if (username == _fakeUsername && password == _fakePassword) {
+      _showMessage('Fake login successful!');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const Home()),
+      );
       return;
     }
 
-    if (password.length < 8 || !RegExp(r'\d').hasMatch(password)) {
-      _showMessage('Password must be 8+ characters and contain a number');
+    // New API-based validation
+    if (username.isEmpty || password.isEmpty) {
+      _showMessage('Please enter your username/email and password.');
       return;
     }
 
-    _showMessage('Attempting login with username: $username');
+    // Now, perform the real API call
+    try {
+      final response = await http.post(
+        Uri.parse('https://kolshy.ae/rest/V1/integration/customer/token'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, String>{
+          'username': username,
+          'password': password,
+        }),
+      );
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const Home()),
-    );
+      if (response.statusCode == 200) {
+        final String token = response.body;
+        await ApiClient().saveAuthToken(token);
+
+        _showMessage('Login successful!', isError: false);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Home()),
+        );
+      } else {
+        final responseData = jsonDecode(response.body);
+        _showMessage(
+          'Login failed: ${responseData['message'] ?? 'Invalid credentials'}',
+          isError: true,
+        );
+      }
+    } catch (e) {
+      _showMessage('An error occurred during login: ${e.toString()}', isError: true);
+    }
   }
 
   Future<void> _signInWithGoogle() async {
@@ -101,10 +136,16 @@ class _LoginFormState extends State<LoginForm> {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        _showMessage(
-            'Google Sign-In successful with backend: ${responseData['message']}');
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const Home()));
+        final String? token = responseData['token']; // Get the token from the response
+
+        if (token != null) {
+          await ApiClient().saveAuthToken(token);
+
+          _showMessage('Google Sign-In successful!');
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+        } else {
+          _showMessage('Token not found in the response.');
+        }
       } else {
         _showMessage('Backend authentication failed: ${response.body}');
       }
@@ -206,11 +247,11 @@ class _LoginFormState extends State<LoginForm> {
     }
   }
 
-  void _showMessage(String msg) {
+  void _showMessage(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: primaryPink,
+        backgroundColor: isError ? Colors.red : primaryPink,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),

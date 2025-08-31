@@ -103,6 +103,12 @@ abstract class AppLocalizations {
   /// **'hello'**
   String get hello;
 
+  /// No description provided for @hiThere.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi There'**
+  String get hiThere;
+
   /// No description provided for @welcome.
   ///
   /// In en, this message translates to:
@@ -2346,6 +2352,8 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No orders match your search.'**
   String get noOrders;
+
+  String get markAllRead;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
@@ -2374,9 +2382,9 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-          'an issue with the localizations generation tool. Please file an issue '
-          'on GitHub with a reproducible sample app and the gen-l10n configuration '
-          'that was used.'
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.'
   );
 }

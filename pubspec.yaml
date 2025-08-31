@@ -38,7 +38,8 @@ dependencies:
   syncfusion_flutter_charts: ^30.2.5
   syncfusion_flutter_datepicker: ^30.2.5
   path_provider: ^2.1.5
-
+  dio: ^5.4.3
+  flutter_secure_storage: ^9.0.0+1
 
 
 dev_dependencies:

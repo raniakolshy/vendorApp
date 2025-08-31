@@ -1,10 +1,42 @@
 import 'package:app_vendor/presentation/auth/login/login_screen.dart';
 import 'package:app_vendor/presentation/auth/register/register_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:app_vendor/main.dart'; // Make sure this path is correct for your Home() widget
 
-/// Page d'accueil (welcome) – style basé sur la maquette fournie.
-class WelcomeScreen extends StatelessWidget {
+// Page d'accueil (welcome) – style basé sur la maquette fournie.
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkTokenAndNavigate();
+  }
+
+  // This is the function that checks for the token and navigates.
+  Future<void> _checkTokenAndNavigate() async {
+    const secureStorage = FlutterSecureStorage();
+    final token = await secureStorage.read(key: 'authToken');
+
+    // Make sure the widget is still in the tree before navigating.
+    if (mounted) {
+      if (token != null) {
+        // Token found, user is already logged in. Navigate to the Home screen.
+        // Use pushReplacement to prevent them from going back to the welcome screen.
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Home()),
+        );
+      }
+      // If no token is found, the screen remains visible, and the user can press the buttons.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,11 +49,11 @@ class WelcomeScreen extends StatelessWidget {
         children: [
           // Couche 1 : fond avec l'image seule
           Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/welcome_background.jpeg'),  // Assurez-vous que le chemin est correct
-                fit: BoxFit.cover,  // L'image couvre toute la zone
-                alignment: Alignment.topLeft, // L'image est centrée
+                image: AssetImage('assets/welcome_background.jpeg'),
+                fit: BoxFit.cover,
+                alignment: Alignment.topLeft,
               ),
             ),
           ),
@@ -38,8 +70,7 @@ class WelcomeScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 25
-                  ),
+                  const SizedBox(height: 25),
                   // Gros titre en haut à gauche
                   Text(
                     "Manage Your Business,\nAnytime, Anywhere",
@@ -58,9 +89,9 @@ class WelcomeScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Image.asset(
-                        'assets/kolshy_logo.gif',  // Assurez-vous que le chemin est correct
-                        width: 200,  // Ajustez la taille selon besoin
-                        height: 120,  // Ajustez la taille selon besoin
+                        'assets/kolshy_logo.gif',
+                        width: 200,
+                        height: 120,
                       ),
                     ],
                   ),

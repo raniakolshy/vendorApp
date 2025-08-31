@@ -12,6 +12,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get hello => 'مرحبا';
 
   @override
+  String get hiThere => 'Hi There';
+
+  @override
   String get welcome => 'مرحباً';
 
   @override
@@ -1162,4 +1165,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noOrders => 'لا توجد طلبات مطابقة لبحثك.';
+
+  @override
+  String get markAllRead => 'وضع علامة على الكل كمقروءة ';
 }

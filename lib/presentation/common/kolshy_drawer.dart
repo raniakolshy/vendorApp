@@ -290,6 +290,7 @@ class _Expandable extends StatelessWidget {
                 ),
                 AnimatedRotation(
                   turns: open ? .5 : 0,
+
                   duration: const Duration(milliseconds: 160),
                   child:
                   const Icon(Icons.expand_more_rounded, color: kIconGray),

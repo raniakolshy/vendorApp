@@ -14,12 +14,8 @@ class AskAdminScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
+        automaticallyImplyLeading: false,
+        toolbarHeight: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 16),

@@ -25,7 +25,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 14.88,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.draft,
-      gender: Gender.male, // Added gender property
     ),
     _Draft(
       name: '3D computer improved version',
@@ -34,7 +33,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 8.99,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.draft,
-      gender: Gender.female, // Added gender property
     ),
     _Draft(
       name: '3D dark mode wallpaper',
@@ -43,7 +41,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 213.99,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.pendingReview,
-      gender: Gender.male, // Added gender property
     ),
   ];
 
@@ -74,7 +71,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
         price: 9.99 + i,
         created: DateTime.now(),
         status: DraftStatus.draft,
-        gender: i.isEven ? Gender.male : Gender.female, // Added gender property
       )));
       _loadingMore = false;
       _shown = (_shown + _pageSize).clamp(0, _filtered.length);
@@ -346,7 +342,7 @@ class _DraftRow extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thumbnail with gender-specific avatar
+              // Product thumbnail
               Container(
                 margin: const EdgeInsets.only(right: 20), // Added space between image and content
                 child: ClipRRect(
@@ -355,9 +351,7 @@ class _DraftRow extends StatelessWidget {
                     width: 86,
                     height: 86,
                     color: const Color(0xFFEDEEEF),
-                    child: draft.gender == Gender.male
-                        ? Image.asset('assets/avatar_placeholder.jpg', fit: BoxFit.cover)
-                        : Image.asset('assets/female.jpg', fit: BoxFit.cover),
+                    child: Image.asset('assets/img_square.jpg', fit: BoxFit.cover),
                   ),
                 ),
               ),
@@ -591,11 +585,6 @@ enum DraftStatus {
   pendingReview,
 }
 
-enum Gender {
-  male,
-  female,
-}
-
 class _Draft {
   _Draft({
     required this.name,
@@ -604,7 +593,6 @@ class _Draft {
     required this.price,
     required this.created,
     required this.status,
-    required this.gender,
   });
 
   final String name;
@@ -613,7 +601,6 @@ class _Draft {
   final double price;
   final DateTime created;
   final DraftStatus status;
-  final Gender gender; // Added gender property
 }
 
 // Product model for passing to AddProductScreen
