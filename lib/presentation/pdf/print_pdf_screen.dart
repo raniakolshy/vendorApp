@@ -1,3 +1,4 @@
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 class PrintPdfScreen extends StatelessWidget {
@@ -5,6 +6,7 @@ class PrintPdfScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     final TextEditingController infoController = TextEditingController();
 
     return Scaffold(
@@ -14,9 +16,9 @@ class PrintPdfScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Print PDF',
-              style: TextStyle(
+            Text(
+              localizations.printPdfTitle,
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF333333),
@@ -41,18 +43,18 @@ class PrintPdfScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Invoice and Packing Slip Details',
-                      style: TextStyle(
+                    Text(
+                      localizations.invoiceDetailsTitle,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF333333),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Add your address, VAT, and tax information for PDF documents',
-                      style: TextStyle(
+                    Text(
+                      localizations.invoiceDetailsSubtitle,
+                      style: const TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
                       ),
@@ -68,11 +70,11 @@ class PrintPdfScreen extends StatelessWidget {
                         controller: infoController,
                         maxLines: 8,
                         keyboardType: TextInputType.multiline,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(16),
-                          hintText: 'Enter your company address, VAT number, tax information...',
-                          hintStyle: TextStyle(color: Colors.grey),
+                          contentPadding: const EdgeInsets.all(16),
+                          hintText: localizations.invoiceDetailsHint,
+                          hintStyle: const TextStyle(color: Colors.grey),
                         ),
                         style: const TextStyle(fontSize: 15),
                       ),
@@ -85,11 +87,11 @@ class PrintPdfScreen extends StatelessWidget {
                         onPressed: () {
                           if (infoController.text.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter information before saving'),
+                              SnackBar(
+                                content: Text(localizations.saveInfoEmpty),
                                 backgroundColor: Colors.red,
                                 behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
+                                shape: const RoundedRectangleBorder(
                                   borderRadius: BorderRadius.all(Radius.circular(8)),
                                 ),
                               ),
@@ -97,11 +99,11 @@ class PrintPdfScreen extends StatelessWidget {
                           } else {
                             print('Information saved: ${infoController.text}');
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Information saved successfully!'),
+                              SnackBar(
+                                content: Text(localizations.saveInfoSuccess),
                                 backgroundColor: Colors.green,
                                 behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
+                                shape: const RoundedRectangleBorder(
                                   borderRadius: BorderRadius.all(Radius.circular(8)),
                                 ),
                               ),
@@ -115,9 +117,9 @@ class PrintPdfScreen extends StatelessWidget {
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
-                          'Save Information',
-                          style: TextStyle(
+                        child: Text(
+                          localizations.saveInfoButton,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -130,11 +132,11 @@ class PrintPdfScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Text(
-                'This information will be included in all your PDF invoices and packing slips.',
-                style: TextStyle(
+                localizations.invoiceDetailsFooter,
+                style: const TextStyle(
                   color: Colors.grey,
                   fontSize: 13,
                   fontStyle: FontStyle.italic,

@@ -1,3 +1,4 @@
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'add_product_screen.dart';
 
@@ -11,7 +12,7 @@ class DraftsListScreen extends StatefulWidget {
 class _DraftsListScreenState extends State<DraftsListScreen> {
   // UI state
   final TextEditingController _searchCtrl = TextEditingController();
-  String _filter = 'All Drafts';
+  String? _filter;
   static const int _pageSize = 2;
   int _shown = _pageSize;
   bool _loadingMore = false;
@@ -25,6 +26,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 14.88,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.draft,
+      gender: Gender.male, // Added gender property
     ),
     _Draft(
       name: '3D computer improved version',
@@ -33,6 +35,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 8.99,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.draft,
+      gender: Gender.female, // Added gender property
     ),
     _Draft(
       name: '3D dark mode wallpaper',
@@ -41,18 +44,31 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 213.99,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.pendingReview,
+      gender: Gender.male, // Added gender property
     ),
   ];
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final localizations = AppLocalizations.of(context)!;
+    if (_filter == null) {
+      _filter = localizations.allDrafts;
+    }
+  }
+
   List<_Draft> get _filtered {
+    final localizations = AppLocalizations.of(context)!;
     final q = _searchCtrl.text.trim().toLowerCase();
     final byText = _all.where((d) =>
     d.name.toLowerCase().contains(q) ||
         d.sku.toLowerCase().contains(q)
     );
     switch (_filter) {
+      case 'En attente de révision':
       case 'Pending Review':
         return byText.where((d) => d.status == DraftStatus.pendingReview).toList();
+      case 'Brouillons':
       case 'Drafts':
         return byText.where((d) => d.status == DraftStatus.draft).toList();
       default:
@@ -71,6 +87,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
         price: 9.99 + i,
         created: DateTime.now(),
         status: DraftStatus.draft,
+        gender: i.isEven ? Gender.male : Gender.female, // Added gender property
       )));
       _loadingMore = false;
       _shown = (_shown + _pageSize).clamp(0, _filtered.length);
@@ -94,20 +111,21 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
   }
 
   Future<void> _onDelete(_Draft d) async {
+    final localizations = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete draft?'),
-        content: Text('This will delete "${d.name}".'),
+        title: Text(localizations.deleteDraftQuestion),
+        content: Text(localizations.deleteDraftConfirmation(d.name)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')
+              child: Text(localizations.cancelButton)
           ),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete')
+              child: Text(localizations.deleteButton)
           ),
         ],
       ),
@@ -130,8 +148,15 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final visible = _filtered.take(_shown).toList();
     final canLoadMore = _shown < _filtered.length && !_loadingMore;
+
+    final filters = [
+      localizations.allDrafts,
+      localizations.drafts,
+      localizations.pendingReview,
+    ];
 
     return Scaffold(
       body: Column(
@@ -158,7 +183,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
                   children: [
                     // Title
                     Text(
-                      'Drafts',
+                      localizations.draftsTitle,
                       style: Theme.of(context)
                           .textTheme
                           .titleLarge
@@ -171,7 +196,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
                       child: TextField(
                         controller: _searchCtrl,
                         decoration: InputDecoration(
-                          hintText: 'Search draft',
+                          hintText: localizations.searchDraft,
                           hintStyle: TextStyle(
                             color: Colors.black.withOpacity(.35),
                           ),
@@ -210,11 +235,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
                       borderRadius: BorderRadius.circular(12),
                       isExpanded: true,
                       style: const TextStyle(color: Colors.black, fontSize: 16),
-                      items: const [
-                        'All Drafts',
-                        'Drafts',
-                        'Pending Review',
-                      ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                      items: filters.map((v) => DropdownMenuItem(value: v, child: Text(v)))
                           .toList(),
                       onChanged: _onFilterChanged,
                     ),
@@ -277,9 +298,9 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
                                         height: 18,
                                       ),
                                     const SizedBox(width: 10),
-                                    const Text(
-                                      'Load more',
-                                      style: TextStyle(
+                                    Text(
+                                      localizations.loadMore,
+                                      style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600),
                                     ),
@@ -292,12 +313,12 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
                       ),
 
                     if (_filtered.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
                         child: Center(
                           child: Text(
-                            'No drafts match your search.',
-                            style: TextStyle(color: Colors.black54),
+                            localizations.noDraftsMatchSearch,
+                            style: const TextStyle(color: Colors.black54),
                           ),
                         ),
                       ),
@@ -325,6 +346,7 @@ class _DraftRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final keyStyle = Theme.of(context)
         .textTheme
         .bodyMedium
@@ -336,22 +358,24 @@ class _DraftRow extends StatelessWidget {
         fontWeight: FontWeight.w600, color: Colors.black.withOpacity(.85));
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 20), // Added space between items
+      margin: const EdgeInsets.only(bottom: 20),
       child: Column(
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Product thumbnail
+              // Thumbnail with gender-specific avatar
               Container(
-                margin: const EdgeInsets.only(right: 20), // Added space between image and content
+                margin: const EdgeInsets.only(right: 20),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
                     width: 86,
                     height: 86,
                     color: const Color(0xFFEDEEEF),
-                    child: Image.asset('assets/img_square.jpg', fit: BoxFit.cover),
+                    child: draft.gender == Gender.male
+                        ? Image.asset('assets/avatar_placeholder.jpg', fit: BoxFit.cover)
+                        : Image.asset('assets/female.jpg', fit: BoxFit.cover),
                   ),
                 ),
               ),
@@ -372,7 +396,7 @@ class _DraftRow extends StatelessWidget {
                     _PriceChip('\$${draft.price.toStringAsFixed(2)}'),
                     const SizedBox(height: 6),
                     Text(
-                      'Draft',
+                      localizations.drafts,
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
@@ -382,28 +406,28 @@ class _DraftRow extends StatelessWidget {
 
                     // Key-value pairs
                     _RowKVText(
-                      k: 'SKU',
+                      k: localizations.skuLabel,
                       vText: draft.sku,
                       keyStyle: keyStyle,
                       valStyle: valStyle,
                     ),
                     const SizedBox(height: 12),
                     _RowKVText(
-                      k: 'Quantity',
+                      k: localizations.quantityLabel,
                       vText: draft.qty.toString(),
                       keyStyle: keyStyle,
                       valStyle: valStyle,
                     ),
                     const SizedBox(height: 12),
                     _RowKVText(
-                      k: 'Created',
+                      k: localizations.createdLabel,
                       vText: _fmtDate(draft.created),
                       keyStyle: keyStyle,
                       valStyle: valStyle,
                     ),
                     const SizedBox(height: 12),
                     _RowKVText(
-                      k: 'Status',
+                      k: localizations.statusLabel,
                       v: _StatusPill(status: draft.status),
                       keyStyle: keyStyle,
                       valStyle: valStyle,
@@ -411,18 +435,20 @@ class _DraftRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _RowKVText(
-                      k: 'Action',
+                      k: localizations.actionLabel,
                       v: Row(
                         children: [
                           IconButton(
                             icon: const Icon(Icons.edit, size: 20),
                             onPressed: onEdit,
                             color: Colors.black54,
+                            tooltip: localizations.editButton,
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete, size: 20),
                             onPressed: onDelete,
                             color: Colors.black54,
+                            tooltip: localizations.deleteButton,
                           ),
                         ],
                       ),
@@ -527,50 +553,41 @@ class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.status});
   final DraftStatus status;
 
-  Color get _bg {
-    switch (status) {
-      case DraftStatus.draft:
-        return const Color(0xFFFFF4CC); // yellow
-      case DraftStatus.pendingReview:
-        return const Color(0xFFE3F2FD); // blue
-    }
-  }
-
-  Color get _textColor {
-    switch (status) {
-      case DraftStatus.draft:
-        return const Color(0xFFF57F17); // dark yellow
-      case DraftStatus.pendingReview:
-        return const Color(0xFF1565C0); // dark blue
-    }
-  }
-
-  String get _label {
-    switch (status) {
-      case DraftStatus.draft:
-        return 'Draft';
-      case DraftStatus.pendingReview:
-        return 'Pending Review';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    final String label;
+    final Color bgColor;
+    final Color textColor;
+
+    switch (status) {
+      case DraftStatus.draft:
+        label = localizations.drafts;
+        bgColor = const Color(0xFFFFF4CC);
+        textColor = const Color(0xFFF57F17);
+        break;
+      case DraftStatus.pendingReview:
+        label = localizations.pendingReview;
+        bgColor = const Color(0xFFE3F2FD);
+        textColor = const Color(0xFF1565C0);
+        break;
+    }
+
     return DecoratedBox(
       decoration: BoxDecoration(
-          color: _bg,
+          color: bgColor,
           borderRadius: BorderRadius.circular(10)
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
-          _label,
+          label,
           style: Theme.of(context)
               .textTheme
               .labelLarge
               ?.copyWith(
               fontWeight: FontWeight.w700,
-              color: _textColor
+              color: textColor
           ),
         ),
       ),
@@ -585,6 +602,11 @@ enum DraftStatus {
   pendingReview,
 }
 
+enum Gender {
+  male,
+  female,
+}
+
 class _Draft {
   _Draft({
     required this.name,
@@ -593,6 +615,7 @@ class _Draft {
     required this.price,
     required this.created,
     required this.status,
+    required this.gender,
   });
 
   final String name;
@@ -601,6 +624,7 @@ class _Draft {
   final double price;
   final DateTime created;
   final DraftStatus status;
+  final Gender gender; // Added gender property
 }
 
 // Product model for passing to AddProductScreen

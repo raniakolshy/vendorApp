@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -58,13 +59,8 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   // ----- FILTER + CHART DATA -----
-  final List<String> _filters = [
-    'All time',
-    'Last 7 days',
-    'Last 30 days',
-    'This year',
-  ];
-  String _selectedFilter = 'All time';
+  final List<String> _filters = ['allTime', 'last7Days', 'last30Days', 'thisYear'];
+  late String _selectedFilter = _filters.first;
 
   List<ChartData> _dataAllTime = const [
     ChartData('Jan', 8.2, 50),
@@ -77,7 +73,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
 
   List<ChartData> _getFilteredData() {
     switch (_selectedFilter) {
-      case 'Last 7 days':
+      case 'last7Days':
         return const [
           ChartData('Mon', 5.0, 20),
           ChartData('Tue', 6.2, 30),
@@ -87,12 +83,12 @@ class _RevenueScreenState extends State<RevenueScreen> {
           ChartData('Sat', 8.0, 45),
           ChartData('Sun', 7.2, 38),
         ];
-      case 'Last 30 days':
+      case 'last30Days':
         return List.generate(
           30,
               (i) => ChartData('D${i + 1}', (5 + (i % 4)).toDouble(), 20 + (i % 10)),
         );
-      case 'This year':
+      case 'thisYear':
         return const [
           ChartData('Jan', 8.2, 50),
           ChartData('Feb', 8.4, 70),
@@ -117,11 +113,12 @@ class _RevenueScreenState extends State<RevenueScreen> {
 
   Future<void> _downloadChart() async {
     await Future.delayed(Duration.zero);
+    final l10n = AppLocalizations.of(context)!;
     try {
       final boundary = _chartKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Oops, chart not ready yet.')),
+          SnackBar(content: Text(l10n.chartNotReady)),
         );
         return;
       }
@@ -135,7 +132,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Exported to ${file.path}'),
+          content: Text('${l10n.exportedTo} ${file.path}'),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
@@ -144,7 +141,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to export: $e'),
+          content: Text('${l10n.failedToExport} $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -154,8 +151,24 @@ class _RevenueScreenState extends State<RevenueScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final visible = _historyData.take(_shown).toList();
     final canLoadMore = _shown < _historyData.length;
+
+    String getFilterText(String filterKey) {
+      switch (filterKey) {
+        case 'allTime':
+          return l10n.allTime;
+        case 'last7Days':
+          return l10n.last7Days;
+        case 'last30Days':
+          return l10n.last30Days;
+        case 'thisYear':
+          return l10n.thisYear;
+        default:
+          return '';
+      }
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -168,11 +181,11 @@ class _RevenueScreenState extends State<RevenueScreen> {
             Row(
               children: [
                 Text(
-                  'Earning',  // Same title text as before
+                  l10n.earning,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontSize: 24,  // Ensure same font size
-                    fontWeight: FontWeight.w800,  // Ensure same font weight
-                    color: Colors.black,  // Ensure title is dark enough
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
                   ),
                 ),
                 const Spacer(),
@@ -182,27 +195,27 @@ class _RevenueScreenState extends State<RevenueScreen> {
 
             // Metrics
             _buildMetricCard(
-              label: 'Earning',
+              label: l10n.earning,
               value: '\$128k',
-              change: '+37.8% this week',
+              change: l10n.positiveChangeThisWeek(37.8),
               isPositive: true,
               iconPath: 'assets/icons/trending_up.png',
               backgroundColor: const Color(0xFFD6F6E6),
             ),
             const SizedBox(height: 16),
             _buildMetricCard(
-              label: 'Balance',
+              label: l10n.balance,
               value: '\$512.64',
-              change: '-37.8% this week',
+              change: l10n.negativeChangeThisWeek(37.8),
               isPositive: false,
               iconPath: 'assets/icons/balance.png',
               backgroundColor: const Color(0xFFFFE7D1),
             ),
             const SizedBox(height: 16),
             _buildMetricCard(
-              label: 'Total value of sales',
+              label: l10n.totalValueOfSales,
               value: '\$64k',
-              change: '+37.8% this week',
+              change: l10n.positiveChangeThisWeek(37.8),
               isPositive: true,
               iconPath: 'assets/icons/cart.png',
               backgroundColor: const Color(0xFFD0E0FF),
@@ -221,9 +234,9 @@ class _RevenueScreenState extends State<RevenueScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Product views',
-                        style: TextStyle(
+                      Text(
+                        l10n.productViews,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                         ),
@@ -262,7 +275,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
                                         (f) => DropdownMenuItem(
                                       value: f,
                                       child: Text(
-                                        f,
+                                        getFilterText(f),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w600,
                                           color: Colors.black,
@@ -326,7 +339,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
                             dataSource: _getFilteredData(),
                             xValueMapper: (ChartData d, _) => d.x,
                             yValueMapper: (ChartData d, _) => d.y1,
-                            name: 'Lifetime Value',
+                            name: l10n.lifetimeValue,
                             color: const Color(0xFF4285F4),
                             width: 0.6,
                             spacing: 0.1,
@@ -336,7 +349,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
                             dataSource: _getFilteredData(),
                             xValueMapper: (ChartData d, _) => d.x,
                             yValueMapper: (ChartData d, _) => d.y2,
-                            name: 'Customer Cost',
+                            name: l10n.customerCost,
                             color: const Color(0xFFFBBC05),
                             width: 0.6,
                             spacing: 0.1,
@@ -365,15 +378,15 @@ class _RevenueScreenState extends State<RevenueScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Earning history',
-                    style: TextStyle(
+                  Text(
+                    l10n.earningHistory,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ...visible.map((item) => _buildHistoryItem(item)),
+                  ...visible.map((item) => _buildHistoryItem(item, l10n)),
                   const SizedBox(height: 12),
 
                   if (_historyData.isNotEmpty && canLoadMore)
@@ -393,7 +406,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   BoxDecoration _boxDecoration() => BoxDecoration(
-    color: Colors.white,  // Card background color
+    color: Colors.white,
     borderRadius: BorderRadius.circular(18),
     boxShadow: const [
       BoxShadow(
@@ -405,15 +418,15 @@ class _RevenueScreenState extends State<RevenueScreen> {
   );
 
   // ----- UI helpers -----
-  Widget _buildHistoryItem(Map<String, String> item) {
+  Widget _buildHistoryItem(Map<String, String> item, AppLocalizations l10n) {
     return Column(
       children: [
-        _buildHistoryRow('Interval', item['interval']!),
-        _buildHistoryRow('Order ID', item['orderId']!),
-        _buildHistoryRow('Total Amount', item['totalAmount']!),
-        _buildHistoryRow('Total Earning', item['totalEarning']!),
-        _buildHistoryRow('Discount Amount', item['discount']!),
-        _buildHistoryRow('Admin Commission', item['commission']!),
+        _buildHistoryRow(l10n.interval, item['interval']!),
+        _buildHistoryRow(l10n.orderId, item['orderId']!),
+        _buildHistoryRow(l10n.totalAmount, item['totalAmount']!),
+        _buildHistoryRow(l10n.totalEarning, item['totalEarning']!),
+        _buildHistoryRow(l10n.discountAmount, item['discount']!),
+        _buildHistoryRow(l10n.adminCommission, item['commission']!),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 16),
           child: Divider(height: 1, thickness: 1, color: Color(0x11000000)),
@@ -501,6 +514,7 @@ class _LoadMoreButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return InkWell(
       onTap: isLoading ? null : onPressed,
       borderRadius: BorderRadius.circular(28),
@@ -535,7 +549,7 @@ class _LoadMoreButton extends StatelessWidget {
               ),
             const SizedBox(width: 10),
             Text(
-              isLoading ? 'Loading...' : 'Load more',
+              isLoading ? l10n.loading : l10n.loadMore,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,

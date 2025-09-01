@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 void main() => runApp(const OrdersApp());
 
 class OrdersApp extends StatelessWidget {
@@ -21,12 +23,13 @@ class OrdersApp extends StatelessWidget {
           displayColor: const Color(0xFF1B1B1B),
         ),
       ),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const OrdersListScreen(),
     );
   }
 }
 
-/// Keep this name as requested
 class OrdersListScreen extends StatefulWidget {
   const OrdersListScreen({super.key});
 
@@ -35,15 +38,12 @@ class OrdersListScreen extends StatefulWidget {
 }
 
 class _OrdersListScreenState extends State<OrdersListScreen> {
-  // ----- UI state
   final TextEditingController _searchCtrl = TextEditingController();
   String _filter = 'All Orders';
   static const int _pageSize = 2;
   int _shown = _pageSize;
   bool _loadingMore = false;
 
-
-  // ----- Data
   final List<Order> _allOrders = [
     Order(
       thumbnailAsset: 'assets/img_square.jpg',
@@ -95,15 +95,26 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
     ),
   ];
 
+  @override
+  void didChangeDependencies(){
+    super.didChangeDependencies();
+        if(_filter == null){
+          _filter = AppLocalizations.of(context)!.allOrders;
+        }
+  }
+
   List<Order> get _filtered {
     final q = _searchCtrl.text.trim().toLowerCase();
     final byText = _allOrders.where((o) => o.name.toLowerCase().contains(q));
     switch (_filter) {
       case 'Delivered':
+      case 'تم التوصيل':
         return byText.where((o) => o.status == OrderStatus.delivered).toList();
       case 'Processing':
+      case 'قيد المعالجة':
         return byText.where((o) => o.status == OrderStatus.processing).toList();
       case 'Cancelled':
+      case 'ملغاة':
         return byText.where((o) => o.status == OrderStatus.cancelled).toList();
       default:
         return byText.toList();
@@ -141,13 +152,21 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final _localizations = AppLocalizations.of(context)!;
     final visible = _filtered.take(_shown).toList();
     final canLoadMore = _shown < _filtered.length && !_loadingMore;
+
+
+    final List<String> filterOptions = [
+      _localizations.allOrders,
+      _localizations.delivered,
+      _localizations.processing,
+      _localizations.cancelled,
+    ];
 
     return Scaffold(
       body: Column(
         children: [
-          // Main card
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -167,7 +186,6 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     Text(
                       'Orders Details',
                       style: Theme.of(context)
@@ -177,10 +195,8 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Search and Filter row
                     Row(
                       children: [
-                        // Search
                         Expanded(
                           flex: 3,
                           child: _InputSurface(
@@ -207,7 +223,6 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                         ),
                         const SizedBox(width: 12),
 
-                        // Filter
                         Expanded(
                           flex: 2,
                           child: DropdownButtonFormField<String>(
@@ -229,12 +244,8 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                             borderRadius: BorderRadius.circular(12),
                             isExpanded: true,
                             style: const TextStyle(color: Colors.black, fontSize: 16),
-                            items: const [
-                              'All Orders',
-                              'Delivered',
-                              'Processing',
-                              'Cancelled',
-                            ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                            items: filterOptions
+                                .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                                 .toList(),
                             onChanged: _onFilterChanged,
                           ),
@@ -244,7 +255,6 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Orders list with soft dividers
                     ListView.separated(
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
@@ -258,7 +268,6 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Load more button with static asset icon
                     if (_filtered.isNotEmpty)
                       Center(
                         child: Opacity(
@@ -335,7 +344,6 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
   }
 }
 
-// ===== UI pieces
 
 class _OrderRow extends StatelessWidget {
   const _OrderRow({required this.order});
@@ -343,6 +351,7 @@ class _OrderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _localizations = AppLocalizations.of(context)!;
     final keyStyle = Theme.of(context)
         .textTheme
         .bodyMedium
@@ -393,7 +402,7 @@ class _OrderRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _RowKVText(
-                    k: 'Status',
+                    k: _localizations.status,
                     v: _StatusPill(status: order.status),
                     keyStyle: keyStyle,
                     valStyle: valStyle,
@@ -401,31 +410,31 @@ class _OrderRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   _RowKVText(
-                      k: 'Order Id',
+                      k: _localizations.status,
                       vText: order.orderId,
                       keyStyle: keyStyle,
                       valStyle: valStyle),
                   const SizedBox(height: 10),
                   _RowKVText(
-                      k: 'Purchased on',
+                      k: _localizations.status,
                       vText: order.purchasedOn,
                       keyStyle: keyStyle,
                       valStyle: valStyle),
                   const SizedBox(height: 10),
                   _RowKVText(
-                      k: 'Base Total',
+                      k: _localizations.status,
                       vText: order.baseTotal,
                       keyStyle: keyStyle,
                       valStyle: valStyle),
                   const SizedBox(height: 10),
                   _RowKVText(
-                      k: 'Purchased Total',
+                      k: _localizations.status,
                       vText: order.purchasedTotal,
                       keyStyle: keyStyle,
                       valStyle: valStyle),
                   const SizedBox(height: 10),
                   _RowKVText(
-                      k: 'Customer',
+                      k: _localizations.status,
                       vText: order.customer,
                       keyStyle: keyStyle,
                       valStyle: valStyle),
@@ -542,6 +551,31 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _localizations = AppLocalizations.of(context)!;
+    String label;
+    switch (status) {
+      case OrderStatus.delivered:
+        label = _localizations.delivered;
+        break;
+      case OrderStatus.processing:
+        label = _localizations.processing;
+        break;
+      case OrderStatus.cancelled:
+        label = _localizations.cancelled;
+        break;
+      case OrderStatus.onHold:
+        label = _localizations.onHold;
+        break;
+      case OrderStatus.closed:
+        label = _localizations.closed;
+        break;
+      case OrderStatus.pending:
+        label = _localizations.pending;
+        break;
+      default:
+        label = '';
+        break;
+    }
     return DecoratedBox(
       decoration:
       BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(10)),
@@ -579,7 +613,6 @@ class _InputSurface extends StatelessWidget {
   }
 }
 
-// ===== Models
 
 enum OrderStatus { delivered, processing, cancelled, onHold, closed, pending }
 

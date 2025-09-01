@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
+import '../../l10n/app_localizations.dart';
+
 void main() => runApp(const TransactionsScreen());
 
 /// A custom widget for a gap with a specific height.
@@ -23,6 +25,8 @@ class TransactionsScreen extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Payouts',
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF3F3F4),
@@ -60,11 +64,11 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
     10,
         (index) => Transaction(
       id: '12345',
-      transactionId: 'TXN${1000 + index}',
+      transactionId: 'TXN AED{1000 + index}',
       status: index.isEven
           ? TransactionStatus.paid
           : TransactionStatus.onProcess,
-      earnings: r'$7,750.88',
+      earnings: r'AED7,750.88',
       purchasedOn: DateTime(2025, 12, index + 1), // Use DateTime instead of String
     ),
   );
@@ -93,9 +97,9 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
 
   void _showDownloadNotification() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Download started..."),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.downloadStarted),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -129,7 +133,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("Filter by date",
+                Text(AppLocalizations.of(context)!.filterByDate,
                     style: Theme.of(context).textTheme.titleMedium),
                 const Gap(16),
                 Container(
@@ -193,7 +197,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text("Clear Filter"),
+                          child: Text(AppLocalizations.of(context)!.clearFilter),
                         ),
                       ),
                     if (_selectedRange != null) const SizedBox(width: 12),
@@ -221,7 +225,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                "Filtered: ${_formatDate(tempRange.start)} → ${_formatDate(tempRange.end)}",
+                                "AED {AppLocalizations.of(context)!.filtered}: AED {tempRange.start.toLocal()} → AED {tempRange.end.toLocal()}",
                               ),
                               duration: const Duration(seconds: 3),
                             ),
@@ -234,7 +238,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text("Apply"),
+                        child: Text(AppLocalizations.of(context)!.apply),
                       ),
                     ),
                   ],
@@ -265,7 +269,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
           children: [
             const Gap(30),
             Text(
-              'Payouts',
+              AppLocalizations.of(context)!.payouts,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
@@ -274,8 +278,8 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
             ),
             const Gap(20),
             BalanceCard(
-              label: 'Current balance',
-              amount: r'$128k',
+              label: AppLocalizations.of(context)!.currentBalance,
+              amount: r'AED 128k',
               icon: Image.asset(
                 'assets/icons/trending_up.png',
                 width: 24,
@@ -286,8 +290,8 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
             ),
             const Gap(16),
             BalanceCard(
-              label: 'Available for withdrawal',
-              amount: r'$512k',
+              label: AppLocalizations.of(context)!.currentBalance,
+              amount: r'AED 512k',
               icon: Image.asset(
                 'assets/icons/balance.png',
                 width: 24,
@@ -417,7 +421,7 @@ class _PayoutHistory extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Payout history',
+              Text(AppLocalizations.of(context)!.payoutHistory,
                   style: Theme.of(context).textTheme.titleLarge),
               Row(
                 children: [
@@ -425,12 +429,12 @@ class _PayoutHistory extends StatelessWidget {
                     IconButton(
                       onPressed: onClearFilter,
                       icon: const Icon(Icons.clear, color: Colors.red),
-                      tooltip: 'Clear filter',
+                      tooltip: AppLocalizations.of(context)!.clearFilter,
                     ),
                   IconButton(
                     onPressed: onFilter,
                     icon: const Icon(Icons.filter_list_rounded),
-                    tooltip: 'Filter by date',
+                    tooltip: AppLocalizations.of(context)!.filterByDate,
                   ),
                   IconButton(
                     onPressed: onDownload,
@@ -439,7 +443,7 @@ class _PayoutHistory extends StatelessWidget {
                       width: 20,
                       height: 20,
                     ),
-                    tooltip: 'Download',
+                    tooltip: AppLocalizations.of(context)!.download,
                   ),
                 ],
               ),
@@ -448,7 +452,7 @@ class _PayoutHistory extends StatelessWidget {
           if (selectedRange != null) ...[
             const Gap(8),
             Text(
-              'Filtered: ${_formatDate(selectedRange!.start)} - ${_formatDate(selectedRange!.end)}',
+              'AED {AppLocalizations.of(context)!.filtered}: AED {_formatDate(selectedRange!.start)} - AED {_formatDate(selectedRange!.end)}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.grey[600],
                 fontStyle: FontStyle.italic,
@@ -465,8 +469,8 @@ class _PayoutHistory extends StatelessWidget {
                   const Gap(16),
                   Text(
                     selectedRange != null
-                        ? 'No transactions found for the selected date range'
-                        : 'No transactions available',
+                        ? AppLocalizations.of(context)!.noTransactionsForDateRange
+                        : AppLocalizations.of(context)!.noTransactionsAvailable,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey[600],
                     ),
@@ -506,7 +510,7 @@ class Transaction {
   final String transactionId;
   final TransactionStatus status;
   final String earnings;
-  final DateTime purchasedOn; // Changed from String to DateTime
+  final DateTime purchasedOn; 
 
   Transaction({
     required this.id,
@@ -530,13 +534,15 @@ class TransactionItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _TransactionDetailRow(label: 'ID', value: transaction.id),
+        _TransactionDetailRow(label: AppLocalizations.of(context)!.transactionIdLabel, value: transaction.id),
         _TransactionDetailRow(
-            label: 'Transaction ID', value: transaction.transactionId),
-        _TransactionDetailRow(label: 'Status', status: transaction.status),
-        _TransactionDetailRow(label: 'Earnings', value: transaction.earnings),
+            label: AppLocalizations.of(context)!.transactionId, value: transaction.transactionId),
+        _TransactionDetailRow(label: AppLocalizations.of(context)!.status, status: transaction.status),
+        _TransactionDetailRow(label: AppLocalizations.of(context)!.earnings, value: transaction.earnings),
         _TransactionDetailRow(
-            label: 'Purchased on', value: _formatDate(transaction.purchasedOn)),
+          label: AppLocalizations.of(context)!.purchasedOn,
+          value: _formatDate(transaction.purchasedOn),
+        ),
         const Gap(20),
         const Divider(height: 1),
       ],
@@ -601,14 +607,14 @@ class _StatusPill extends StatelessWidget {
     }
   }
 
-  String get _label {
+  String _label(BuildContext context) {
     switch (status) {
       case TransactionStatus.paid:
-        return 'Paid';
+        return AppLocalizations.of(context)!.paid;
       case TransactionStatus.onProcess:
-        return 'On process';
+        return AppLocalizations.of(context)!.onProcess;
       case TransactionStatus.failed:
-        return 'Failed';
+        return AppLocalizations.of(context)!.failed;
     }
   }
 
@@ -621,7 +627,7 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
-        _label,
+        _label(context),
         style: TextStyle(
           fontWeight: FontWeight.w700,
           color: _textColor,
@@ -678,7 +684,9 @@ class _LoadMoreButton extends StatelessWidget {
               ),
             const SizedBox(width: 10),
             Text(
-              isLoading ? 'Loading...' : 'Load more',
+              isLoading
+                  ? AppLocalizations.of(context)!.loading
+                  : AppLocalizations.of(context)!.loadMore,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,

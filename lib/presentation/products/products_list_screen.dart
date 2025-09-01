@@ -1,3 +1,4 @@
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 void main() => runApp(const ProductsApp());
@@ -25,6 +26,9 @@ class ProductsApp extends StatelessWidget {
       routes: {
         '/edit_product': (context) => const EditProductScreen(),
       },
+      // Localization setup
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
     );
   }
 }
@@ -34,12 +38,13 @@ class EditProductScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Product'),
+        title: Text(localizations.editProduct),
       ),
-      body: const Center(
-        child: Text('Edit Product Screen'),
+      body: Center(
+        child: Text(localizations.editProductScreen),
       ),
     );
   }
@@ -55,7 +60,7 @@ class ProductsListScreen extends StatefulWidget {
 class _ProductsListScreenState extends State<ProductsListScreen> {
   // UI state
   final TextEditingController _searchCtrl = TextEditingController();
-  String _filter = 'All Products';
+  String? _filter;
   static const int _pageSize = 2;
   int _shown = _pageSize;
 
@@ -127,18 +132,33 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     ),
   ];
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final localizations = AppLocalizations.of(context)!;
+    if (_filter == null) {
+      _filter = localizations.allProducts;
+    }
+  }
+
   List<Product> get _filtered {
+    final localizations = AppLocalizations.of(context)!;
     final q = _searchCtrl.text.trim().toLowerCase();
     final byText = _allProducts.where((p) => p.name.toLowerCase().contains(q));
     switch (_filter) {
+      case 'Produits actifs':
       case 'Enabled Products':
         return byText.where((p) => p.status == ProductStatus.active).toList();
+      case 'Produits désactivés':
       case 'Disabled Products':
         return byText.where((p) => p.status == ProductStatus.disabled).toList();
+      case 'Faible stock':
       case 'Low Stock':
         return byText.where((p) => p.status == ProductStatus.lowStock).toList();
+      case 'En rupture de stock':
       case 'Out of Stock':
         return byText.where((p) => p.status == ProductStatus.outOfStock).toList();
+      case 'Produit refusé':
       case 'Denied Product':
         return byText.where((p) => p.status == ProductStatus.denied).toList();
       default:
@@ -163,16 +183,17 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   }
 
   void _deleteProduct(Product product) {
+    final localizations = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Delete Product'),
-          content: Text('Are you sure you want to delete "${product.name}"?'),
+          title: Text(localizations.deleteProduct),
+          content: Text(localizations.deleteProductConfirmation(product.name)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(localizations.cancelButton),
             ),
             TextButton(
               onPressed: () {
@@ -181,10 +202,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 });
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('"${product.name}" has been deleted')),
+                  SnackBar(content: Text(localizations.productDeleted(product.name))),
                 );
               },
-              child: const Text('Delete'),
+              child: Text(localizations.deleteButton),
             ),
           ],
         );
@@ -211,8 +232,18 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final visible = _filtered.take(_shown).toList();
     final canLoadMore = _shown < _filtered.length;
+
+    final filters = [
+      localizations.allProducts,
+      localizations.enabledProducts,
+      localizations.disabledProducts,
+      localizations.lowStock,
+      localizations.outOfStock,
+      localizations.deniedProduct,
+    ];
 
     return Scaffold(
       body: Column(
@@ -239,7 +270,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   children: [
                     // Title
                     Text(
-                      'List of Products',
+                      localizations.productsTitle,
                       style: Theme.of(context)
                           .textTheme
                           .titleLarge
@@ -256,7 +287,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                           child: TextField(
                             controller: _searchCtrl,
                             decoration: InputDecoration(
-                              hintText: 'Search product',
+                              hintText: localizations.searchProduct,
                               hintStyle: TextStyle(
                                 color: Colors.black.withOpacity(.35),
                               ),
@@ -295,14 +326,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                           borderRadius: BorderRadius.circular(12),
                           isExpanded: true,
                           style: const TextStyle(color: Colors.black, fontSize: 16),
-                          items: const [
-                            'All Products',
-                            'Enabled Products',
-                            'Disabled Products',
-                            'Low Stock',
-                            'Out of Stock',
-                            'Denied Product',
-                          ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                          items: filters.map((v) => DropdownMenuItem(value: v, child: Text(v)))
                               .toList(),
                           onChanged: _onFilterChanged,
                         ),
@@ -368,9 +392,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                       height: 18,
                                     ),
                                     const SizedBox(width: 10),
-                                    const Text(
-                                      'Load more',
-                                      style: TextStyle(
+                                    Text(
+                                      localizations.loadMore,
+                                      style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600),
                                     ),
@@ -383,12 +407,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       ),
 
                     if (_filtered.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
                         child: Center(
                           child: Text(
-                            'No products match your search.',
-                            style: TextStyle(color: Colors.black54),
+                            localizations.noProductsMatchSearch,
+                            style: const TextStyle(color: Colors.black54),
                           ),
                         ),
                       ),
@@ -418,6 +442,7 @@ class _ProductRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final keyStyle = Theme.of(context)
         .textTheme
         .bodyMedium
@@ -468,43 +493,43 @@ class _ProductRow extends StatelessWidget {
 
                   // Product details with consistent spacing
                   _ProductDetailRow(
-                    label: 'ID',
+                    label: localizations.idLabel,
                     value: product.id,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
-                    label: 'SKU',
+                    label: localizations.skuLabel,
                     value: product.sku,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
-                    label: 'Status',
+                    label: localizations.statusLabel,
                     valueWidget: _StatusPill(status: product.status),
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
-                    label: 'Created at',
+                    label: localizations.createdLabel,
                     value: product.createdAt,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
-                    label: 'Quantity Per Source',
+                    label: localizations.quantityPerSourceLabel,
                     value: product.quantityPerSource,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
-                    label: 'Salable Quantity',
+                    label: localizations.salableQuantityLabel,
                     value: product.salableQuantity,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
-                    label: 'Quantity Sold',
+                    label: localizations.quantitySoldLabel,
                     valueWidget: Row(
                       children: [
                         Text(product.quantitySold.split(' ')[0],
@@ -521,31 +546,31 @@ class _ProductRow extends StatelessWidget {
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
-                    label: 'Quantity Confirmed',
+                    label: localizations.quantityConfirmedLabel,
                     value: product.quantityConfirmed,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
-                    label: 'Quantity Pending',
+                    label: localizations.quantityPendingLabel,
                     value: product.quantityPending,
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
-                    label: 'Price',
+                    label: localizations.priceLabel,
                     value: '\$${product.price.toStringAsFixed(2)}',
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
-                    label: 'Visibility',
+                    label: localizations.visibilityLabel,
                     valueWidget: _VisibilityPill(visibility: product.visibility),
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
-                    label: 'Action',
+                    label: localizations.actionLabel,
                     valueWidget: Row(
                       children: [
                         IconButton(
@@ -556,6 +581,7 @@ class _ProductRow extends StatelessWidget {
                             height: 20,
                             color: Colors.black54,
                           ),
+                          tooltip: localizations.editButton,
                         ),
                         IconButton(
                           onPressed: onDelete,
@@ -565,6 +591,7 @@ class _ProductRow extends StatelessWidget {
                             height: 20,
                             color: Colors.black54,
                           ),
+                          tooltip: localizations.deleteButton,
                         ),
                       ],
                     ),
@@ -576,7 +603,6 @@ class _ProductRow extends StatelessWidget {
             ),
           ],
         ),
-        // Only one divider - removed the extra divider that was causing the double line
       ],
     );
   }
@@ -648,64 +674,52 @@ class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.status});
   final ProductStatus status;
 
-  Color get _bg {
-    switch (status) {
-      case ProductStatus.active:
-        return const Color(0xFFDFF7E3);
-      case ProductStatus.disabled:
-        return const Color(0xFFFFE0E0);
-      case ProductStatus.lowStock:
-        return const Color(0xFFFFF4CC);
-      case ProductStatus.outOfStock:
-        return const Color(0xFFFFE0E0);
-      case ProductStatus.denied:
-        return const Color(0xFFFFCCCC);
-    }
-  }
-
-  Color get _textColor {
-    switch (status) {
-      case ProductStatus.active:
-        return const Color(0xFF2E7D32);
-      case ProductStatus.disabled:
-        return const Color(0xFFC62828);
-      case ProductStatus.lowStock:
-        return const Color(0xFFF9A825);
-      case ProductStatus.outOfStock:
-        return const Color(0xFFC62828);
-      case ProductStatus.denied:
-        return const Color(0xFFB71C1C);
-    }
-  }
-
-  String get _label {
-    switch (status) {
-      case ProductStatus.active:
-        return 'Active';
-      case ProductStatus.disabled:
-        return 'Disabled';
-      case ProductStatus.lowStock:
-        return 'Low Stock';
-      case ProductStatus.outOfStock:
-        return 'Out of Stock';
-      case ProductStatus.denied:
-        return 'Denied';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    final String label;
+    final Color bgColor;
+    final Color textColor;
+
+    switch (status) {
+      case ProductStatus.active:
+        label = localizations.statusActive;
+        bgColor = const Color(0xFFDFF7E3);
+        textColor = const Color(0xFF2E7D32);
+        break;
+      case ProductStatus.disabled:
+        label = localizations.statusDisabled;
+        bgColor = const Color(0xFFFFE0E0);
+        textColor = const Color(0xFFC62828);
+        break;
+      case ProductStatus.lowStock:
+        label = localizations.statusLowStock;
+        bgColor = const Color(0xFFFFF4CC);
+        textColor = const Color(0xFFF9A825);
+        break;
+      case ProductStatus.outOfStock:
+        label = localizations.statusOutOfStock;
+        bgColor = const Color(0xFFFFE0E0);
+        textColor = const Color(0xFFC62828);
+        break;
+      case ProductStatus.denied:
+        label = localizations.statusDenied;
+        bgColor = const Color(0xFFFFCCCC);
+        textColor = const Color(0xFFB71C1C);
+        break;
+    }
+
     return DecoratedBox(
       decoration:
-      BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(10)),
+      BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
-          _label,
+          label,
           style: Theme.of(context)
               .textTheme
               .labelLarge
-              ?.copyWith(fontWeight: FontWeight.w700, color: _textColor),
+              ?.copyWith(fontWeight: FontWeight.w700, color: textColor),
         ),
       ),
     );
@@ -716,58 +730,47 @@ class _VisibilityPill extends StatelessWidget {
   const _VisibilityPill({required this.visibility});
   final ProductVisibility visibility;
 
-  Color get _bg {
-    switch (visibility) {
-      case ProductVisibility.catalogSearch:
-        return const Color(0xFFDFF7E3);
-      case ProductVisibility.catalogOnly:
-        return const Color(0xFFE3F2FD);
-      case ProductVisibility.searchOnly:
-        return const Color(0xFFE8F5E9);
-      case ProductVisibility.notVisible:
-        return const Color(0xFFFFEBEE);
-    }
-  }
-
-  Color get _textColor {
-    switch (visibility) {
-      case ProductVisibility.catalogSearch:
-        return const Color(0xFF2E7D32);
-      case ProductVisibility.catalogOnly:
-        return const Color(0xFF1565C0);
-      case ProductVisibility.searchOnly:
-        return const Color(0xFF388E3C);
-      case ProductVisibility.notVisible:
-        return const Color(0xFFC62828);
-    }
-  }
-
-  String get _label {
-    switch (visibility) {
-      case ProductVisibility.catalogSearch:
-        return 'Catalog / Search';
-      case ProductVisibility.catalogOnly:
-        return 'Catalog Only';
-      case ProductVisibility.searchOnly:
-        return 'Search Only';
-      case ProductVisibility.notVisible:
-        return 'Not Visible';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    final String label;
+    final Color bgColor;
+    final Color textColor;
+
+    switch (visibility) {
+      case ProductVisibility.catalogSearch:
+        label = localizations.visibilityCatalogSearch;
+        bgColor = const Color(0xFFDFF7E3);
+        textColor = const Color(0xFF2E7D32);
+        break;
+      case ProductVisibility.catalogOnly:
+        label = localizations.visibilityCatalogOnly;
+        bgColor = const Color(0xFFE3F2FD);
+        textColor = const Color(0xFF1565C0);
+        break;
+      case ProductVisibility.searchOnly:
+        label = localizations.visibilitySearchOnly;
+        bgColor = const Color(0xFFE8F5E9);
+        textColor = const Color(0xFF388E3C);
+        break;
+      case ProductVisibility.notVisible:
+        label = localizations.visibilityNotVisible;
+        bgColor = const Color(0xFFFFEBEE);
+        textColor = const Color(0xFFC62828);
+        break;
+    }
+
     return DecoratedBox(
       decoration:
-      BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(10)),
+      BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
-          _label,
+          label,
           style: Theme.of(context)
               .textTheme
               .labelLarge
-              ?.copyWith(fontWeight: FontWeight.w700, color: _textColor),
+              ?.copyWith(fontWeight: FontWeight.w700, color: textColor),
         ),
       ),
     );

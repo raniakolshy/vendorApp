@@ -1,3 +1,4 @@
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 class ReviewsScreen extends StatefulWidget {
@@ -9,7 +10,7 @@ class ReviewsScreen extends StatefulWidget {
 
 class _ReviewsScreenState extends State<ReviewsScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
-  String _filter = 'All Reviews';
+  late String _filter;
   static const int _pageSize = 2;
   int _shown = _pageSize;
 
@@ -64,15 +65,39 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
     ),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(_onSearchChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Initialize filter after localizations are loaded
+    _filter = AppLocalizations.of(context)!.allReviews;
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.removeListener(_onSearchChanged);
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   List<Review> get _filtered {
+    final l10n = AppLocalizations.of(context)!;
     final q = _searchCtrl.text.trim().toLowerCase();
     final byText = _allReviews.where((r) => r.productName.toLowerCase().contains(q));
     switch (_filter) {
       case 'Approved':
+      case 'Approved': // Fallback for old key, remove later
         return byText.where((r) => r.status == ReviewStatus.approved).toList();
       case 'Pending':
+      case 'Pending': // Fallback for old key, remove later
         return byText.where((r) => r.status == ReviewStatus.pending).toList();
       case 'Rejected':
+      case 'Rejected': // Fallback for old key, remove later
         return byText.where((r) => r.status == ReviewStatus.rejected).toList();
       default:
         return byText.toList();
@@ -96,20 +121,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _searchCtrl.addListener(_onSearchChanged);
-  }
-
-  @override
-  void dispose() {
-    _searchCtrl.removeListener(_onSearchChanged);
-    _searchCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final visible = _filtered.take(_shown).toList();
     final canLoadMore = _shown < _filtered.length;
 
@@ -138,7 +151,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                   children: [
                     // Title
                     Text(
-                      'Reviews',
+                      l10n.reviews,
                       style: Theme.of(context)
                           .textTheme
                           .titleLarge
@@ -151,7 +164,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                       child: TextField(
                         controller: _searchCtrl,
                         decoration: InputDecoration(
-                          hintText: 'Search reviews',
+                          hintText: l10n.searchReviews,
                           hintStyle: TextStyle(
                             color: Colors.black.withOpacity(.35),
                           ),
@@ -190,11 +203,11 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                       borderRadius: BorderRadius.circular(12),
                       isExpanded: true,
                       style: const TextStyle(color: Colors.black, fontSize: 16),
-                      items: const [
-                        'All Reviews',
-                        'Approved',
-                        'Pending',
-                        'Rejected',
+                      items: [
+                        l10n.allReviews,
+                        l10n.approved,
+                        l10n.pending,
+                        l10n.rejected,
                       ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
                           .toList(),
                       onChanged: _onFilterChanged,
@@ -247,9 +260,9 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                       height: 18,
                                     ),
                                     const SizedBox(width: 10),
-                                    const Text(
-                                      'Load more',
-                                      style: TextStyle(
+                                    Text(
+                                      l10n.loadMore,
+                                      style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600),
                                     ),
@@ -262,12 +275,12 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                       ),
 
                     if (_filtered.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
                         child: Center(
                           child: Text(
-                            'No reviews match your search.',
-                            style: TextStyle(color: Colors.black54),
+                            l10n.noReviewsFound,
+                            style: const TextStyle(color: Colors.black54),
                           ),
                         ),
                       ),
@@ -288,6 +301,7 @@ class _ReviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final keyStyle = Theme.of(context)
         .textTheme
         .bodyMedium
@@ -341,25 +355,25 @@ class _ReviewRow extends StatelessWidget {
                   // Ratings
                   Row(
                     children: [
-                      Expanded(child: _RatingItem('Price', review.priceRating, review.reviewCount)),
-                      Expanded(child: _RatingItem('Value', review.valueRating, review.reviewCount)),
+                      Expanded(child: _RatingItem(l10n.priceRating, review.priceRating, review.reviewCount)),
+                      Expanded(child: _RatingItem(l10n.valueRating, review.valueRating, review.reviewCount)),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Expanded(child: _RatingItem('Quality', review.qualityRating, review.reviewCount)),
+                      Expanded(child: _RatingItem(l10n.qualityRating, review.qualityRating, review.reviewCount)),
                       const Expanded(child: SizedBox()),
                     ],
                   ),
                   const SizedBox(height: 16),
 
                   // Review Sections
-                  _ReviewSection('Feed Summary', review.feedSummary),
+                  _ReviewSection(l10n.feedSummary, review.feedSummary),
                   const SizedBox(height: 12),
-                  _ReviewSection('Feed Review', review.feedReview),
+                  _ReviewSection(l10n.feedReview, review.feedReview),
                   const SizedBox(height: 12),
-                  _ReviewSection('Status', review.status.toString().split('.').last.capitalize(),
+                  _ReviewSection(l10n.status, l10n.reviewStatus(review.status.toString().split('.').last),
                       isStatus: true, status: review.status),
                 ],
               ),
@@ -387,7 +401,7 @@ class _RatingItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '$label Rating',
+          label,
           style: TextStyle(
             fontSize: 12,
             color: Colors.black.withOpacity(0.65),
@@ -520,10 +534,4 @@ class Review {
   final String feedSummary;
   final String feedReview;
   final ReviewStatus status;
-}
-
-extension StringExtension on String {
-  String capitalize() {
-    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
-  }
 }

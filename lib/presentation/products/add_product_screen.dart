@@ -1,3 +1,4 @@
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:app_vendor/presentation/products/drafts_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +6,8 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dropzone/flutter_dropzone.dart';
+
+// L10n import généré par flutter gen_l10n
 
 import '../common/description_markdown_field.dart';
 
@@ -152,10 +155,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Future<void> _publish() async {
+    final l10n = AppLocalizations.of(context)!;
+
     if (!_formKey.currentState!.validate()) return;
 
     if (_images.length < 3) {
-      _snack('Please add at least 3 product images', error: true);
+      _snack(l10n.err_add_three_images, error: true);
       return;
     }
 
@@ -163,7 +168,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final p = double.tryParse(_amount.text);
       final s = double.tryParse(_sp.text);
       if (p != null && s != null && s >= p) {
-        _snack('Special price must be less than Amount', error: true);
+        _snack(l10n.err_special_lower_than_amount, error: true);
         return;
       }
     }
@@ -171,16 +176,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Future<void> _submit({required bool isDraft}) async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _submitting = true);
     // TODO: call your API here (include _tags and _images)
     await Future<void>.delayed(const Duration(milliseconds: 600));
-    _snack(isDraft ? 'Draft saved' : 'Product published');
+    _snack(isDraft ? l10n.toast_draft_saved : l10n.toast_product_published);
     setState(() => _submitting = false);
   }
 
   void _delete() {
+    final l10n = AppLocalizations.of(context)!;
     // TODO: delete API call
-    _snack('Product deleted');
+    _snack(l10n.toast_product_deleted);
   }
 
   void _snack(String msg, {bool error = false}) {
@@ -192,6 +199,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     final switchTheme = SwitchThemeData(
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       thumbColor: MaterialStateProperty.resolveWith((s) => Colors.white),
@@ -214,9 +223,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
                     child: Row(
-                      children: const [
-                        SizedBox(width: 4),
-                        Text('Product', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+                      children: [
+                        const SizedBox(width: 4),
+                        Text(l10n.product, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ),
@@ -231,31 +240,36 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           child: Column(
                             children: [
                               // Name & description
-                              _sectionCard(title: 'Name & description', children: [
-                                _label('Product title', help: 'Enter the full product name (e.g., Apple iPhone 14 Pro).'),
+                              _sectionCard(title: l10n.sec_name_description, children: [
+                                _label(l10n.lbl_product_title, help: l10n.help_product_title),
                                 TextFormField(
                                   controller: _title,
-                                  decoration: _dec(context, hint: 'Input your text'),
-                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                                  decoration: _dec(context, hint: l10n.hint_input_text),
+                                  validator: (v) => (v == null || v.trim().isEmpty) ? l10n.v_required : null,
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Category', help: 'Select the category that best fits your product.'),
+                                _label(l10n.lbl_category, help: l10n.help_category),
                                 DropdownButtonFormField<String>(
                                   value: _category,
-                                  items: _categories.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                                  items: _categories
+                                      .map((e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Text(_localizeCategory(e, l10n)),
+                                  ))
+                                      .toList(),
                                   onChanged: (v) => setState(() => _category = v ?? _category),
                                   decoration: _dec(context),
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Tags', help: 'Add keywords that describe your product.'),
-                                _buildTagInput(),
+                                _label(l10n.lbl_tags, help: l10n.help_tags),
+                                _buildTagInput(l10n),
                                 const SizedBox(height: 20),
 
                                 DescriptionMarkdownField(
-                                  label: 'Description',
-                                  help: 'Detailed description of features, materials, sizing, etc.',
+                                  label: l10n.lbl_description,
+                                  help: l10n.help_description,
                                   controller: _desc,
                                   minLines: 8,
                                   showPreview: true,
@@ -263,61 +277,62 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 const SizedBox(height: 20),
 
                                 DescriptionMarkdownField(
-                                  label: 'Short Description',
-                                  help: 'Short summary (1–2 sentences) for listings/search results.',
+                                  label: l10n.lbl_short_description,
+                                  help: l10n.help_short_description,
                                   controller: _shortDesc,
                                   minLines: 5,
                                   showPreview: true,
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('SKU', help: 'Unique stock keeping unit (e.g., SKU-12345).'),
+                                _label(l10n.lbl_sku, help: l10n.help_sku),
                                 TextFormField(
                                   controller: _sku,
-                                  decoration: _dec(context, hint: 'Ex: SKU-12345'),
+                                  decoration: _dec(context, hint: l10n.hint_sku),
                                 ),
                               ]),
 
                               // Price
-                              _sectionCard(title: 'Price', children: [
-                                _label('Amount', help: 'Base selling price without discounts.'),
+                              _sectionCard(title: l10n.sec_price, children: [
+                                _label(l10n.lbl_amount, help: l10n.help_amount),
                                 TextFormField(
                                   controller: _amount,
                                   keyboardType: TextInputType.number,
                                   inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
                                   decoration: _dec(
                                     context,
-                                    hint: '8',
-                                    prefix: const Text('\$', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black)),
+                                    hint: l10n.hint_amount_default,
+                                    prefix: Text(l10n.curr_symbol, style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black)),
                                   ),
-                                  validator: (v) => (v == null || num.tryParse(v) == null) ? 'Enter a valid number' : null,
+                                  validator: (v) => (v == null || num.tryParse(v) == null) ? l10n.v_number : null,
                                 ),
                                 const SizedBox(height: 16),
 
                                 Row(
                                   children: [
-                                    Expanded(child: _label('Special Price', help: 'Turn on to add a promotional/sale price.')),
+                                    Expanded(child: _label(l10n.lbl_special_toggle, help: l10n.help_special_toggle)),
                                     Switch(value: _hasSpecial, onChanged: (v) => setState(() => _hasSpecial = v)),
                                   ],
                                 ),
                                 const Divider(height: 24, color: Color(0xFFE5E5E5)),
 
                                 if (_hasSpecial) ...[
-                                  _label('Special price', help: 'Discounted price that overrides the regular amount.'),
+                                  _label(l10n.lbl_special_price, help: l10n.help_special_price),
                                   TextFormField(
                                     controller: _sp,
                                     keyboardType: TextInputType.number,
                                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
                                     decoration: _dec(
                                       context,
-                                      hint: 'e.g., 24.99',
-                                      prefix: const Text('\$', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black)),
+                                      hint: l10n.hint_price_example,
+                                      prefix: Text(l10n.curr_symbol,
+                                          style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black)),
                                     ),
                                   ),
                                   const SizedBox(height: 16),
                                 ],
 
-                                _label('Minimum amount', help: 'Minimum quantity a customer is allowed to purchase.'),
+                                _label(l10n.lbl_min_qty, help: l10n.help_min_qty),
                                 TextFormField(
                                   controller: _minQty,
                                   keyboardType: TextInputType.number,
@@ -325,12 +340,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   decoration: _dec(
                                     context,
                                     hint: '0',
-                                    prefix: const Text('\$', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black)),
+                                    prefix: Text(l10n.curr_symbol,
+                                        style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black)),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
 
-                                _label('Maximum amount', help: 'Maximum quantity a customer is allowed to purchase.'),
+                                _label(l10n.lbl_max_qty, help: l10n.help_max_qty),
                                 TextFormField(
                                   controller: _maxQty,
                                   keyboardType: TextInputType.number,
@@ -338,71 +354,71 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   decoration: _dec(
                                     context,
                                     hint: '0',
-                                    prefix: const Text('\$', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black)),
+                                    prefix: Text(l10n.curr_symbol,
+                                        style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black)),
                                   ),
                                 ),
                                 const SizedBox(height: 12),
 
                                 Row(
                                   children: [
-                                    Expanded(child: _label('Taxes', help: 'Apply taxes to this product at checkout.')),
+                                    Expanded(child: _label(l10n.lbl_taxes, help: l10n.help_taxes)),
                                     Switch(value: _taxes, onChanged: (v) => setState(() => _taxes = v)),
                                   ],
                                 ),
                               ]),
 
                               // Stock & availability
-                              _sectionCard(title: 'Stock & Availability', children: [
-                                _label('Stock', help: 'Number of units available.'),
+                              _sectionCard(title: l10n.sec_stock_availability, children: [
+                                _label(l10n.lbl_stock, help: l10n.help_stock),
                                 TextFormField(
                                   controller: _stock,
                                   keyboardType: TextInputType.number,
                                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  decoration: _dec(context, hint: 'e.g., 100'),
+                                  decoration: _dec(context, hint: l10n.hint_stock),
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Weight', help: 'Weight in kilograms (used for shipping).'),
+                                _label(l10n.lbl_weight, help: l10n.help_weight),
                                 TextFormField(
                                   controller: _weight,
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                   inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,3}'))],
-                                  decoration: _dec(context, hint: 'e.g., 0.50'),
+                                  decoration: _dec(context, hint: l10n.hint_weight),
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Allowed Quantity per Customer',
-                                    help: 'Optional: maximum number of units a single customer can buy for this product.'),
+                                _label(l10n.lbl_allowed_qty_per_customer, help: l10n.help_allowed_qty_per_customer),
                                 TextFormField(
                                   controller: _maxQty,
                                   keyboardType: TextInputType.number,
                                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  decoration: _dec(context, hint: 'e.g., 5'),
+                                  decoration: _dec(context, hint: l10n.hint_allowed_qty),
                                   validator: (v) {
                                     if (v == null || v.isEmpty) return null;
                                     final n = int.tryParse(v);
-                                    if (n == null || n < 0) return 'Enter a non-negative number';
+                                    if (n == null || n < 0) return l10n.v_non_negative;
                                     return null;
                                   },
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Stock Availability', help: 'Choose current availability status.'),
+                                _label(l10n.lbl_stock_availability, help: l10n.help_stock_availability),
                                 DropdownButtonFormField<String>(
                                   value: _stockAvail,
-                                  items: const ['In Stock', 'Out of Stock']
-                                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                                  items: ['In Stock', 'Out of Stock']
+                                      .map((s) => DropdownMenuItem(value: s, child: Text(_localizeStock(s, l10n))))
                                       .toList(),
                                   onChanged: (v) => setState(() => _stockAvail = v ?? _stockAvail),
                                   decoration: _dec(context),
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Visibility', help: 'Invisible products are hidden from the storefront.'),
+                                _label(l10n.lbl_visibility, help: l10n.help_visibility),
                                 DropdownButtonFormField<String>(
                                   value: _visibility,
-                                  items: const ['Invisible', 'Visible']
-                                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                                  items: ['Invisible', 'Visible']
+                                      .map((s) => DropdownMenuItem(value: s, child: Text(_localizeVisibility(s, l10n))))
                                       .toList(),
                                   onChanged: (v) => setState(() => _visibility = v ?? _visibility),
                                   decoration: _dec(context),
@@ -410,24 +426,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               ]),
 
                               // Meta + Images
-                              _sectionCard(title: 'Meta Infos', children: [
-                                _label('Url Key', help: 'SEO-friendly slug used in the product URL.'),
+                              _sectionCard(title: l10n.sec_meta_infos, children: [
+                                _label(l10n.lbl_url_key, help: l10n.help_url_key),
                                 TextFormField(
                                   controller: _url,
-                                  decoration: _dec(context, hint: 'e.g., apple-iphone-14-pro'),
+                                  decoration: _dec(context, hint: l10n.hint_url_key),
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Meta Title', help: 'Title shown in search engine results.'),
+                                _label(l10n.lbl_meta_title, help: l10n.help_meta_title),
                                 TextFormField(
                                   controller: _metaTitle,
-                                  decoration: _dec(context, hint: 'e.g., Buy the iPhone 14 Pro'),
+                                  decoration: _dec(context, hint: l10n.hint_meta_title),
                                 ),
                                 const SizedBox(height: 20),
 
                                 DescriptionMarkdownField(
-                                  label: 'Meta Keywords',
-                                  help: 'Optional: comma-separated keywords.',
+                                  label: l10n.lbl_meta_keywords,
+                                  help: l10n.help_meta_keywords,
                                   controller: _metaKeywords,
                                   minLines: 8,
                                   showPreview: true,
@@ -435,16 +451,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 const SizedBox(height: 20),
 
                                 DescriptionMarkdownField(
-                                  label: 'Meta Description',
-                                  help: 'Short paragraph for search engines (150–160 chars).',
+                                  label: l10n.lbl_meta_description,
+                                  help: l10n.help_meta_description,
                                   controller: _metaDesc,
                                   minLines: 8,
                                   showPreview: true,
                                 ),
                                 const SizedBox(height: 20),
 
-                                // --- Product Images (drag & drop + picker) ---
-                                _label('Product Images', help: 'It is preferable to upload 3 images of the product.'),
+                                // --- Product Images ---
+                                _label(l10n.lbl_product_images, help: l10n.help_product_images),
                                 Container(
                                   height: 210,
                                   decoration: BoxDecoration(
@@ -512,7 +528,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                       Center(
                                         child: ElevatedButton.icon(
                                           icon: const Icon(Icons.download_rounded),
-                                          label: const Text('Click or drop Image'),
+                                          label: Text(l10n.btn_click_or_drop_image),
                                           onPressed: _pickImages,
                                           style: ElevatedButton.styleFrom(
                                             elevation: 3,
@@ -527,18 +543,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   ),
                                 ),
                                 if (_images.length < 3)
-                                  const Padding(
-                                    padding: EdgeInsets.only(top: 8),
-                                    child: Text('⚠️ Preferably upload at least 3 images',
-                                        style: TextStyle(color: Colors.red)),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(l10n.warn_prefer_three_images,
+                                        style: const TextStyle(color: Colors.red)),
                                   ),
                               ]),
 
                               // Linked products tabs
                               _sectionCard(
-                                title: 'Linked Products',
-                                children: const [
-                                  LinkedProductsTabs(height: 600),
+                                title: l10n.sec_linked_products,
+                                children: [
+                                  LinkedProductsTabs(height: 600, l10n: l10n),
                                 ],
                               ),
 
@@ -560,7 +576,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                           side: const BorderSide(color: Colors.black87),
                                           foregroundColor: Colors.black87,
                                         ),
-                                        child: const Text('Save Draft'),
+                                        child: Text(l10n.btn_save_draft),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -577,10 +593,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                             ? const SizedBox(
                                           width: 20,
                                           height: 20,
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2, color: Colors.white),
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                         )
-                                            : const Text('Publish now'),
+                                            : Text(l10n.btn_publish_now),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -592,7 +607,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         foregroundColor: Colors.redAccent,
                                       ),
                                       icon: const Icon(Icons.delete_outline),
-                                      tooltip: 'Delete',
+                                      tooltip: l10n.tt_delete,
                                     ),
                                   ],
                                 ),
@@ -613,7 +628,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   // ---------- TAGS UI ----------
-  Widget _buildTagInput() {
+  Widget _buildTagInput(AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -636,7 +651,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
             width: 140,
             child: TextField(
               controller: _tagInput,
-              decoration: const InputDecoration.collapsed(hintText: 'Add tag'),
+              decoration: InputDecoration.collapsed(hintText: l10n.hint_add_tag),
               onSubmitted: (v) {
                 final t = v.trim();
                 if (t.isNotEmpty && !_tags.contains(t)) {
@@ -669,11 +684,52 @@ class _AddProductScreenState extends State<AddProductScreen> {
       });
     }
   }
+
+  // Helpers to localize dropdown/item labels coming from constants:
+  String _localizeCategory(String raw, AppLocalizations l10n) {
+    switch (raw) {
+      case 'Food':
+        return l10n.cat_food;
+      case 'Electronics':
+        return l10n.cat_electronics;
+      case 'Apparel':
+        return l10n.cat_apparel;
+      case 'Beauty':
+        return l10n.cat_beauty;
+      case 'Home':
+        return l10n.cat_home;
+      default:
+        return l10n.cat_other;
+    }
+  }
+
+  String _localizeStock(String raw, AppLocalizations l10n) {
+    switch (raw) {
+      case 'In Stock':
+        return l10n.stock_in;
+      case 'Out of Stock':
+        return l10n.stock_out;
+      default:
+        return raw;
+    }
+  }
+
+  String _localizeVisibility(String raw, AppLocalizations l10n) {
+    switch (raw) {
+      case 'Invisible':
+        return l10n.visibility_invisible;
+      case 'Visible':
+        return l10n.visibility_visible;
+      default:
+        return raw;
+    }
+  }
 }
 
 class LinkedProductsTabs extends StatefulWidget {
-  const LinkedProductsTabs({super.key, this.height = 600});
+  const LinkedProductsTabs({super.key, this.height = 600, required this.l10n});
   final double height;
+  final AppLocalizations l10n;
 
   @override
   State<LinkedProductsTabs> createState() => _LinkedProductsTabsState();
@@ -697,6 +753,7 @@ class _LinkedProductsTabsState extends State<LinkedProductsTabs> with SingleTick
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = widget.l10n;
 
     // Neutral palette
     const neutralPrimary = Colors.black;
@@ -733,7 +790,7 @@ class _LinkedProductsTabsState extends State<LinkedProductsTabs> with SingleTick
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Product Relationships',
+              Text(l10n.title_product_relationships,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -758,10 +815,10 @@ class _LinkedProductsTabsState extends State<LinkedProductsTabs> with SingleTick
                   ),
                   labelColor: neutralPrimary,
                   unselectedLabelColor: onSurfaceMuted,
-                  tabs: const [
-                    Tab(icon: Icon(Icons.link, size: 18), text: 'Related'),
-                    Tab(icon: Icon(Icons.trending_up, size: 18), text: 'Up-Sell'),
-                    Tab(icon: Icon(Icons.swap_horiz, size: 18), text: 'Cross-Sell'),
+                  tabs: [
+                    Tab(icon: const Icon(Icons.link, size: 18), text: l10n.tab_related),
+                    Tab(icon: const Icon(Icons.trending_up, size: 18), text: l10n.tab_upsell),
+                    Tab(icon: const Icon(Icons.swap_horiz, size: 18), text: l10n.tab_crosssell),
                   ],
                 ),
               ),
@@ -777,10 +834,10 @@ class _LinkedProductsTabsState extends State<LinkedProductsTabs> with SingleTick
                   ),
                   child: TabBarView(
                     controller: _tc,
-                    children: const [
-                      ProductsTableShell(title: 'Related Products'),
-                      ProductsTableShell(title: 'Up-Sell Products'),
-                      ProductsTableShell(title: 'Cross-Sell Products'),
+                    children: [
+                      ProductsTableShell(title: l10n.related_products, l10n: l10n),
+                      ProductsTableShell(title: l10n.upsell_products, l10n: l10n),
+                      ProductsTableShell(title: l10n.crosssell_products, l10n: l10n),
                     ],
                   ),
                 ),
@@ -795,8 +852,9 @@ class _LinkedProductsTabsState extends State<LinkedProductsTabs> with SingleTick
 
 /// The main widget that holds the product list logic and UI (single, deduplicated version)
 class ProductsTableShell extends StatefulWidget {
-  const ProductsTableShell({super.key, required this.title});
+  const ProductsTableShell({super.key, required this.title, required this.l10n});
   final String title;
+  final AppLocalizations l10n;
 
   @override
   State<ProductsTableShell> createState() => _ProductsTableShellState();
@@ -805,7 +863,7 @@ class ProductsTableShell extends StatefulWidget {
 class _ProductsTableShellState extends State<ProductsTableShell> {
   final _search = TextEditingController();
 
-  // NEW: filter state
+  // filter state
   bool _showEnabled = true;
   bool _showDisabled = true;
 
@@ -818,6 +876,8 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
   bool get _filtersActive => !(_showEnabled && _showDisabled);
 
   void _openFilters() async {
+    final l10n = widget.l10n;
+
     final result = await showModalBottomSheet<Map<String, bool>>(
       context: context,
       useSafeArea: true,
@@ -851,7 +911,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
               ),
               Row(
                 children: [
-                  Text('Filters', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(l10n.filters, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                   const Spacer(),
                   TextButton(
                     onPressed: () {
@@ -859,7 +919,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
                       showDisabled = true;
                       Navigator.of(context).pop({'enabled': showEnabled, 'disabled': showDisabled});
                     },
-                    child: const Text('Reset'),
+                    child: Text(l10n.btn_reset),
                   ),
                 ],
               ),
@@ -872,13 +932,13 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
                 child: Column(
                   children: [
                     SwitchListTile(
-                      title: const Text('Enabled'),
+                      title: Text(l10n.status_enabled),
                       value: showEnabled,
                       onChanged: (v) => showEnabled = v,
                     ),
                     const Divider(height: 1),
                     SwitchListTile(
-                      title: const Text('Disabled'),
+                      title: Text(l10n.status_disabled),
                       value: showDisabled,
                       onChanged: (v) => showDisabled = v,
                     ),
@@ -892,7 +952,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
                     child: ElevatedButton.icon(
                       onPressed: () => Navigator.of(context).pop({'enabled': showEnabled, 'disabled': showDisabled}),
                       icon: const Icon(Icons.check),
-                      label: const Text('Apply'),
+                      label: Text(l10n.btn_apply),
                       style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
                     ),
                   ),
@@ -921,30 +981,32 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
     final onSurface = isDark ? Colors.white : Colors.black87;
     final onSurfaceMuted = isDark ? Colors.white70 : Colors.black54;
 
-    // Demo dataset — NEW: `enabled` added and `status` kept for your original data
+    final l10n = widget.l10n;
+
+    // Demo dataset — enabled added and status kept
     final List<Map<String, dynamic>> products = [
       {
         'id': 'SKU-001',
-        'name': 'Wireless Ergonomic Mouse',
-        'type': 'Electronics',
+        'name': l10n.demo_mouse_name,
+        'type': l10n.cat_electronics,
         'price': 49.99,
-        'status': 'In Stock',
+        'status': l10n.inv_in_stock_label,
         'enabled': true,
       },
       {
         'id': 'SKU-002',
-        'name': 'Organic Cotton T-Shirt',
-        'type': 'Apparel',
+        'name': l10n.demo_tshirt_name,
+        'type': l10n.cat_apparel,
         'price': 29.50,
-        'status': 'Low Stock',
+        'status': l10n.inv_low_stock_label,
         'enabled': true,
       },
       {
         'id': 'SKU-003',
-        'name': 'Espresso Coffee Machine',
-        'type': 'Home Appliances',
+        'name': l10n.demo_espresso_name,
+        'type': l10n.cat_home_appliances,
         'price': 199.99,
-        'status': 'Out of Stock',
+        'status': l10n.inv_out_stock_label,
         'enabled': false,
       },
     ];
@@ -972,11 +1034,11 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
       if (!_filtersActive) return null;
       String txt;
       if (_showEnabled && !_showDisabled) {
-        txt = 'Showing: Enabled only';
+        txt = l10n.filters_showing_enabled_only;
       } else if (!_showEnabled && _showDisabled) {
-        txt = 'Showing: Disabled only';
+        txt = l10n.filters_showing_disabled_only;
       } else {
-        txt = 'Custom filters';
+        txt = l10n.filters_custom;
       }
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1017,7 +1079,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
                       controller: _search,
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
-                        hintText: 'Search name, SKU…',
+                        hintText: l10n.hint_search_name_sku,
                         isDense: true,
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
@@ -1039,10 +1101,9 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
                     icon: Icon(
                       Icons.filter_alt_outlined,
                       size: 18,
-                      // Emphasize when active
                       color: _filtersActive ? Theme.of(context).colorScheme.primary : onSurface,
                     ),
-                    label: Text(_filtersActive ? 'Filters • On' : 'Filters'),
+                    label: Text(_filtersActive ? l10n.btn_filters_on : l10n.btn_filters),
                     style: OutlinedButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1064,21 +1125,23 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
         // List
         Expanded(
           child: filteredProducts.isEmpty
-              ? const EmptyModern()
+              ? EmptyModern(l10n: l10n)
               : ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: filteredProducts.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) => ProductCard(product: filteredProducts[index]),
+            itemBuilder: (context, index) => ProductCard(product: filteredProducts[index], l10n: l10n),
           ),
         ),
       ],
     );
   }
 }
-// Widget to display when the product list is empty
+
+// Empty state
 class EmptyModern extends StatelessWidget {
-  const EmptyModern({super.key});
+  const EmptyModern({super.key, required this.l10n});
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
@@ -1095,12 +1158,12 @@ class EmptyModern extends StatelessWidget {
               Icon(Icons.inventory_2_outlined, size: 56, color: isDark ? Colors.white54 : Colors.black26),
               const SizedBox(height: 14),
               Text(
-                "No linked products yet",
+                l10n.empty_no_linked_products,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87),
               ),
               const SizedBox(height: 8),
               Text(
-                "Add related, up-sell or cross-sell products to improve discovery and increase AOV.",
+                l10n.empty_no_linked_products_desc,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
               ),
@@ -1111,13 +1174,13 @@ class EmptyModern extends StatelessWidget {
                   ElevatedButton.icon(
                     onPressed: () {/* TODO */},
                     icon: const Icon(Icons.add),
-                    label: const Text('Add Product'),
+                    label: Text(l10n.btn_add_product),
                   ),
                   const SizedBox(width: 10),
                   OutlinedButton.icon(
                     onPressed: () {/* TODO */},
                     icon: const Icon(Icons.filter_alt_outlined),
-                    label: const Text('Browse Catalog'),
+                    label: Text(l10n.btn_browse_catalog),
                   ),
                 ],
               ),
@@ -1129,10 +1192,11 @@ class EmptyModern extends StatelessWidget {
   }
 }
 
-// Widget for a single product card in the list (single, deduplicated version)
+// Card
 class ProductCard extends StatelessWidget {
   final Map<String, dynamic> product;
-  const ProductCard({super.key, required this.product});
+  final AppLocalizations l10n;
+  const ProductCard({super.key, required this.product, required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -1144,7 +1208,7 @@ class ProductCard extends StatelessWidget {
     final onSurfaceMuted = isDark ? Colors.white70 : Colors.black54;
 
     final bool enabled = (product['enabled'] as bool?) ?? true;
-    final statusLabel = enabled ? 'Enabled' : 'Disabled';
+    final statusLabel = enabled ? l10n.status_enabled : l10n.status_disabled;
     final statusColor = enabled ? Colors.green : Colors.orange;
 
     return Card(
@@ -1162,13 +1226,14 @@ class ProductCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('ID: ${product['id']}', style: theme.textTheme.bodySmall?.copyWith(color: onSurfaceMuted)),
+              Text(l10n.id_with_value(product['id'].toString()),
+                  style: theme.textTheme.bodySmall?.copyWith(color: onSurfaceMuted)),
               PopupMenuButton<String>(
                 icon: Icon(Icons.more_vert, size: 20, color: onSurfaceMuted),
                 onSelected: (_) {},
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: 'Edit', child: Text('Edit')),
-                  PopupMenuItem(value: 'Delete', child: Text('Delete')),
+                itemBuilder: (context) => [
+                  PopupMenuItem(value: 'Edit', child: Text(l10n.btn_edit)),
+                  PopupMenuItem(value: 'Delete', child: Text(l10n.btn_delete)),
                 ],
               ),
             ],
@@ -1195,7 +1260,7 @@ class ProductCard extends StatelessWidget {
                 Text(product['type'], style: theme.textTheme.bodyMedium?.copyWith(color: onSurfaceMuted)),
                 if (product['status'] != null) ...[
                   const SizedBox(height: 2),
-                  Text('Inventory: ${product['status']}',
+                  Text(l10n.inventory_with_value(product['status'].toString()),
                       style: theme.textTheme.bodySmall?.copyWith(color: onSurfaceMuted)),
                 ],
               ]),
@@ -1206,8 +1271,8 @@ class ProductCard extends StatelessWidget {
           // Footer row
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Price', style: theme.textTheme.bodySmall?.copyWith(color: onSurfaceMuted)),
-              Text('\$${product['price']}',
+              Text(l10n.lbl_price, style: theme.textTheme.bodySmall?.copyWith(color: onSurfaceMuted)),
+              Text(l10n.price_with_currency(product['price'].toString()),
                   style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: onSurface)),
             ]),
             Container(

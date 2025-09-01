@@ -1,3 +1,4 @@
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 void main() => runApp(const CustomerAnalyticsApp());
@@ -14,6 +15,8 @@ class CustomerAnalyticsApp extends StatelessWidget {
     );
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: baseTheme.copyWith(
         scaffoldBackgroundColor: const Color(0xFFF3F3F4),
         textTheme: baseTheme.textTheme.apply(
@@ -35,7 +38,7 @@ class CustomerAnalyticsScreen extends StatefulWidget {
 
 class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
-  String _timeFilter = 'All time';
+  String _timeFilter = ''; // Initialize with an empty string
   static const int _pageSize = 2;
   int _shown = _pageSize;
   bool _loadingMore = false;
@@ -81,16 +84,17 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
 
   List<Customer> get _filtered {
     final q = _searchCtrl.text.trim().toLowerCase();
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
 
     // Apply time filter if not "All time"
     List<Customer> timeFiltered = _allCustomers;
-    if (_timeFilter != 'All time') {
+    if (_timeFilter != l10n.allTime) {
       // In a real app, you would filter by actual date/time
       // For this example, we'll just filter by name for demonstration
       timeFiltered = _allCustomers.where((c) =>
-      _timeFilter == 'Last 7 days' ? c.name.startsWith('J') :
-      _timeFilter == 'Last 30 days' ? c.name.startsWith('J') || c.name.startsWith('R') :
-      _timeFilter == 'Last year' ? c.name.startsWith('E') : true
+      _timeFilter == l10n.last7Days ? c.name.startsWith('J') :
+      _timeFilter == l10n.last30Days ? c.name.startsWith('J') || c.name.startsWith('R') :
+      _timeFilter == l10n.lastYear ? c.name.startsWith('E') : true
       ).toList();
     }
 
@@ -127,6 +131,15 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
     _searchCtrl.addListener(_onSearchChanged);
   }
 
+  // Use didChangeDependencies to safely access context
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_timeFilter.isEmpty) {
+      _timeFilter = AppLocalizations.of(context)!.allTime;
+    }
+  }
+
   @override
   void dispose() {
     _searchCtrl.removeListener(_onSearchChanged);
@@ -136,6 +149,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
     final visible = _filtered.take(_shown).toList();
     final canLoadMore = _shown < _filtered.length && !_loadingMore;
 
@@ -164,7 +178,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                   children: [
                     // Title
                     Text(
-                      'Customer Analytics',
+                      l10n.customerAnalyticsTitle,
                       style: Theme.of(context)
                           .textTheme
                           .titleLarge
@@ -192,11 +206,11 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                       borderRadius: BorderRadius.circular(12),
                       isExpanded: true,
                       style: const TextStyle(color: Colors.black, fontSize: 16),
-                      items: const [
-                        'All time',
-                        'Last 7 days',
-                        'Last 30 days',
-                        'Last year',
+                      items: [
+                        l10n.allTime,
+                        l10n.last7Days,
+                        l10n.last30Days,
+                        l10n.lastYear,
                       ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
                           .toList(),
                       onChanged: _onTimeFilterChanged,
@@ -223,7 +237,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                                     const Icon(Icons.person_outline, size: 20, color: Colors.black54),
                                     const SizedBox(width: 8),
                                     Text(
-                                      'Customers',
+                                      l10n.customersLabel,
                                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                         color: Colors.black54,
                                       ),
@@ -232,9 +246,9 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  _timeFilter == 'All time' ? '1,368' :
-                                  _timeFilter == 'Last 7 days' ? '342' :
-                                  _timeFilter == 'Last 30 days' ? '856' : '1,024',
+                                  _timeFilter == l10n.allTime ? '1,368' :
+                                  _timeFilter == l10n.last7Days ? '342' :
+                                  _timeFilter == l10n.last30Days ? '856' : '1,024',
                                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -269,7 +283,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                                       const Icon(Icons.shopping_cart_outlined, size: 20, color: Colors.black54),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Income',
+                                        l10n.incomeLabel,
                                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                           color: Colors.black54,
                                         ),
@@ -278,9 +292,9 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    _timeFilter == 'All time' ? '\$68,192' :
-                                    _timeFilter == 'Last 7 days' ? '\$12,456' :
-                                    _timeFilter == 'Last 30 days' ? '\$45,678' : '\$59,123',
+                                    _timeFilter == l10n.allTime ? '\$68,192' :
+                                    _timeFilter == l10n.last7Days ? '\$12,456' :
+                                    _timeFilter == l10n.last30Days ? '\$45,678' : '\$59,123',
                                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -305,7 +319,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                     Row(
                       children: [
                         Text(
-                          'Customers',
+                          l10n.customersLabel,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
@@ -320,7 +334,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                       child: TextField(
                         controller: _searchCtrl,
                         decoration: InputDecoration(
-                          hintText: 'Search customer',
+                          hintText: l10n.searchCustomerHint,
                           hintStyle: TextStyle(
                             color: Colors.black.withOpacity(.35),
                           ),
@@ -392,9 +406,9 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                                         height: 18,
                                       ),
                                     const SizedBox(width: 10),
-                                    const Text(
-                                      'Load more',
-                                      style: TextStyle(
+                                    Text(
+                                      l10n.loadMoreButton,
+                                      style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600),
                                     ),
@@ -407,12 +421,12 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                       ),
 
                     if (_filtered.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
                         child: Center(
                           child: Text(
-                            'No customers match your search.',
-                            style: TextStyle(color: Colors.black54),
+                            l10n.noCustomersMatch,
+                            style: const TextStyle(color: Colors.black54),
                           ),
                         ),
                       ),
@@ -433,6 +447,7 @@ class _CustomerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
     final keyStyle = Theme.of(context)
         .textTheme
         .bodyMedium
@@ -444,16 +459,15 @@ class _CustomerRow extends StatelessWidget {
         fontWeight: FontWeight.w600, color: Colors.black.withOpacity(.85));
 
     return Container(
-      padding: const EdgeInsets.only(bottom: 20), // Added space at the bottom
+      padding: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Customer avatar with space
           Container(
-            margin: const EdgeInsets.only(right: 20), // Added space between image and content
+            margin: const EdgeInsets.only(right: 20),
             width: 60,
             height: 60,
             decoration: BoxDecoration(
@@ -468,7 +482,6 @@ class _CustomerRow extends StatelessWidget {
             ),
           ),
 
-          // Customer details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -490,9 +503,8 @@ class _CustomerRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Key-value pairs
                 _RowKVText(
-                  k: 'Contact',
+                  k: l10n.contactLabel,
                   v: _InfoChip(customer.contact),
                   keyStyle: keyStyle,
                   valStyle: valStyle,
@@ -500,7 +512,7 @@ class _CustomerRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _RowKVText(
-                  k: 'Gender',
+                  k: l10n.genderLabel,
                   v: _GenderChip(gender: customer.gender),
                   keyStyle: keyStyle,
                   valStyle: valStyle,
@@ -508,21 +520,21 @@ class _CustomerRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _RowKVText(
-                  k: 'Address',
+                  k: l10n.addressLabel,
                   vText: customer.address,
                   keyStyle: keyStyle,
                   valStyle: valStyle,
                 ),
                 const SizedBox(height: 12),
                 _RowKVText(
-                  k: 'Base Total',
+                  k: l10n.baseTotalLabel,
                   vText: customer.baseTotal,
                   keyStyle: keyStyle,
                   valStyle: valStyle,
                 ),
                 const SizedBox(height: 12),
                 _RowKVText(
-                  k: 'Orders',
+                  k: l10n.ordersLabel,
                   vText: customer.orders,
                   keyStyle: keyStyle,
                   valStyle: valStyle,
@@ -535,8 +547,6 @@ class _CustomerRow extends StatelessWidget {
     );
   }
 }
-
-// ===== Reused UI components =====
 
 class _InputSurface extends StatelessWidget {
   const _InputSurface({required this.child});
@@ -590,8 +600,6 @@ class _RowKVText extends StatelessWidget {
   }
 }
 
-// ===== New UI components =====
-
 class _InfoChip extends StatelessWidget {
   const _InfoChip(this.text);
   final String text;
@@ -639,17 +647,18 @@ class _GenderChip extends StatelessWidget {
     }
   }
 
-  String get _label {
-    switch (gender) {
-      case Gender.male:
-        return 'Male';
-      case Gender.female:
-        return 'Female';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    String label;
+    switch (gender) {
+      case Gender.male:
+        label = l10n.maleLabel;
+        break;
+      case Gender.female:
+        label = l10n.femaleLabel;
+        break;
+    }
     return DecoratedBox(
       decoration: BoxDecoration(
           color: _bg,
@@ -658,7 +667,7 @@ class _GenderChip extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
-          _label,
+          label,
           style: Theme.of(context)
               .textTheme
               .labelLarge
@@ -671,8 +680,6 @@ class _GenderChip extends StatelessWidget {
     );
   }
 }
-
-// ===== Models =====
 
 enum Gender { male, female }
 

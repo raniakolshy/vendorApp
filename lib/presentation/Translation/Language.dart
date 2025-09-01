@@ -43,7 +43,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
             backgroundColor: _bgScaffold,
             appBar: AppBar(
               backgroundColor: Colors.transparent,
-              automaticallyImplyLeading: false, // <-- ADD THIS
+              automaticallyImplyLeading: false,
               title: Text(
                 t.language,
                 style: const TextStyle(
@@ -93,7 +93,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            automaticallyImplyLeading: false, // <-- ADD THIS
+            automaticallyImplyLeading: false, //
             title: Text(
               t.language,
               style: const TextStyle(

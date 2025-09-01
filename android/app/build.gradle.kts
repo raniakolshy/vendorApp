@@ -22,7 +22,7 @@ android {
     defaultConfig {
         applicationId = "com.example.vendor_app"
         // Explicitly set the minimum SDK version to 21 as required by the Facebook SDK.
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

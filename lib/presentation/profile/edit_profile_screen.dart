@@ -1,3 +1,4 @@
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
@@ -6,6 +7,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dropzone/flutter_dropzone.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+
+// L10n
 
 import '../common/description_markdown_field.dart';
 import 'View_profile.dart';
@@ -51,6 +54,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // State
   Uint8List? _logoBytes;
   Uint8List? _bannerBytes;
+  DropzoneViewController? _dzCtrl;
+
   bool _twitterEnabled = false;
   bool _facebookEnabled = false;
   bool _instagramEnabled = false;
@@ -60,11 +65,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _moleskineEnabled = false;
   bool _tiktokEnabled = false;
 
-  final List<String> _countries = [
-    'Tunisia', 'United States', 'Canada', 'United Kingdom', 'Germany', 'France',
+  final List<String> _countries = const [
+    'United Arab Emirates','Egypte', 'United States', 'Canada', 'United Kingdom', 'Germany', 'France',
     'Japan', 'Australia', 'Brazil', 'India', 'China'
   ];
-  String _selectedCountry = 'Tunisia';
+  String _selectedCountry = 'United Arab Emirates';
 
   // ---------- styling helpers ----------
   BorderRadius get _radius => BorderRadius.circular(16);
@@ -83,10 +88,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           : Container(
         width: 48,
         margin: const EdgeInsets.only(right: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFEFEFEF),
-          borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
-          border: const Border(right: BorderSide(color: Color(0xFFE5E5E5))),
+        decoration: const BoxDecoration(
+          color: Color(0xFFEFEFEF),
+          borderRadius: BorderRadius.horizontal(left: Radius.circular(14)),
+          border: Border(right: BorderSide(color: Color(0xFFE5E5E5))),
         ),
         alignment: Alignment.center,
         child: prefix,
@@ -127,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ---------- File Picker Logic ----------
+  // ---------- File Picker ----------
   Future<void> _pickImage({required bool isLogo}) async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
     if (result != null && result.files.isNotEmpty) {
@@ -142,11 +147,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ---------- Save Function ----------
+  // ---------- Save ----------
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    // Implement your API call to save the profile here
-    // Example: _snack('Profile saved');
+    // TODO: call API to save profile
+    _snack(AppLocalizations.of(context)!.toast_profile_saved);
   }
 
   void _snack(String msg, {bool error = false}) {
@@ -155,10 +160,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ---------- Build UI ----------
+  // ---------- Build ----------
   @override
   Widget build(BuildContext context) {
-    // Force black switches
+    final l10n = AppLocalizations.of(context)!;
+
     final switchTheme = SwitchThemeData(
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       thumbColor: MaterialStateProperty.resolveWith((s) => Colors.white),
@@ -181,9 +187,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
                     child: Row(
-                      children: const [
-                        SizedBox(width: 4),
-                        Text('Profile settings', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+                      children: [
+                        const SizedBox(width: 4),
+                        Text(l10n.profile_settings, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ),
@@ -198,63 +204,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Column(
                             children: [
                               // Profile Information
-                              _sectionCard(title: 'Profile Information', children: [
+                              _sectionCard(title: l10n.sec_profile_information, children: [
                                 // Company Logo
-                                _label('Company Logo', help: 'Upload your company logo'),
-                                _buildLogoPicker(),
+                                _label(l10n.lbl_company_logo, help: l10n.help_company_logo),
+                                _buildLogoPicker(l10n),
                                 const SizedBox(height: 20),
 
                                 // Company Banner
-                                _label('Company Banner', help: 'Upload your company banner'),
-                                _buildBannerPicker(),
+                                _label(l10n.lbl_company_banner, help: l10n.help_company_banner),
+                                _buildBannerPicker(l10n),
                                 const SizedBox(height: 20),
 
-                                _label('Display name', help: 'The name that will be displayed on your vendor profile'),
+                                _label(l10n.lbl_display_name, help: l10n.help_display_name),
                                 TextFormField(
                                   controller: _companyName,
-                                  decoration: _dec(context, hint: 'Company'),
-                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                                  decoration: _dec(context, hint: l10n.hint_company),
+                                  validator: (v) => (v == null || v.trim().isEmpty) ? l10n.v_required : null,
                                 ),
                                 const SizedBox(height: 20),
 
                                 // Location Dropdown
-                                _label('Location', help: 'The physical location of your business'),
+                                _label(l10n.lbl_location, help: l10n.help_location),
                                 DropdownButtonFormField<String>(
                                   value: _selectedCountry,
                                   items: _countries.map((country) {
                                     return DropdownMenuItem(
                                       value: country,
-                                      child: Text(country),
+                                      child: Text(_localizeCountry(country, l10n)),
                                     );
                                   }).toList(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _selectedCountry = value!;
-                                    });
-                                  },
+                                  onChanged: (value) => setState(() => _selectedCountry = value!),
                                   decoration: _dec(context),
                                 ),
                                 const SizedBox(height: 20),
 
                                 // Phone Number Field
-                                _label('Phone Number', help: 'Your company\'s contact phone number'),
+                                _label(l10n.lbl_phone_number, help: l10n.help_phone_number),
                                 IntlPhoneField(
                                   controller: _phoneNumber,
-                                  decoration: _dec(context, hint: 'Enter phone number'),
-                                  initialCountryCode: _countryCodeMap[_selectedCountry] ?? 'TN', // Default to 'TN' (Tunisia)
+                                  decoration: _dec(context, hint: l10n.hint_phone),
+                                  initialCountryCode: _countryCodeMap[_selectedCountry] ?? 'TN',
                                 ),
                                 const SizedBox(height: 20),
 
                                 DescriptionMarkdownField(
-                                  label: 'Bio',
-                                  help: 'A short description of your company.',
+                                  label: l10n.lbl_bio,
+                                  help: l10n.help_bio,
                                   controller: _bio,
                                   minLines: 4,
                                   showPreview: true,
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Low Stock Quantity', help: 'Set the threshold for low stock warnings'),
+                                _label(l10n.lbl_low_stock_qty, help: l10n.help_low_stock_qty),
                                 TextFormField(
                                   controller: _lowStockQuantity,
                                   decoration: _dec(context, hint: '12'),
@@ -263,62 +265,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Tax/VAT Number', help: 'Your official tax or VAT identification number'),
+                                _label(l10n.lbl_tax_vat, help: l10n.help_tax_vat),
                                 TextFormField(
                                   controller: _taxVatNumber,
-                                  decoration: _dec(context, hint: '12'),
+                                  decoration: _dec(context, hint: 'TN1234567'),
                                 ),
                                 const SizedBox(height: 20),
 
                                 DescriptionMarkdownField(
-                                  label: 'Payment Details',
-                                  help: 'Details on how customers can pay for products.',
+                                  label: l10n.lbl_payment_details,
+                                  help: l10n.help_payment_details,
                                   controller: _paymentDetails,
                                   minLines: 4,
                                   showPreview: true,
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Social Media IDs', help: 'Link your social media profiles'),
-                                _buildSocialMediaField('Twitter ID', FontAwesomeIcons.twitter, _twitterId, _twitterEnabled, (value) => setState(() => _twitterEnabled = value)),
+                                _label(l10n.lbl_social_ids, help: l10n.help_social_ids),
+                                _buildSocialMediaField(l10n.sm_twitter, FontAwesomeIcons.twitter, _twitterId, _twitterEnabled, (v) => setState(() => _twitterEnabled = v), l10n),
                                 const SizedBox(height: 20),
-                                _buildSocialMediaField('Facebook ID', FontAwesomeIcons.facebook, _facebookId, _facebookEnabled, (value) => setState(() => _facebookEnabled = value)),
+                                _buildSocialMediaField(l10n.sm_facebook, FontAwesomeIcons.facebook, _facebookId, _facebookEnabled, (v) => setState(() => _facebookEnabled = v), l10n),
                                 const SizedBox(height: 20),
-                                _buildSocialMediaField('Instagram ID', FontAwesomeIcons.instagram, _instagramId, _instagramEnabled, (value) => setState(() => _instagramEnabled = value)),
+                                _buildSocialMediaField(l10n.sm_instagram, FontAwesomeIcons.instagram, _instagramId, _instagramEnabled, (v) => setState(() => _instagramEnabled = v), l10n),
                                 const SizedBox(height: 20),
-                                _buildSocialMediaField('Youtube ID', FontAwesomeIcons.youtube, _youtubeId, _youtubeEnabled, (value) => setState(() => _youtubeEnabled = value)),
+                                _buildSocialMediaField(l10n.sm_youtube, FontAwesomeIcons.youtube, _youtubeId, _youtubeEnabled, (v) => setState(() => _youtubeEnabled = v), l10n),
                                 const SizedBox(height: 20),
-                                _buildSocialMediaField('Vimeo ID', FontAwesomeIcons.vimeo, _vimeoId, _vimeoEnabled, (value) => setState(() => _vimeoEnabled = value)),
+                                _buildSocialMediaField(l10n.sm_vimeo, FontAwesomeIcons.vimeo, _vimeoId, _vimeoEnabled, (v) => setState(() => _vimeoEnabled = v), l10n),
                                 const SizedBox(height: 20),
-                                _buildSocialMediaField('Pinterest ID', FontAwesomeIcons.pinterest, _pinterestId, _pinterestEnabled, (value) => setState(() => _pinterestEnabled = value)),
+                                _buildSocialMediaField(l10n.sm_pinterest, FontAwesomeIcons.pinterest, _pinterestId, _pinterestEnabled, (v) => setState(() => _pinterestEnabled = v), l10n),
                                 const SizedBox(height: 20),
-                                _buildSocialMediaField('Moleskine ID', Icons.camera, _moleskineId, _moleskineEnabled, (value) => setState(() => _moleskineEnabled = value)), // Using a placeholder for Moleskine
+                                _buildSocialMediaField(l10n.sm_moleskine, Icons.camera, _moleskineId, _moleskineEnabled, (v) => setState(() => _moleskineEnabled = v), l10n),
                                 const SizedBox(height: 20),
-                                _buildSocialMediaField('Tiktok ID', FontAwesomeIcons.tiktok, _tiktokId, _tiktokEnabled, (value) => setState(() => _tiktokEnabled = value)),
+                                _buildSocialMediaField(l10n.sm_tiktok, FontAwesomeIcons.tiktok, _tiktokId, _tiktokEnabled, (v) => setState(() => _tiktokEnabled = v), l10n),
                                 const SizedBox(height: 20),
                               ]),
 
                               // Policies Section
-                              _sectionCard(title: 'Company Policy', children: [
+                              _sectionCard(title: l10n.sec_company_policy, children: [
                                 DescriptionMarkdownField(
-                                  label: 'Return Policy',
-                                  help: 'Describe your company’s return policy.',
+                                  label: l10n.lbl_return_policy,
+                                  help: l10n.help_return_policy,
                                   controller: _returnPolicy,
                                   minLines: 4,
                                   showPreview: true,
                                 ),
                                 const SizedBox(height: 20),
                                 DescriptionMarkdownField(
-                                  label: 'Shipping Policy',
-                                  help: 'Describe your company’s shipping policy.',
+                                  label: l10n.lbl_shipping_policy,
+                                  help: l10n.help_shipping_policy,
                                   controller: _shippingPolicy,
                                   minLines: 4,
                                   showPreview: true,
                                 ),
                                 const SizedBox(height: 20),
                                 DescriptionMarkdownField(
-                                  label: 'Privacy Policy',
-                                  help: 'Describe your company’s privacy policy.',
+                                  label: l10n.lbl_privacy_policy,
+                                  help: l10n.help_privacy_policy,
                                   controller: _privacyPolicy,
                                   minLines: 4,
                                   showPreview: true,
@@ -327,91 +329,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ]),
 
                               // Meta Information Section
-                              _sectionCard(title: 'Meta Information', children: [
+                              _sectionCard(title: l10n.sec_meta_information, children: [
                                 DescriptionMarkdownField(
-                                  label: 'Meta Keywords',
-                                  help: 'Add your company’s meta keywords.',
+                                  label: l10n.lbl_meta_keywords,
+                                  help: l10n.help_meta_keywords_profile,
                                   controller: _metaKeywords,
                                   minLines: 4,
                                   showPreview: true,
                                 ),
                                 const SizedBox(height: 20),
                                 DescriptionMarkdownField(
-                                  label: 'Meta Description',
-                                  help: 'A short description of your company for search engines.',
+                                  label: l10n.lbl_meta_description,
+                                  help: l10n.help_meta_description_profile,
                                   controller: _metaDescription,
                                   minLines: 4,
                                   showPreview: true,
                                 ),
                                 const SizedBox(height: 20),
-                                _label('Google Analytic ID', help: 'Your Google Analytics tracking ID'),
+                                _label(l10n.lbl_google_analytics, help: l10n.help_google_analytics),
                                 TextFormField(
                                   controller: _googleAnalyticId,
-                                  decoration: _dec(context, hint: 'Input your text'),
+                                  decoration: _dec(context, hint: l10n.hint_input_text),
                                 ),
                                 const SizedBox(height: 20),
 
                                 // URL Paths
-                                _label('Profile Page Target Url Path', help: 'This is the final URL of your profile page.'),
+                                _label(l10n.lbl_profile_target, help: l10n.help_profile_target),
                                 TextFormField(
                                   initialValue: 'marketplace/seller/profile/shop/comp',
                                   enabled: false,
                                   decoration: _dec(context, enabled: false),
                                 ),
                                 const SizedBox(height: 20),
-                                _label('Profile Page Request Url Path', help: 'Customize the URL of your profile page.'),
+                                _label(l10n.lbl_profile_request, help: l10n.help_profile_request),
                                 TextFormField(
                                   controller: _profilePageRequestUrlPath,
-                                  decoration: _dec(context, hint: 'Input your text'),
+                                  decoration: _dec(context, hint: l10n.hint_input_text),
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Collection Page Target Url Path', help: 'The final URL for your product collection page.'),
+                                _label(l10n.lbl_collection_target, help: l10n.help_collection_target),
                                 TextFormField(
                                   initialValue: 'marketplace/seller/collection/shop/comp',
                                   enabled: false,
                                   decoration: _dec(context, enabled: false),
                                 ),
                                 const SizedBox(height: 20),
-                                _label('Collection Page Request Url Path', help: 'Customize the URL of your collection page.'),
+                                _label(l10n.lbl_collection_request, help: l10n.help_collection_request),
                                 TextFormField(
                                   controller: _collectionPageRequestUrlPath,
-                                  decoration: _dec(context, hint: 'Input your text'),
+                                  decoration: _dec(context, hint: l10n.hint_input_text),
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Review Page Target Url Path', help: 'The final URL for your reviews page.'),
+                                _label(l10n.lbl_review_target, help: l10n.help_review_target),
                                 TextFormField(
                                   initialValue: 'marketplace/seller/feedback/shop/comp',
                                   enabled: false,
                                   decoration: _dec(context, enabled: false),
                                 ),
                                 const SizedBox(height: 20),
-                                _label('Review Page Request Url Path', help: 'Customize the URL for your reviews page.'),
+                                _label(l10n.lbl_review_request, help: l10n.help_review_request),
                                 TextFormField(
                                   controller: _reviewPageRequestUrlPath,
-                                  decoration: _dec(context, hint: 'Input your text'),
+                                  decoration: _dec(context, hint: l10n.hint_input_text),
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Location Page Target Url Path', help: 'The final URL for your location page.'),
+                                _label(l10n.lbl_location_target, help: l10n.help_location_target),
                                 TextFormField(
                                   initialValue: 'marketplace/seller/location/shop/comp',
                                   enabled: false,
                                   decoration: _dec(context, enabled: false),
                                 ),
                                 const SizedBox(height: 20),
-                                _label('Location Page Request Url Path', help: 'Customize the URL for your location page.'),
+                                _label(l10n.lbl_location_request, help: l10n.help_location_request),
                                 TextFormField(
                                   controller: _locationPageRequestUrlPath,
-                                  decoration: _dec(context, hint: 'Input your text'),
+                                  decoration: _dec(context, hint: l10n.hint_input_text),
                                 ),
                                 const SizedBox(height: 20),
 
-                                _label('Privacy Policy Page Request Url Path', help: 'Customize the URL for your privacy policy page.'),
+                                _label(l10n.lbl_privacy_request, help: l10n.help_privacy_request),
                                 TextFormField(
                                   controller: _privacyPolicyRequestUrlPath,
-                                  decoration: _dec(context, hint: 'Input your text'),
+                                  decoration: _dec(context, hint: l10n.hint_input_text),
                                 ),
                                 const SizedBox(height: 20),
                               ]),
@@ -422,7 +424,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
 
-                  // Sticky footer with Save button
+                  // Sticky footer
                   Container(
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
                     decoration: const BoxDecoration(
@@ -435,9 +437,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: OutlinedButton(
                             onPressed: () {
                               Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const VendorProfileScreen(),
-                                ),
+                                MaterialPageRoute(builder: (context) => const VendorProfileScreen()),
                               );
                             },
                             style: OutlinedButton.styleFrom(
@@ -446,7 +446,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               side: const BorderSide(color: Colors.black87),
                               foregroundColor: Colors.black87,
                             ),
-                            child: const Text('View Profile'),
+                            child: Text(l10n.btn_view_profile),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -459,7 +459,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               backgroundColor: Colors.black87,
                               foregroundColor: Colors.white,
                             ),
-                            child: const Text('Save'),
+                            child: Text(l10n.btn_save),
                           ),
                         ),
                       ],
@@ -506,7 +506,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildLogoPicker() {
+  Widget _buildLogoPicker(AppLocalizations l10n) {
     return Row(
       children: [
         SizedBox(
@@ -525,7 +525,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? DecorationImage(
                     image: MemoryImage(_logoBytes!),
                     fit: BoxFit.cover,
-                  ) : null,
+                  )
+                      : null,
                   border: Border.all(color: const Color(0xFFE5E5E5)),
                 ),
                 child: _logoBytes == null
@@ -563,14 +564,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             icon: const Icon(Icons.add_circle_outline, size: 24),
-            label: const Text('Replace Logo', style: TextStyle(fontWeight: FontWeight.w700)),
+            label: Text(l10n.btn_replace_logo, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildBannerPicker() {
+  Widget _buildBannerPicker(AppLocalizations l10n) {
     return Container(
       height: 180,
       decoration: BoxDecoration(
@@ -605,7 +606,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const Icon(Icons.download_rounded, color: Colors.black87),
                     const SizedBox(width: 8),
                     Text(
-                      _bannerBytes == null ? 'Click or drop image' : 'Image selected',
+                      _bannerBytes == null ? l10n.btn_click_or_drop_image : l10n.lbl_image_selected,
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black),
                     ),
                   ],
@@ -614,31 +615,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           if (kIsWeb)
-            IgnorePointer(
-              ignoring: false,
-              child: Padding(
-                padding: const EdgeInsets.all(2.0),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: DropzoneView(
-                    operation: DragOperation.copy,
-                    mime: const ['image/png', 'image/jpeg', 'image/webp'],
-                    onDrop: (ev) async {
-                      final bytes = await ev.getFileData();
-                      setState(() {
-                        _bannerBytes = bytes;
-                      });
-                    },
-                  ),
-                ),
-              ),
+            DropzoneView(
+              onCreated: (c) => _dzCtrl = c,
+              operation: DragOperation.copy,
+              mime: const ['image/png', 'image/jpeg', 'image/webp'],
+              onDrop: (ev) async {
+                final bytes = await _dzCtrl!.getFileData(ev);
+                setState(() => _bannerBytes = bytes);
+              },
             ),
         ],
       ),
     );
   }
 
-  Widget _buildSocialMediaField(String label, IconData icon, TextEditingController controller, bool enabled, ValueChanged<bool> onChanged) {
+  Widget _buildSocialMediaField(
+      String label,
+      IconData icon,
+      TextEditingController controller,
+      bool enabled,
+      ValueChanged<bool> onChanged,
+      AppLocalizations l10n,
+      ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -650,14 +648,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         TextFormField(
           controller: controller,
-          decoration: _dec(context, hint: 'Input your text', enabled: enabled),
+          decoration: _dec(context, hint: l10n.hint_input_text, enabled: enabled, prefix: Icon(icon, size: 18)),
         ),
       ],
     );
   }
 
-  final Map<String, String> _countryCodeMap = {
-    'Tunisia': 'TN',
+  // Helpers
+  String _localizeCountry(String raw, AppLocalizations l10n) {
+    switch (raw) {
+      case 'United Arab Emirates':
+        return l10n.country_uae;
+      case 'United States':
+        return l10n.country_us;
+      case 'Canada':
+        return l10n.country_canada;
+      case 'United Kingdom':
+        return l10n.country_uk;
+      case 'Germany':
+        return l10n.country_germany;
+      case 'France':
+        return l10n.country_france;
+      case 'Japan':
+        return l10n.country_japan;
+      case 'Australia':
+        return l10n.country_australia;
+      case 'Brazil':
+        return l10n.country_brazil;
+      case 'India':
+        return l10n.country_india;
+      case 'China':
+        return l10n.country_china;
+      default:
+        return raw;
+    }
+  }
+
+  final Map<String, String> _countryCodeMap = const {
+    'United Arab Emirates': 'AE',
     'United States': 'US',
     'Canada': 'CA',
     'United Kingdom': 'GB',
