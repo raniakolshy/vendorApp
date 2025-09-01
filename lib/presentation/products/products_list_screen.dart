@@ -188,12 +188,25 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(localizations.deleteProduct),
+          backgroundColor: Colors.white,
+          elevation: 10,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          title: Text(
+            localizations.deleteProduct,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: Text(localizations.deleteProductConfirmation(product.name)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(localizations.cancelButton),
+              child: Text(
+                localizations.cancelButton,
+                style: TextStyle(color: Colors.grey[700]), // Customize button color
+              ),
             ),
             TextButton(
               onPressed: () {
@@ -205,7 +218,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   SnackBar(content: Text(localizations.productDeleted(product.name))),
                 );
               },
-              child: Text(localizations.deleteButton),
+              child: Text(
+                localizations.deleteButton,
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );

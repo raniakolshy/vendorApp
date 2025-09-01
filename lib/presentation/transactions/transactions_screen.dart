@@ -452,7 +452,7 @@ class _PayoutHistory extends StatelessWidget {
           if (selectedRange != null) ...[
             const Gap(8),
             Text(
-              'AED {AppLocalizations.of(context)!.filtered}: AED {_formatDate(selectedRange!.start)} - AED {_formatDate(selectedRange!.end)}',
+              '${AppLocalizations.of(context)!.filtered}: ${_formatDate(selectedRange!.start)} - ${_formatDate(selectedRange!.end)}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.grey[600],
                 fontStyle: FontStyle.italic,
@@ -510,7 +510,7 @@ class Transaction {
   final String transactionId;
   final TransactionStatus status;
   final String earnings;
-  final DateTime purchasedOn; 
+  final DateTime purchasedOn;
 
   Transaction({
     required this.id,

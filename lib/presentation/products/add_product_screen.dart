@@ -260,6 +260,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                       .toList(),
                                   onChanged: (v) => setState(() => _category = v ?? _category),
                                   decoration: _dec(context),
+                                  dropdownColor: Colors.white,
+                                  elevation: 8,
                                 ),
                                 const SizedBox(height: 20),
 
@@ -723,6 +725,34 @@ class _AddProductScreenState extends State<AddProductScreen> {
       default:
         return raw;
     }
+  }
+}
+
+class _CustomDropdownMenuItem extends StatelessWidget {
+  const _CustomDropdownMenuItem({required this.value, required this.child});
+
+  final String value;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: DropdownMenuItem(
+        value: value,
+        child: child,
+      ),
+    );
   }
 }
 

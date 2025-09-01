@@ -32,12 +32,10 @@ class ApiClient {
 
   Dio get dio => _dio;
 
-  // Method to save the token after successful login
   Future<void> saveAuthToken(String token) async {
     await _secureStorage.write(key: 'authToken', value: token);
   }
 
-  // Method to remove the token on logout
   Future<void> clearAuthToken() async {
     await _secureStorage.delete(key: 'authToken');
   }

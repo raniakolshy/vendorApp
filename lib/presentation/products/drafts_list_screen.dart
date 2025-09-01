@@ -26,7 +26,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 14.88,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.draft,
-      gender: Gender.male, // Added gender property
+      gender: Gender.male,
     ),
     _Draft(
       name: '3D computer improved version',
@@ -35,7 +35,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 8.99,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.draft,
-      gender: Gender.female, // Added gender property
+      gender: Gender.female,
     ),
     _Draft(
       name: '3D dark mode wallpaper',
@@ -44,7 +44,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
       price: 213.99,
       created: DateTime(2025, 10, 10),
       status: DraftStatus.pendingReview,
-      gender: Gender.male, // Added gender property
+      gender: Gender.male,
     ),
   ];
 
@@ -115,18 +115,32 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(localizations.deleteDraftQuestion),
+        backgroundColor: Colors.white,
+        elevation: 10,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+        title: Text(
+          localizations.deleteDraftQuestion,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Text(localizations.deleteDraftConfirmation(d.name)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text(localizations.cancelButton)
-          ),
+              child: Text(
+                localizations.cancelButton,
+                style: TextStyle(color: Colors.grey[700]),
+              )),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: Text(localizations.deleteButton)
-          ),
+              child: Text(
+                localizations.deleteButton,
+                style: TextStyle(color: Colors.red),
+              )),
         ],
       ),
     );
@@ -439,15 +453,23 @@ class _DraftRow extends StatelessWidget {
                       v: Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.edit, size: 20),
                             onPressed: onEdit,
-                            color: Colors.black54,
+                            icon: Image.asset(
+                              'assets/icons/pen.png',
+                              width: 20,
+                              height: 20,
+                              color: Colors.black54,
+                            ),
                             tooltip: localizations.editButton,
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete, size: 20),
                             onPressed: onDelete,
-                            color: Colors.black54,
+                            icon: Image.asset(
+                              'assets/icons/trash.png',
+                              width: 20,
+                              height: 20,
+                              color: Colors.black54,
+                            ),
                             tooltip: localizations.deleteButton,
                           ),
                         ],
