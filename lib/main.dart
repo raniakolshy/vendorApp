@@ -72,6 +72,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
+
+
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
@@ -90,11 +92,21 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _checkAuthStatus() async {
+    // Add a longer delay to ensure all async operations complete
+    await Future.delayed(const Duration(milliseconds: 300));
+
     final isLoggedIn = await ApiClient().isLoggedIn();
-    setState(() {
-      _isLoggedIn = isLoggedIn;
-      _isLoading = false;
-    });
+
+    // Debug output
+    print('Auth check - Logged in: $isLoggedIn');
+    await ApiClient.debugStorageStatus();
+
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = isLoggedIn;
+        _isLoading = false;
+      });
+    }
   }
 
   @override

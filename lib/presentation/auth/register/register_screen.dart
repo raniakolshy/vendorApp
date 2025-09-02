@@ -79,7 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       print('Attempting to login with new credentials');
       final token = await _api.loginCustomer(_email.text.trim(), _pass.text.trim());
 
-      print('Login successful, token received');
+      print('Login successful, token: ${token.substring(0, 20)}...');
       _toast('Account created & logged in!', err: false);
 
       if (!mounted) return;
@@ -87,8 +87,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       print('Registration error: $e');
 
-      if (e.toString().contains('already exists')) {
+      if (e.toString().toLowerCase().contains('already exists')) {
         _toast('Email address is already registered');
+      } else if (e.toString().toLowerCase().contains('password')) {
+        _toast('Password does not meet requirements');
       } else {
         _toast('Registration failed: ${e.toString()}');
       }

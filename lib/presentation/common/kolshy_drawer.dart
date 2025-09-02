@@ -1,5 +1,7 @@
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_client.dart';
 import '../Translation/Language.dart';
 import '../admin/admin_news_screen.dart';
@@ -492,8 +494,8 @@ class _ProfileMenuDialog extends StatelessWidget {
                 },
               ),
 
-              // Destructive action
-              // In your drawer file, update the logout section:
+              // In your _ProfileMenuDialog widget, update the logout section:
+
               InkWell(
                 onTap: () async {
                   Navigator.pop(context);
@@ -521,8 +523,14 @@ class _ProfileMenuDialog extends StatelessWidget {
 
                   if (confirm == true) {
                     try {
-                      // Call the logout API
+                      // Debug: check storage before logout
+                      await ApiClient.debugStorageStatus();
+
+                      // Call the logout API - this should clear everything
                       await ApiClient().logout();
+
+                      // Debug: check storage after logout
+                      await ApiClient.debugStorageStatus();
 
                       // Navigate to welcome screen
                       Navigator.pushAndRemoveUntil(
@@ -545,6 +553,19 @@ class _ProfileMenuDialog extends StatelessWidget {
                           content: Text('${AppLocalizations.of(context)!.logoutFailed}: $e'),
                           backgroundColor: Colors.red,
                         ),
+                      );
+
+                      // Even if there's an error, try to force clear storage and navigate
+                      final secureStorage = const FlutterSecureStorage();
+                      await secureStorage.deleteAll();
+
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.clear();
+
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                            (route) => false,
                       );
                     }
                   }

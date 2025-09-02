@@ -77,8 +77,18 @@ class ApiClient {
   Future<void> _clearCustomerToken() => clearAuthToken();
 
   Future<bool> isLoggedIn() async {
-    final token = await getAuthToken();
-    return token != null && token.isNotEmpty;
+    try {
+      final token = await getAuthToken();
+      if (token != null && token.isNotEmpty) return true;
+
+      final prefs = await SharedPreferences.getInstance();
+      final legacyToken = prefs.getString('auth_token');
+      if (legacyToken != null && legacyToken.isNotEmpty) return true;
+
+      return false;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<String> loginCustomer(String email, String password) async {
@@ -149,16 +159,44 @@ class ApiClient {
   Future<void> logout() async {
     try {
       final token = await getAuthToken();
+
       if (token != null && token.isNotEmpty) {
-        await _dio.post(
-          'integration/customer/revoke',
-          options: Options(headers: {'Authorization': 'Bearer $token'}),
-        );
+        try {
+          // Try to revoke the token on the server first
+          final cleanDio = Dio(
+            BaseOptions(
+              baseUrl: "https://kolshy.ae/rest/V1/",
+              headers: {
+                "Authorization": "Bearer $token",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+              },
+              connectTimeout: const Duration(seconds: 5), // Add timeout
+              receiveTimeout: const Duration(seconds: 5),
+            ),
+          );
+
+          await cleanDio.post('integration/customer/revoke')
+              .timeout(const Duration(seconds: 5));
+        } catch (e) {
+          print('Token revocation failed (this is expected after logout): $e');
+          // Continue with local logout even if server revocation fails
+        }
       }
-    } catch (_) {
-      // Ignore errors during logout
+    } catch (e) {
+      print('Logout error: $e');
     } finally {
+      // Always clear local storage regardless of server response
       await clearAuthToken();
+
+      // Clear any other potential storage locations
+      final secureStorage = const FlutterSecureStorage();
+      await secureStorage.deleteAll();
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      print('Local storage cleared completely');
     }
   }
 
@@ -176,5 +214,31 @@ class ApiClient {
       return error.message ?? fallback;
     }
     return error.toString();
+  }
+  static Future<void> debugStorageStatus() async {
+    final secureStorage = const FlutterSecureStorage();
+    final prefs = await SharedPreferences.getInstance();
+
+    final authToken = await secureStorage.read(key: 'authToken');
+    final isGuest = prefs.getBool('isGuest');
+
+    print('=== STORAGE DEBUG ===');
+    print('Auth Token: $authToken');
+    print('Is Guest: $isGuest');
+    print('=====================');
+  }
+  static Future<void> forceLogout() async {
+    try {
+      // Clear all possible storage locations
+      final secureStorage = const FlutterSecureStorage();
+      await secureStorage.deleteAll();
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      print('Force logout completed - all storage cleared');
+    } catch (e) {
+      print('Force logout error: $e');
+    }
   }
 }
