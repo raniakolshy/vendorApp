@@ -1,4 +1,6 @@
+// services/api_client.dart
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
@@ -7,13 +9,13 @@ class ApiClient {
   factory ApiClient() => _instance;
 
   final Dio _dio;
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   ApiClient._internal()
       : _dio = Dio(
     BaseOptions(
       baseUrl: "https://kolshy.ae/rest/V1/",
       headers: {
-        // Do NOT set Authorization here globally
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
@@ -24,8 +26,13 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // If a call explicitly sets Authorization, don't override it.
-          if (!options.headers.containsKey("Authorization")) {
+          final path = options.path.toLowerCase();
+
+          final isAuthEndpoint =
+              (path.contains("integration/customer/token")) ||
+                  (path.endsWith("/customers") && options.method.toUpperCase() == "POST");
+
+          if (!isAuthEndpoint && !options.headers.containsKey("Authorization")) {
             final token = await _readCustomerToken();
             if (token != null && token.isNotEmpty) {
               options.headers["Authorization"] = "Bearer $token";
@@ -36,7 +43,6 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (DioException error, handler) async {
-          // If token is invalid, clear it so UI can react
           if (error.response?.statusCode == 401) {
             await _clearCustomerToken();
           }
@@ -44,56 +50,94 @@ class ApiClient {
         },
       ),
     );
+
   }
 
-  // ---- public dio accessor
   Dio get dio => _dio;
 
-  // ---- SharedPreferences (same keys as boss)
-  static const _authKey = "auth_token";
   static const _guestKey = "is_guest";
 
-  // Write customer token (and mark not guest)
   Future<void> saveAuthToken(String token) async {
+    await _secureStorage.write(key: 'authToken', value: token);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_authKey, token);
     await prefs.setBool(_guestKey, false);
   }
 
-  // Read customer token
   Future<String?> getAuthToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_authKey);
+    return await _secureStorage.read(key: 'authToken');
   }
 
-  // Clear token (logout)
   Future<void> clearAuthToken() async {
+    await _secureStorage.delete(key: 'authToken');
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_authKey);
     await prefs.remove(_guestKey);
   }
 
-  // Internal read/clear used by interceptor
   Future<String?> _readCustomerToken() => getAuthToken();
   Future<void> _clearCustomerToken() => clearAuthToken();
 
-  Future<bool> isLoggedIn() async =>
-      ((await getAuthToken())?.isNotEmpty ?? false);
+  Future<bool> isLoggedIn() async {
+    final token = await getAuthToken();
+    return token != null && token.isNotEmpty;
+  }
 
-  // ---- convenience Options helpers
+  Future<String> loginCustomer(String email, String password) async {
+    try {
+      final response = await _dio.post(
+        "integration/customer/token",
+        data: {"username": email, "password": password},
+        options: Options(headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": null, // Explicitly remove admin token for login
+        }),
+      );
 
-  /// Force no Authorization (e.g. login/self-register calls)
+      final token = (response.data is String) ? response.data as String : response.data?.toString() ?? "";
+      if (token.isEmpty) {
+        throw Exception("Empty token returned from Magento.");
+      }
+      await saveAuthToken(token);
+      return token;
+    } on DioException catch (e) {
+      throw Exception(parseMagentoError(e));
+    }
+  }
+
+  Future<Map<String, dynamic>> createCustomer({
+    required String firstname,
+    required String lastname,
+    required String email,
+    required String password,
+  }) async {
+    try {
+      // Use admin token for customer creation
+      final response = await _dio.post(
+        "customers",
+        data: {
+          "customer": {
+            "email": email,
+            "firstname": firstname,
+            "lastname": lastname,
+          },
+          "password": password,
+        },
+        options: Options(headers: {"Authorization": null}),
+      );
+      return Map<String, dynamic>.from(response.data ?? {});
+    } on DioException catch (e) {
+      throw Exception(parseMagentoError(e));
+    }
+  }
+
   Options unauthenticated() => Options(headers: {"Authorization": null});
 
-  /// Force a specific Bearer (e.g. admin token on privileged calls)
   Options withBearer(String token) =>
       Options(headers: {"Authorization": "Bearer $token"});
 
-  // ---- example API methods using the attached customer token
-
   Future<Map<String, dynamic>?> getCustomerInfo() async {
     try {
-      final response = await _dio.get('customers/me'); // token added by interceptor
+      final response = await _dio.get('customers/me');
       return Map<String, dynamic>.from(response.data);
     } on DioException {
       return null;
@@ -102,7 +146,6 @@ class ApiClient {
     }
   }
 
-  /// Revoke the current customer token on Magento (if any) and clear it locally.
   Future<void> logout() async {
     try {
       final token = await getAuthToken();
@@ -113,13 +156,12 @@ class ApiClient {
         );
       }
     } catch (_) {
-      // Ignore API errors during logout
+      // Ignore errors during logout
     } finally {
       await clearAuthToken();
     }
   }
 
-  // ---- generic Magento error parser (Dio v5)
   String parseMagentoError(
       Object error, {
         String fallback = 'An unknown error occurred',
@@ -127,9 +169,7 @@ class ApiClient {
     if (error is DioException) {
       final data = error.response?.data;
       if (data is Map && data['message'] is String) return data['message'] as String;
-      if (data is Map &&
-          data['parameters'] is List &&
-          (data['parameters'] as List).isNotEmpty) {
+      if (data is Map && data['parameters'] is List && (data['parameters'] as List).isNotEmpty) {
         return '${data['message']} (${(data['parameters'] as List).join(", ")})';
       }
       if (data is String && data.isNotEmpty) return data;

@@ -30,14 +30,13 @@ void main() async {
   final localeProvider = LocaleProvider();
   await localeProvider.loadSavedLocale();
 
-
   runApp(MyApp(localeProvider: localeProvider));
 }
 
 class MyApp extends StatelessWidget {
   final LocaleProvider localeProvider;
 
-  const MyApp({super.key, required this.localeProvider,});
+  const MyApp({super.key, required this.localeProvider});
 
   @override
   Widget build(BuildContext context) {
@@ -65,11 +64,50 @@ class MyApp extends StatelessWidget {
               fontFamily: 'Inter',
               scaffoldBackgroundColor: Colors.white,
             ),
-            home: const WelcomeScreen(),
+            home: const AuthWrapper(), // Changed to AuthWrapper
           );
         },
       ),
     );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _isLoading = true;
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    final isLoggedIn = await ApiClient().isLoggedIn();
+    setState(() {
+      _isLoggedIn = isLoggedIn;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    return _isLoggedIn ? const Home() : const WelcomeScreen();
   }
 }
 

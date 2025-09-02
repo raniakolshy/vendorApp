@@ -1,15 +1,14 @@
+// presentation/auth/login/login_screen.dart
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:app_vendor/main.dart';
 import 'package:app_vendor/presentation/auth/forgot_password/forgot_password_screen.dart';
 import 'package:app_vendor/presentation/auth/register/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:app_vendor/services/auth_service.dart';
-import 'package:app_vendor/services/magento_api.dart';
+
+import '../../../services/api_client.dart';
 
 Future<bool> checkConnectivity() async {
   final connectivityResult = await Connectivity().checkConnectivity();
@@ -20,11 +19,6 @@ const Color primaryPink = Color(0xFFE51742);
 const Color inputFill = Color(0xFFF4F4F4);
 const Color lightBorder = Color(0xFFDDDDDD);
 const Color greyText = Color(0xFF777777);
-
-final GoogleSignIn _googleSignIn = GoogleSignIn(
-  clientId: '701685580916-4hv0pfq73jksr1ga8pp22p8clt80uioe.apps.googleusercontent.com',
-  scopes: ['email'],
-);
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -98,7 +92,7 @@ class _LoginFormState extends State<LoginForm> {
 
     setState(() => _isLoading = true);
     try {
-      await AuthService().login(
+      await ApiClient().loginCustomer(
         _emailController.text.trim(),
         _passwordController.text,
       );
@@ -117,108 +111,15 @@ class _LoginFormState extends State<LoginForm> {
   }
 
   Future<void> _signInWithGoogle() async {
-    if (_isLoading) return;
-    if (!await checkConnectivity()) {
-      _showMessage("No internet connection.", isError: true);
-      return;
-    }
-    _showMessage('Initiating Google Sign-In...');
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        _showMessage('Google Sign-In cancelled.');
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      await AuthService().loginWithSocial("google", {
-        "idToken": googleAuth.idToken ?? "",
-        "accessToken": googleAuth.accessToken ?? "",
-        "email": googleUser.email,
-        "displayName": googleUser.displayName ?? "",
-      });
-
-      _showMessage('Google Sign-In successful!', isError: false);
-      if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
-    } catch (e) {
-      _showMessage('Google Sign-In failed: ${_cleanError(e)}', isError: true);
-    }
+    _showMessage('Google Sign-In is coming soon! Please use email login.', isError: false);
   }
 
   Future<void> _signInWithFacebook() async {
-    if (_isLoading) return;
-    if (!await checkConnectivity()) {
-      _showMessage("No internet connection.", isError: true);
-      return;
-    }
-    _showMessage('Initiating Facebook Sign-In...');
-    try {
-      final result = await FacebookAuth.instance.login(permissions: ['email', 'public_profile']);
-
-      if (result.status == LoginStatus.success) {
-        final at = result.accessToken;
-        if (at == null) {
-          _showMessage('Facebook Sign-In failed: missing access token.', isError: true);
-          return;
-        }
-
-        await AuthService().loginWithSocial("facebook", {"accessToken": at.token});
-
-        _showMessage('Facebook Sign-In successful!', isError: false);
-        if (!mounted) return;
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
-      } else if (result.status == LoginStatus.cancelled) {
-        _showMessage('Facebook Sign-In cancelled.');
-      } else {
-        _showMessage('Facebook Sign-In failed: ${result.message}', isError: true);
-      }
-    } catch (e) {
-      _showMessage('Facebook Sign-In failed: ${_cleanError(e)}', isError: true);
-    }
+    _showMessage('Facebook Sign-In is coming soon! Please use email login.', isError: false);
   }
 
   Future<void> _signInWithInstagram() async {
-    if (_isLoading) return;
-    if (!await checkConnectivity()) {
-      _showMessage("No internet connection.", isError: true);
-      return;
-    }
-    _showMessage('Initiating Instagram Sign-In...');
-    try {
-      const String instagramAppId = '642270335021538';
-      const String redirectUri = 'https://kolshy.ae/sociallogin/social/callback/instagram.php';
-      const String authorizationUrl =
-          'https://api.instagram.com/oauth/authorize'
-          '?client_id=$instagramAppId'
-          '&redirect_uri=$redirectUri'
-          '&scope=user_profile,user_media'
-          '&response_type=code';
-
-      final result = await FlutterWebAuth2.authenticate(
-        url: authorizationUrl,
-        callbackUrlScheme: "https",
-      );
-
-      final uri = Uri.parse(result);
-      final String? code = uri.queryParameters['code'];
-      final String? error = uri.queryParameters['error'];
-
-      if (code != null) {
-        await AuthService().loginWithSocial("instagram", {"code": code});
-
-        _showMessage('Instagram Sign-In successful!', isError: false);
-        if (!mounted) return;
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
-      } else if (error != null) {
-        _showMessage('Instagram Sign-In failed: ${uri.queryParameters['error_description'] ?? error}', isError: true);
-      } else {
-        _showMessage('Instagram Sign-In cancelled.');
-      }
-    } catch (e) {
-      _showMessage('Instagram Sign-In failed: ${_cleanError(e)}', isError: true);
-    }
+    _showMessage('Instagram Sign-In is coming soon! Please use email login.', isError: false);
   }
 
   String? _emailValidator(String? v) {
@@ -388,7 +289,6 @@ class _CustomInput extends StatelessWidget {
   final bool obscureText;
   final VoidCallback? toggleVisibility;
 
-  // new:
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;

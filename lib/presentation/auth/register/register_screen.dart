@@ -1,23 +1,17 @@
+// screens/register/register_screen.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:app_vendor/main.dart';
+import '../../../services/api_client.dart';
 import '../../../services/magento_api.dart';
 import '../login/login_screen.dart';
-
-// (Optional) social imports if you still use them
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
 const Color primaryPink = Color(0xFFE51742);
 const Color inputFill = Color(0xFFF4F4F4);
 const Color lightBorder = Color(0xFFDDDDDD);
 const Color greyText = Color(0xFF777777);
-
-final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -33,7 +27,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _pass  = TextEditingController();
   final _confirm = TextEditingController();
 
-  final _api = MagentoApi();
+  final _api = ApiClient();
 
   bool _isChecked = false;
   bool _obscurePass = true;
@@ -71,26 +65,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _loading = true);
     try {
-      // 1) create customer via ADMIN header (matches boss behavior)
-      await _api.createCustomer(
+      print('Creating customer with: ${_email.text.trim()}');
+
+      final customerResponse = await _api.createCustomer(
         firstname: _first.text.trim(),
-        lastname : _last.text.trim(),
-        email    : _email.text.trim(),
-        password : _pass.text.trim(),
+        lastname: _last.text.trim(),
+        email: _email.text.trim(),
+        password: _pass.text.trim(),
       );
 
-      // 2) auto login (saves token in SharedPreferences)
-      final token = await _api.loginCustomer(_email.text.trim(), _pass.text.trim());
-      if (token.isEmpty) {
-        _toast('Registered but login failed');
-        return;
-      }
+      print('Customer creation response: $customerResponse');
 
+      print('Attempting to login with new credentials');
+      final token = await _api.loginCustomer(_email.text.trim(), _pass.text.trim());
+
+      print('Login successful, token received');
       _toast('Account created & logged in!', err: false);
+
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
     } catch (e) {
-      _toast('Registration failed: $e');
+      print('Registration error: $e');
+
+      if (e.toString().contains('already exists')) {
+        _toast('Email address is already registered');
+      } else {
+        _toast('Registration failed: ${e.toString()}');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -109,27 +110,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              Text(t?.createSimple ?? 'Create', style: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.black87)),
-              Text(t?.anAccount ?? 'an account', style: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.black87)),
+              Text(t?.createSimple ?? 'Create',
+                  style: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.black87)),
+              Text(t?.anAccount ?? 'an account',
+                  style: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.black87)),
               const SizedBox(height: 36),
 
               _Input(controller: _first, hintText: t?.firstName ?? 'First name', icon: Icons.person_outline),
               const SizedBox(height: 20),
               _Input(controller: _last, hintText: t?.lastName ?? 'Last name', icon: Icons.person_outline),
               const SizedBox(height: 20),
-              _Input(controller: _email, hintText: t?.email ?? 'Email', icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+              _Input(controller: _email, hintText: t?.email ?? 'Email',
+                  icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 20),
-              _Input(controller: _phone, hintText: t?.phone ?? 'Phone', icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
+              _Input(controller: _phone, hintText: t?.phone ?? 'Phone',
+                  icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
               const SizedBox(height: 20),
 
               _Input(
                 controller: _pass, hintText: t?.password ?? 'Password', icon: Icons.lock_outline,
-                isPassword: true, obscureText: _obscurePass, toggleVisibility: () => setState(() => _obscurePass = !_obscurePass),
+                isPassword: true, obscureText: _obscurePass,
+                toggleVisibility: () => setState(() => _obscurePass = !_obscurePass),
               ),
               const SizedBox(height: 20),
               _Input(
-                controller: _confirm, hintText: t?.passworConfirmation ?? 'Password confirmation', icon: Icons.lock_outline,
-                isPassword: true, obscureText: _obscureConfirm, toggleVisibility: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                controller: _confirm, hintText: t?.passworConfirmation ?? 'Password confirmation',
+                icon: Icons.lock_outline, isPassword: true, obscureText: _obscureConfirm,
+                toggleVisibility: () => setState(() => _obscureConfirm = !_obscureConfirm),
               ),
 
               const SizedBox(height: 16),
@@ -140,7 +147,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: GoogleFonts.poppins(color: Colors.black87),
                     children: [
                       TextSpan(text: '${t?.byClickingThe ?? 'By clicking the'} '),
-                      TextSpan(text: t?.signUp ?? 'Sign up', style: GoogleFonts.poppins(color: primaryPink, fontWeight: FontWeight.bold)),
+                      TextSpan(text: t?.signUp ?? 'Sign up',
+                          style: GoogleFonts.poppins(color: primaryPink, fontWeight: FontWeight.bold)),
                       TextSpan(text: ' ${t?.publicOffer ?? 'you accept the public offer'}'),
                     ],
                   ),
@@ -158,8 +166,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _loading
-                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(t?.create ?? 'Create', style: const TextStyle(color: Colors.white, fontSize: 18)),
+                      ? const SizedBox(width: 22, height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(t?.create ?? 'Create',
+                      style: const TextStyle(color: Colors.white, fontSize: 18)),
                 ),
               ),
 
@@ -167,12 +177,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(t?.alreadyHaveAnAccount ?? 'Already have an account?', style: const TextStyle(color: greyText, fontSize: 14)),
+                  Text(t?.alreadyHaveAnAccount ?? 'Already have an account?',
+                      style: const TextStyle(color: greyText, fontSize: 14)),
                   GestureDetector(
-                    onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+                    onTap: () => Navigator.pushReplacement(
+                        context, MaterialPageRoute(builder: (_) => const LoginScreen())),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                      child: Text('Login', style: TextStyle(color: primaryPink, fontWeight: FontWeight.w700, fontSize: 14)),
+                      child: Text('Login',
+                          style: TextStyle(color: primaryPink, fontWeight: FontWeight.w700, fontSize: 14)),
                     ),
                   ),
                 ],

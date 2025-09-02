@@ -1,4 +1,5 @@
-import 'package:shared_preferences/shared_preferences.dart';
+// services/auth_service.dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'magento_api.dart';
 
 class AuthService {
@@ -8,51 +9,24 @@ class AuthService {
   AuthService._internal();
 
   final MagentoApi _api = MagentoApi();
-
-  static const _authKey = "auth_token";
-  static const _guestKey = "is_guest";
-
-  Future<void> _saveToken(String token, {bool isGuest = false}) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_authKey, token);
-    await prefs.setBool(_guestKey, isGuest);
-  }
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_authKey);
+    return await _secureStorage.read(key: 'authToken');
   }
 
   Future<void> clearToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_authKey);
-    await prefs.remove(_guestKey);
+    await _secureStorage.delete(key: 'authToken');
+    await _secureStorage.delete(key: 'isGuest');
   }
 
-  /// Email / password
+  /// Email / password login
   Future<String> login(String email, String password) async {
-    final token = await _api.loginCustomer(email, password);
-    await _saveToken(token, isGuest: false);
-    return token;
+    return await _api.loginCustomer(email, password);
   }
 
-  /// Google/Facebook/Instagram
-  Future<String> loginWithSocial(String provider, Map<String, dynamic> payload) async {
-    final token = await _api.socialLogin(provider, payload);
-    await _saveToken(token, isGuest: false);
-    return token;
-  }
-
-  Future<void> logout() async {
-    try {
-      final t = await getToken();
-      if (t != null && t.isNotEmpty) {
-        await _api.revokeCustomerToken(t);
-      }
-    } catch (_) {
-      // ignore
-    } finally {
-      await clearToken();
-    }
+  Future<bool> isLoggedIn() async {
+    final token = await getToken();
+    return token != null && token.isNotEmpty;
   }
 }

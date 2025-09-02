@@ -13,6 +13,8 @@ class WelcomeScreen extends StatefulWidget {
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
   @override
   void initState() {
     super.initState();
@@ -21,8 +23,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   // This is the function that checks for the token and navigates.
   Future<void> _checkTokenAndNavigate() async {
-    const secureStorage = FlutterSecureStorage();
-    final token = await secureStorage.read(key: 'authToken');
+    final token = await _secureStorage.read(key: 'authToken');
 
     // Make sure the widget is still in the tree before navigating.
     if (mounted) {
