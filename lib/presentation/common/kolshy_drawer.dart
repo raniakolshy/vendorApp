@@ -9,6 +9,7 @@ import '../auth/login/welcome_screen.dart';
 import '../pdf/print_pdf_screen.dart';
 import '../profile/edit_profile_screen.dart';
 import 'nav_key.dart';
+import '../../services/auth_service.dart';
 
 /// ---- theme constants (delete if you already have these) ----
 const kIconGray = Color(0xFF8E9196);

@@ -9,6 +9,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:app_vendor/services/auth_service.dart';
+import 'package:app_vendor/services/magento_api.dart';
 
 Future<bool> checkConnectivity() async {
   final connectivityResult = await Connectivity().checkConnectivity();

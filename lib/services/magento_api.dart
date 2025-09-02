@@ -1,10 +1,15 @@
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MagentoApi {
+  // Same admin token/header style as the boss code
+  static const String _adminToken = "87igct1wbbphdok6dk1roju4i83kyub9";
+
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: "https://kolshy.ae/rest/V1/",
       headers: {
+        "Authorization": "Bearer $_adminToken",
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
@@ -13,130 +18,117 @@ class MagentoApi {
     ),
   );
 
-  // -------- Login (must be anonymous) --------
-  Future<String> login(String username, String password) async {
+  // ---------- Session helpers (same keys your boss uses) ----------
+  static const _authKey = "auth_token";
+  static const _guestKey = "is_guest";
+
+  static Future<void> saveToken(String token, {bool isGuest = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_authKey, token);
+    await prefs.setBool(_guestKey, isGuest);
+  }
+
+  static Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_authKey);
+  }
+
+  static Future<bool> isGuest() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_guestKey) ?? true;
+  }
+
+  static Future<void> clearToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_authKey);
+    await prefs.remove(_guestKey);
+  }
+
+  // ---------- Customer ----------
+  /// Email/Password login – returns the **customer token** (plain string)
+  Future<String> loginCustomer(String email, String password) async {
     try {
       final res = await _dio.post(
         "integration/customer/token",
-        options: Options(headers: {"Authorization": null}), // force NO auth
-        data: {
-          "username": username.trim(),
-          "password": password,
-        },
+        data: {"username": email, "password": password},
+        options: Options(headers: {
+          // Ensure request is clean (Magento returns a plain string token)
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        }),
       );
-
-      // Normalize (Magento may return a quoted string)
-      final raw = res.data?.toString() ?? "";
-      final token = raw.replaceAll('"', '').trim();
-      if (token.isEmpty) throw Exception("Empty token from server");
+      final token = (res.data is String) ? res.data as String : res.data?.toString() ?? "";
+      if (token.isEmpty) {
+        throw Exception("Empty token returned from Magento.");
+      }
+      await saveToken(token, isGuest: false);
       return token;
     } on DioException catch (e) {
-      throw Exception(_magentoErr(e, "Magento login failed"));
+      throw Exception(e.response?.data ?? "Magento login failed: ${e.message}");
     }
   }
 
-  // -------- Register new customer (anonymous by default) --------
-  Future<void> registerCustomer({
-    required String email,
+  /// Create customer (admin header already on _dio)
+  Future<Map<String, dynamic>> createCustomer({
     required String firstname,
     required String lastname,
+    required String email,
     required String password,
-    int? websiteId,             // set if your Magento needs it (multi-site)
-    int? storeId,               // optional
-    String? phone,              // if provided, we save it on a default address
   }) async {
     try {
-      final customer = <String, dynamic>{
-        "email": email.trim().toLowerCase(),
-        "firstname": firstname.trim(),
-        "lastname": lastname.trim(),
-        if (websiteId != null) "website_id": websiteId,
-        if (storeId != null) "store_id": storeId,
-        if (phone != null && phone.trim().isNotEmpty)
-          "addresses": [
-            {
-              "defaultBilling": true,
-              "defaultShipping": true,
-              "firstname": firstname.trim(),
-              "lastname": lastname.trim(),
-              "telephone": phone.trim(),
-              "countryId": "AE",
-              "postcode": "00000",
-              "city": "Dubai",
-              "region": "Dubai",
-              "street": ["Address line"],
-            }
-          ],
-      };
-
-      await _dio.post(
+      final res = await _dio.post(
         "customers",
-        options: Options(headers: {"Authorization": null}), // force NO auth
         data: {
-          "customer": customer,
+          "customer": {
+            "email": email,
+            "firstname": firstname,
+            "lastname": lastname,
+          },
           "password": password,
         },
       );
+      return Map<String, dynamic>.from(res.data ?? {});
     } on DioException catch (e) {
-      throw Exception(_magentoErr(e, "Magento registration failed"));
+      throw Exception(e.response?.data ?? "Magento registration failed: ${e.message}");
     }
   }
 
-  // -------- Register vendor (needs admin token) --------
-  Future<void> registerVendor({
-    required String email,
-    required String firstname,
-    required String lastname,
-    required String password,
-    required String adminToken,
-    int? websiteId,
-    int? storeId,
-  }) async {
-    try {
-      final customer = <String, dynamic>{
-        "email": email.trim().toLowerCase(),
-        "firstname": firstname.trim(),
-        "lastname": lastname.trim(),
-        if (websiteId != null) "website_id": websiteId,
-        if (storeId != null) "store_id": storeId,
-        "custom_attributes": [
-          {"attribute_code": "is_vendor", "value": "1"}
-        ],
-      };
+  /// Get current customer profile (needs **customer** token)
+  Future<Map<String, dynamic>> getCustomerProfile(String customerToken) async {
+    final res = await _dio.get(
+      "customers/me",
+      options: Options(headers: {"Authorization": "Bearer $customerToken"}),
+    );
+    return Map<String, dynamic>.from(res.data);
+  }
 
+  /// Revoke customer token (logout)
+  Future<void> revokeCustomerToken(String customerToken) async {
+    try {
       await _dio.post(
-        "customers",
-        options: Options(headers: {"Authorization": "Bearer $adminToken"}),
-        data: {
-          "customer": customer,
-          "password": password,
-        },
+        "integration/customer/revoke",
+        options: Options(headers: {
+          "Authorization": "Bearer $customerToken",
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        }),
       );
-    } on DioException catch (e) {
-      throw Exception(_magentoErr(e, "Magento vendor registration failed"));
+    } catch (_) {
+      // Ignore errors on revoke
     }
   }
 
-  // -------- Get customer profile (requires customer token) --------
-  Future<Map<String, dynamic>> getCustomer(String token) async {
-    try {
-      final res = await _dio.get(
-        "customers/me",
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-      return Map<String, dynamic>.from(res.data);
-    } on DioException catch (e) {
-      throw Exception(_magentoErr(e, "Magento get customer failed"));
-    }
-  }
-
-  // -------- Social login passthrough --------
+  // ---------- Social login (your backend endpoint) ----------
+  /// Calls your backend social callback and expects { token: "<customerToken>" }
   Future<String> socialLogin(String provider, Map<String, dynamic> payload) async {
     try {
       final res = await Dio().post(
         "https://kolshy.ae/sociallogin/social/callback/",
-        data: {"provider": provider, ...payload},
-        options: Options(headers: {
+        data: {
+          "provider": provider,
+          ...payload,
+        },
+        options: Options(headers: const {
           "Content-Type": "application/json",
           "Accept": "application/json",
         }),
@@ -144,30 +136,74 @@ class MagentoApi {
 
       final data = res.data;
       if (data is Map && data["token"] is String) {
-        final token = (data["token"] as String).trim();
-        if (token.isEmpty) throw Exception("Empty social token");
+        final token = data["token"] as String;
+        await saveToken(token, isGuest: false);
         return token;
       }
-      throw Exception("Social login failed: $data");
+      throw Exception("Invalid social login response: $data");
     } on DioException catch (e) {
-      throw Exception(_magentoErr(e, "Magento social login failed"));
+      throw Exception(e.response?.data ?? "Social login failed: ${e.message}");
     }
   }
 
-  // -------- Unified Magento error parser --------
-  String _magentoErr(DioException e, String fallback) {
-    final data = e.response?.data;
-    // Standard Magento error shape
-    if (data is Map) {
-      if (data["message"] is String) {
-        final base = data["message"] as String;
-        if (data["parameters"] is List && (data["parameters"] as List).isNotEmpty) {
-          return "$base (${(data["parameters"] as List).join(", ")})";
-        }
-        return base;
-      }
+  // ---------- Carts (optional, kept for parity with boss code) ----------
+  Future<String> getGuestCartToken() async {
+    try {
+      final res = await _dio.post("guest-carts");
+      final token = res.data?.toString() ?? "";
+      await saveToken(token, isGuest: true);
+      return token;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data ?? "Create guest cart failed: ${e.message}");
     }
-    if (data is String && data.isNotEmpty) return data;
-    return "$fallback: ${e.message ?? 'Unknown error'}";
   }
+
+  Future<void> addToCart(String sku, int qty) async {
+    final token = await getToken();
+    final guest = await isGuest();
+    try {
+      if (guest) {
+        final cartId = token ?? await getGuestCartToken();
+        await _dio.post(
+          "guest-carts/$cartId/items",
+          data: {
+            "cartItem": {"quote_id": cartId, "sku": sku, "qty": qty}
+          },
+        );
+      } else {
+        await _dio.post(
+          "carts/mine/items",
+          options: Options(headers: {"Authorization": "Bearer $token"}),
+          data: {
+            "cartItem": {"sku": sku, "qty": qty}
+          },
+        );
+      }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data ?? "Add to cart failed: ${e.message}");
+    }
+  }
+
+  Future<List<dynamic>> getCartItems() async {
+    final token = await getToken();
+    final guest = await isGuest();
+    try {
+      if (guest) {
+        final cartId = token ?? await getGuestCartToken();
+        final res = await _dio.get("guest-carts/$cartId/items");
+        return (res.data as List?) ?? [];
+      } else {
+        final res = await _dio.get(
+          "carts/mine/items",
+          options: Options(headers: {"Authorization": "Bearer $token"}),
+        );
+        return (res.data as List?) ?? [];
+      }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data ?? "Fetch cart failed: ${e.message}");
+    }
+  }
+
+  // Expose Dio if needed
+  Dio get dio => _dio;
 }
