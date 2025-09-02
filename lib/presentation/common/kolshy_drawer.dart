@@ -1,7 +1,5 @@
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_client.dart';
 import '../Translation/Language.dart';
 import '../admin/admin_news_screen.dart';
@@ -11,7 +9,7 @@ import '../auth/login/welcome_screen.dart';
 import '../pdf/print_pdf_screen.dart';
 import '../profile/edit_profile_screen.dart';
 import 'nav_key.dart';
-import '../../services/auth_service.dart';
+
 
 /// ---- theme constants (delete if you already have these) ----
 const kIconGray = Color(0xFF8E9196);
@@ -494,8 +492,8 @@ class _ProfileMenuDialog extends StatelessWidget {
                 },
               ),
 
-              // In your _ProfileMenuDialog widget, update the logout section:
-
+              // Destructive action
+              // In your drawer file, update the logout section:
               InkWell(
                 onTap: () async {
                   Navigator.pop(context);
@@ -523,14 +521,8 @@ class _ProfileMenuDialog extends StatelessWidget {
 
                   if (confirm == true) {
                     try {
-                      // Debug: check storage before logout
-                      await ApiClient.debugStorageStatus();
-
-                      // Call the logout API - this should clear everything
+                      // Call the logout API
                       await ApiClient().logout();
-
-                      // Debug: check storage after logout
-                      await ApiClient.debugStorageStatus();
 
                       // Navigate to welcome screen
                       Navigator.pushAndRemoveUntil(
@@ -553,19 +545,6 @@ class _ProfileMenuDialog extends StatelessWidget {
                           content: Text('${AppLocalizations.of(context)!.logoutFailed}: $e'),
                           backgroundColor: Colors.red,
                         ),
-                      );
-
-                      // Even if there's an error, try to force clear storage and navigate
-                      final secureStorage = const FlutterSecureStorage();
-                      await secureStorage.deleteAll();
-
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.clear();
-
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                            (route) => false,
                       );
                     }
                   }

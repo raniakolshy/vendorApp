@@ -1,7 +1,13 @@
 // services/api_client.dart
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../presentation/auth/login/welcome_screen.dart';
+
+// Add this global key in your main.dart or create it here
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class ApiClient {
   // ---- singleton
@@ -28,16 +34,13 @@ class ApiClient {
         onRequest: (options, handler) async {
           final path = options.path.toLowerCase();
 
-          final isAuthEndpoint =
-              (path.contains("integration/customer/token")) ||
-                  (path.endsWith("/customers") && options.method.toUpperCase() == "POST");
+          final isAuthEndpoint = path.contains("integration/customer/token") ||
+              (path.contains("customers") && options.method.toUpperCase() == "POST");
 
-          if (!isAuthEndpoint && !options.headers.containsKey("Authorization")) {
+          if (!isAuthEndpoint) {
             final token = await _readCustomerToken();
             if (token != null && token.isNotEmpty) {
               options.headers["Authorization"] = "Bearer $token";
-            } else {
-              options.headers.remove("Authorization");
             }
           }
           return handler.next(options);
@@ -45,12 +48,12 @@ class ApiClient {
         onError: (DioException error, handler) async {
           if (error.response?.statusCode == 401) {
             await _clearCustomerToken();
+            _navigateToLogin();
           }
           return handler.next(error);
         },
       ),
     );
-
   }
 
   Dio get dio => _dio;
@@ -77,18 +80,8 @@ class ApiClient {
   Future<void> _clearCustomerToken() => clearAuthToken();
 
   Future<bool> isLoggedIn() async {
-    try {
-      final token = await getAuthToken();
-      if (token != null && token.isNotEmpty) return true;
-
-      final prefs = await SharedPreferences.getInstance();
-      final legacyToken = prefs.getString('auth_token');
-      if (legacyToken != null && legacyToken.isNotEmpty) return true;
-
-      return false;
-    } catch (e) {
-      return false;
-    }
+    final token = await getAuthToken();
+    return token != null && token.isNotEmpty;
   }
 
   Future<String> loginCustomer(String email, String password) async {
@@ -99,7 +92,7 @@ class ApiClient {
         options: Options(headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
-          "Authorization": null, // Explicitly remove admin token for login
+          "Authorization": null,
         }),
       );
 
@@ -121,7 +114,6 @@ class ApiClient {
     required String password,
   }) async {
     try {
-      // Use admin token for customer creation
       final response = await _dio.post(
         "customers",
         data: {
@@ -159,44 +151,23 @@ class ApiClient {
   Future<void> logout() async {
     try {
       final token = await getAuthToken();
-
       if (token != null && token.isNotEmpty) {
         try {
-          // Try to revoke the token on the server first
-          final cleanDio = Dio(
-            BaseOptions(
-              baseUrl: "https://kolshy.ae/rest/V1/",
-              headers: {
-                "Authorization": "Bearer $token",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-              },
-              connectTimeout: const Duration(seconds: 5), // Add timeout
-              receiveTimeout: const Duration(seconds: 5),
-            ),
+          await _dio.post(
+            'integration/customer/revoke',
+            options: Options(headers: {'Authorization': 'Bearer $token'}),
           );
-
-          await cleanDio.post('integration/customer/revoke')
-              .timeout(const Duration(seconds: 5));
         } catch (e) {
-          print('Token revocation failed (this is expected after logout): $e');
-          // Continue with local logout even if server revocation fails
+          print('Token revocation failed: $e');
         }
       }
     } catch (e) {
       print('Logout error: $e');
     } finally {
-      // Always clear local storage regardless of server response
       await clearAuthToken();
-
-      // Clear any other potential storage locations
-      final secureStorage = const FlutterSecureStorage();
-      await secureStorage.deleteAll();
-
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-
-      print('Local storage cleared completely');
+      await _secureStorage.deleteAll();
     }
   }
 
@@ -215,30 +186,50 @@ class ApiClient {
     }
     return error.toString();
   }
-  static Future<void> debugStorageStatus() async {
-    final secureStorage = const FlutterSecureStorage();
-    final prefs = await SharedPreferences.getInstance();
 
-    final authToken = await secureStorage.read(key: 'authToken');
-    final isGuest = prefs.getBool('isGuest');
-
-    print('=== STORAGE DEBUG ===');
-    print('Auth Token: $authToken');
-    print('Is Guest: $isGuest');
-    print('=====================');
-  }
-  static Future<void> forceLogout() async {
+  Future<void> convertCustomerToVendor({required String customerId, required String phone}) async {
     try {
-      // Clear all possible storage locations
-      final secureStorage = const FlutterSecureStorage();
-      await secureStorage.deleteAll();
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-
-      print('Force logout completed - all storage cleared');
-    } catch (e) {
-      print('Force logout error: $e');
+      // This endpoint needs to be implemented in your Magento backend
+      // You might need to adjust this based on your actual vendor extension
+      final response = await _dio.post(
+        "vendor/convert", // Custom endpoint - you need to implement this
+        data: {
+          "customer_id": customerId,
+          "phone": phone,
+        },
+      );
+      return response.data;
+    } on DioException catch (e) {
+      // If vendor endpoint doesn't exist, log it but don't crash
+      print('Vendor conversion endpoint not available: ${e.message}');
+      throw Exception('Vendor conversion not configured: ${parseMagentoError(e)}');
     }
+  }
+
+  Future<bool> isUserVendor() async {
+    try {
+      // This endpoint needs to be implemented in your Magento backend
+      final response = await _dio.get('vendor/status');
+      return response.data['is_vendor'] == true;
+    } on DioException catch (e) {
+      // If vendor status endpoint doesn't exist, assume false
+      print('Vendor status endpoint not available: ${e.message}');
+      return false;
+    } catch (e) {
+      print('Error checking vendor status: $e');
+      return false;
+    }
+  }
+
+  void _navigateToLogin() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Use the global navigatorKey
+      if (navigatorKey.currentContext != null) {
+        Navigator.of(navigatorKey.currentContext!).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+              (route) => false,
+        );
+      }
+    });
   }
 }

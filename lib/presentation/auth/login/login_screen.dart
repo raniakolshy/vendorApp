@@ -6,8 +6,6 @@ import 'package:app_vendor/presentation/auth/register/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:app_vendor/services/auth_service.dart';
-
 import '../../../services/api_client.dart';
 
 Future<bool> checkConnectivity() async {
@@ -96,6 +94,14 @@ class _LoginFormState extends State<LoginForm> {
         _emailController.text.trim(),
         _passwordController.text,
       );
+
+      // Check if user is a vendor
+      final isVendor = await ApiClient().isUserVendor();
+      if (!isVendor) {
+        await ApiClient().logout();
+        _showMessage("This account is not registered as a vendor. Please contact support.", isError: true);
+        return;
+      }
 
       _showMessage("Login successful!", isError: false);
       if (!mounted) return;

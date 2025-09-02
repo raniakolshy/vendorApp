@@ -1,3 +1,4 @@
+
 import 'package:app_vendor/services/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +14,6 @@ import 'presentation/profile/edit_profile_screen.dart';
 import 'presentation/analytics/customer_analytics_screen.dart';
 import 'presentation/dashboard/dashboard_screen.dart';
 import 'presentation/orders/orders_list_screen.dart';
-import 'presentation/payouts/payouts_screen.dart';
 import 'presentation/products/add_product_screen.dart';
 import 'presentation/products/drafts_list_screen.dart';
 import 'presentation/products/products_list_screen.dart';
@@ -72,8 +72,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-
-
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
@@ -92,21 +90,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _checkAuthStatus() async {
-    // Add a longer delay to ensure all async operations complete
-    await Future.delayed(const Duration(milliseconds: 300));
-
     final isLoggedIn = await ApiClient().isLoggedIn();
-
-    // Debug output
-    print('Auth check - Logged in: $isLoggedIn');
-    await ApiClient.debugStorageStatus();
-
-    if (mounted) {
-      setState(() {
-        _isLoggedIn = isLoggedIn;
-        _isLoading = false;
-      });
-    }
+    setState(() {
+      _isLoggedIn = isLoggedIn;
+      _isLoading = false;
+    });
   }
 
   @override
@@ -209,8 +197,6 @@ class _HomeState extends State<Home> {
         return const CustomerAnalyticsScreen();
       case NavKey.transactions:
         return const transactions_screen.TransactionsScreen();
-      case NavKey.payouts:
-        return const PayoutsScreen();
       case NavKey.revenue:
         return const RevenueScreen();
       case NavKey.review:
