@@ -1,142 +1,124 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'magento_api.dart';
 
 class AuthService {
+  // Singleton
   static final AuthService _instance = AuthService._internal();
-  final Dio _dio;
-  final _storage = const FlutterSecureStorage();
-
-  static const String _adminToken = "87igct1wbbphdok6dk1roju4i83kyub9";
-
   factory AuthService() => _instance;
+  AuthService._internal();
 
-  AuthService._internal()
-      : _dio = Dio(
-    BaseOptions(
-      baseUrl: "https://kolshy.ae/rest/V1/",
-      headers: {
-        "Authorization": "Bearer 87igct1wbbphdok6dk1roju4i83kyub9",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-    ),
-  );
+  // Storage + API
+  static const _tokenKey = "customer_token";
+  final _storage = const FlutterSecureStorage();
+  final MagentoApi _api = MagentoApi();
 
-  // --------- utilities ---------
-  String _magentoErr(DioException e, {String fallback = "An error occurred"}) {
-    final data = e.response?.data;
-    if (data is Map && data['message'] is String) return data['message'];
-    if (data is Map && data['parameters'] is List && data['parameters'].isNotEmpty) {
-      return '${data['message']} (${data['parameters'].join(", ")})';
-    }
-    if (data is String && data.isNotEmpty) return data;
-    return fallback;
-  }
+  // In-memory cache
+  String? _customerToken;
 
+  // -------------------- Token helpers --------------------
   Future<void> _saveToken(String token) async {
-    await _storage.write(key: 'authToken', value: token);
+    _customerToken = token;
+    await _storage.write(key: _tokenKey, value: token);
   }
 
   Future<void> _clearToken() async {
-    await _storage.delete(key: 'authToken');
+    _customerToken = null;
+    await _storage.delete(key: _tokenKey);
   }
 
-  Future<String?> getToken() => _storage.read(key: 'authToken');
-  Future<bool> isLoggedIn() async => (await getToken())?.isNotEmpty == true;
+  /// Get token from memory or secure storage
+  Future<String?> getToken() async {
+    if (_customerToken != null) return _customerToken;
+    _customerToken = await _storage.read(key: _tokenKey);
+    return _customerToken;
+  }
 
-  // --------- login ---------
+  // -------------------- Auth flows --------------------
+  /// Normal email/password login
   Future<String> login(String email, String password) async {
     try {
-      final res = await _dio.post(
-        'integration/customer/token',
-        data: {'username': email.trim(), 'password': password},
-        options: Options(headers: {'Authorization': null}),
-      );
-      final token = (res.data as String).replaceAll('"', '').trim();
-      if (token.isEmpty) throw Exception("Access code not received");
-      await _storage.write(key: 'authToken', value: token);
+      final token = await _api.login(email, password);
+      await _saveToken(token);
       return token;
-    } on DioException catch (e) {
-      throw Exception(_magentoErr(e, fallback: "login failed"));
     } catch (e) {
-      throw Exception("login failed: $e");
+      throw Exception("Login failed: $e");
     }
   }
 
-  // --------- customer register ---------
-  Future<String> registerCustomer({
+  /// Social login (Google, Facebook, Instagram)
+  Future<String> loginWithSocial(String provider, Map<String, dynamic> payload) async {
+    try {
+      final token = await _api.socialLogin(provider, payload);
+      await _saveToken(token);
+      return token;
+    } catch (e) {
+      throw Exception("Social login failed: $e");
+    }
+  }
+
+  /// Customer registration (self-service)
+  /// If you want to persist phone, websiteId/storeId, pass them here.
+  Future<void> registerCustomer({
     required String email,
     required String firstname,
     required String lastname,
     required String password,
+    String? phone,        // optional: saved as default address if MagentoApi is set that way
+    int? websiteId,       // optional: needed on multi-site
+    int? storeId,         // optional
   }) async {
     try {
-      final payload = {
-        'customer': {
-          'email': email.trim().toLowerCase(),
-          'firstname': firstname.trim(),
-          'lastname': lastname.trim(),
-          'website_id': 1, // adjust to your website id
-          // 'store_id': 1,
-        },
-        'password': password,
-      };
-
-      await _dio.post(
-        'customers',
-        data: payload,
-        options: Options(headers: {'Authorization': null}),
+      await _api.registerCustomer(
+        email: email,
+        firstname: firstname,
+        lastname: lastname,
+        password: password,
+        phone: phone,
+        websiteId: websiteId,
+        storeId: storeId,
       );
 
-      // auto login after register
-      return await login(email, password);
-    } on DioException catch (e) {
-      throw Exception(_magentoErr(e, fallback: "Account creation failed"));
+      // Auto login after registration
+      await login(email, password);
     } catch (e) {
-      throw Exception("Account creation failed: $e");
+      throw Exception("Customer registration failed: $e");
     }
   }
 
-  // --------- vendor register (requires admin token) ---------
+  /// Vendor registration (requires admin token)
   Future<void> registerVendor({
     required String email,
     required String firstname,
     required String lastname,
     required String password,
+    required String adminToken,
+    int? websiteId,
+    int? storeId,
   }) async {
     try {
-      final payload = {
-        'customer': {
-          'email': email.trim(),
-          'firstname': firstname.trim(),
-          'lastname': lastname.trim(),
-        },
-        'password': password,
-      };
-
-      await _dio.post(
-        'customers',
-        data: payload,
-        options: Options(headers: {
-          "Authorization": "Bearer $_adminToken",
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        }),
+      await _api.registerVendor(
+        email: email,
+        firstname: firstname,
+        lastname: lastname,
+        password: password,
+        adminToken: adminToken,
+        websiteId: websiteId,
+        storeId: storeId,
       );
-    } on DioException catch (e) {
-      final msg = _magentoErr(e, fallback: "Vendor creation failed");
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception("Vendor registration failed: $e");
     }
   }
 
-  // --------- logout ---------
+  /// Fetch current customer profile
+  Future<Map<String, dynamic>> getProfile() async {
+    final token = await getToken();
+    if (token == null) throw Exception("Not logged in");
+    return await _api.getCustomer(token);
+  }
+
+  /// Logout (local). If you also want to revoke on server, call the revoke endpoint via ApiClient separately.
   Future<void> logout() async {
-    try {
-      await _dio.post('integration/customer/revoke'); // must be with *customer* token
-    } catch (_) {} finally {
-      await _storage.delete(key: 'authToken');
-    }
+    await _clearToken();
   }
 }

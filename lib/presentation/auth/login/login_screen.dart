@@ -6,12 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
-import 'package:app_vendor/services/api_client.dart';
-import '../../../services/auth_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:app_vendor/services/auth_service.dart';
 
 Future<bool> checkConnectivity() async {
   final connectivityResult = await Connectivity().checkConnectivity();
@@ -53,19 +50,21 @@ class LoginForm extends StatefulWidget {
 }
 
 class _LoginFormState extends State<LoginForm> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   void _showMessage(String msg, {bool isError = false}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
@@ -77,44 +76,51 @@ class _LoginFormState extends State<LoginForm> {
     );
   }
 
+  String _cleanError(Object e) {
+    final s = e.toString();
+    return s.startsWith('Exception: ') ? s.substring(11) : s;
+  }
+
   Future<void> _onLoginPressed() async {
     if (_isLoading) return;
+    FocusScope.of(context).unfocus();
 
-    final isConnected = await checkConnectivity();
-    if (!isConnected) {
-      _showMessage('No internet connection', isError: true);
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      _showMessage("Please fix the errors and try again.", isError: true);
       return;
     }
 
-    final username = _usernameController.text.trim();
-    final password = _passwordController.text.trim();
-
-    if (username.isEmpty || password.isEmpty) {
-      _showMessage('Please enter your username/email and password.');
+    if (!await checkConnectivity()) {
+      _showMessage("No internet connection.", isError: true);
       return;
     }
 
     setState(() => _isLoading = true);
     try {
-      // AuthService().login throws with a readable Magento message on failure.
-      final token = await AuthService().login(username, password);
+      await AuthService().login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
 
-      if (token.isNotEmpty) {
-        _showMessage('Login successful!', isError: false);
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const Home()),
-        );
-      }
+      _showMessage("Login successful!", isError: false);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const Home()),
+      );
     } catch (e) {
-      _showMessage(e.toString(), isError: true);
+      _showMessage("Login failed: ${_cleanError(e)}", isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _signInWithGoogle() async {
+    if (_isLoading) return;
+    if (!await checkConnectivity()) {
+      _showMessage("No internet connection.", isError: true);
+      return;
+    }
     _showMessage('Initiating Google Sign-In...');
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -125,72 +131,59 @@ class _LoginFormState extends State<LoginForm> {
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-      final response = await http.post(
-        Uri.parse('https://kolshy.ae/sociallogin/social/callback/'),
-        headers: <String, String>{'Content-Type': 'application/json; charset=UTF-8'},
-        body: jsonEncode(<String, String>{
-          'provider': 'google',
-          'idToken': googleAuth.idToken ?? '',
-          'accessToken': googleAuth.accessToken ?? '',
-          'email': googleUser.email,
-          'displayName': googleUser.displayName ?? '',
-        }),
-      );
+      await AuthService().loginWithSocial("google", {
+        "idToken": googleAuth.idToken ?? "",
+        "accessToken": googleAuth.accessToken ?? "",
+        "email": googleUser.email,
+        "displayName": googleUser.displayName ?? "",
+      });
 
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        final String? token = responseData['token'];
-        if (token != null) {
-          await ApiClient().saveAuthToken(token.replaceAll('"', ''));
-          _showMessage('Google Sign-In successful!', isError: false);
-          if (!mounted) return;
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
-        } else {
-          _showMessage('Token not found in the response.');
-        }
-      } else {
-        _showMessage('Backend authentication failed: ${response.body}');
-      }
+      _showMessage('Google Sign-In successful!', isError: false);
+      if (!mounted) return;
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
     } catch (e) {
-      _showMessage('Google Sign-In failed: ${e.toString()}');
+      _showMessage('Google Sign-In failed: ${_cleanError(e)}', isError: true);
     }
   }
 
   Future<void> _signInWithFacebook() async {
+    if (_isLoading) return;
+    if (!await checkConnectivity()) {
+      _showMessage("No internet connection.", isError: true);
+      return;
+    }
     _showMessage('Initiating Facebook Sign-In...');
     try {
-      final LoginResult result = await FacebookAuth.instance.login(permissions: ['email', 'public_profile']);
+      final result = await FacebookAuth.instance.login(permissions: ['email', 'public_profile']);
 
       if (result.status == LoginStatus.success) {
-        final AccessToken accessToken = result.accessToken!;
-        final response = await http.post(
-          Uri.parse('https://kolshy.ae/sociallogin/social/callback/'),
-          headers: <String, String>{'Content-Type': 'application/json; charset=UTF-8'},
-          body: jsonEncode(<String, String>{
-            'provider': 'facebook',
-            'accessToken': accessToken.token,
-          }),
-        );
-
-        if (response.statusCode == 200) {
-          final responseData = jsonDecode(response.body);
-          _showMessage('Facebook Sign-In successful with backend: ${responseData['message']}');
-          if (!mounted) return;
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
-        } else {
-          _showMessage('Backend authentication failed: ${response.body}');
+        final at = result.accessToken;
+        if (at == null) {
+          _showMessage('Facebook Sign-In failed: missing access token.', isError: true);
+          return;
         }
+
+        await AuthService().loginWithSocial("facebook", {"accessToken": at.token});
+
+        _showMessage('Facebook Sign-In successful!', isError: false);
+        if (!mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
       } else if (result.status == LoginStatus.cancelled) {
         _showMessage('Facebook Sign-In cancelled.');
       } else {
-        _showMessage('Facebook Sign-In failed: ${result.message}');
+        _showMessage('Facebook Sign-In failed: ${result.message}', isError: true);
       }
     } catch (e) {
-      _showMessage('Facebook Sign-In failed: ${e.toString()}');
+      _showMessage('Facebook Sign-In failed: ${_cleanError(e)}', isError: true);
     }
   }
 
   Future<void> _signInWithInstagram() async {
+    if (_isLoading) return;
+    if (!await checkConnectivity()) {
+      _showMessage("No internet connection.", isError: true);
+      return;
+    }
     _showMessage('Initiating Instagram Sign-In...');
     try {
       const String instagramAppId = '642270335021538';
@@ -212,152 +205,176 @@ class _LoginFormState extends State<LoginForm> {
       final String? error = uri.queryParameters['error'];
 
       if (code != null) {
-        final response = await http.post(
-          Uri.parse('https://kolshy.ae/sociallogin/social/callback/instagram.php'),
-          headers: <String, String>{'Content-Type': 'application/json; charset=UTF-8'},
-          body: jsonEncode(<String, String>{'provider': 'instagram', 'code': code}),
-        );
+        await AuthService().loginWithSocial("instagram", {"code": code});
 
-        if (response.statusCode == 200) {
-          final responseData = jsonDecode(response.body);
-          _showMessage('Instagram Sign-In successful with backend: ${responseData['message']}');
-          if (!mounted) return;
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
-        } else {
-          _showMessage('Backend authentication failed: ${response.body}');
-        }
+        _showMessage('Instagram Sign-In successful!', isError: false);
+        if (!mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
       } else if (error != null) {
-        _showMessage('Instagram Sign-In failed: ${uri.queryParameters['error_description'] ?? error}');
+        _showMessage('Instagram Sign-In failed: ${uri.queryParameters['error_description'] ?? error}', isError: true);
       } else {
         _showMessage('Instagram Sign-In cancelled.');
       }
     } catch (e) {
-      _showMessage('Instagram Sign-In failed: ${e.toString()}');
+      _showMessage('Instagram Sign-In failed: ${_cleanError(e)}', isError: true);
     }
+  }
+
+  String? _emailValidator(String? v) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return 'Email is required';
+    // simple email check
+    final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);
+    if (!ok) return 'Enter a valid email';
+    return null;
+  }
+
+  String? _passwordValidator(String? v) {
+    if ((v ?? '').isEmpty) return 'Password is required';
+    if ((v ?? '').length < 6) return 'Password must be at least 6 characters';
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 32),
-        Text(
-          t?.welcomeBack ?? "Welcome Back",
-          style: GoogleFonts.poppins(
-            fontSize: 36,
-            fontWeight: FontWeight.w800,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 36),
-        _CustomInput(
-          controller: _usernameController,
-          hintText: t?.usernameOrEmail ?? "Username or Email",
-          icon: Icons.person_outline,
-        ),
-        const SizedBox(height: 20),
-        _CustomInput(
-          controller: _passwordController,
-          hintText: t?.password ?? "Password",
-          icon: Icons.lock_outline,
-          isPassword: true,
-          obscureText: _obscurePassword,
-          toggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
-        ),
-        const SizedBox(height: 10),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()));
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: primaryPink,
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              t?.forgotPwd ?? "Forgot Password?",
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 32),
+          Text(
+            t?.welcomeBack ?? "Welcome Back",
+            style: GoogleFonts.poppins(
+              fontSize: 36,
+              fontWeight: FontWeight.w800,
+              color: Colors.black87,
             ),
           ),
-        ),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _onLoginPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryPink,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 4,
-            ),
-            child: _isLoading
-                ? const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-            )
-                : Text(
-              t?.login ?? "Login",
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+          const SizedBox(height: 36),
+
+          // Email
+          _CustomInput(
+            controller: _emailController,
+            hintText: t?.usernameOrEmail ?? "Username or Email",
+            icon: Icons.person_outline,
+            validator: _emailValidator,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
           ),
-        ),
-        const SizedBox(height: 40),
-        Row(
-          children: [
-            const Expanded(child: Divider(color: lightBorder)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+          const SizedBox(height: 20),
+
+          // Password
+          _CustomInput(
+            controller: _passwordController,
+            hintText: t?.password ?? "Password",
+            icon: Icons.lock_outline,
+            isPassword: true,
+            obscureText: _obscurePassword,
+            toggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+            validator: _passwordValidator,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _onLoginPressed(),
+          ),
+
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()));
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: primaryPink,
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
               child: Text(
-                t?.continueWith ?? "Continue with",
-                style: const TextStyle(color: greyText, fontSize: 14),
+                t?.forgotPwd ?? "Forgot Password?",
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
-            const Expanded(child: Divider(color: lightBorder)),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SocialButton(icon: 'assets/google.png', onTap: _signInWithGoogle),
-            const SizedBox(width: 20),
-            SocialButton(icon: 'assets/instagram.png', onTap: _signInWithInstagram),
-            const SizedBox(width: 20),
-            SocialButton(icon: 'assets/facebook.png', onTap: _signInWithFacebook),
-          ],
-        ),
-        const SizedBox(height: 40),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              t?.createAnAccountLogin ?? "Don't have an account?",
-              style: const TextStyle(color: greyText, fontSize: 14),
+          ),
+
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _onLoginPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryPink,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 4,
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              )
+                  : Text(
+                t?.login ?? "Login",
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen()));
-              },
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+          ),
+
+          const SizedBox(height: 40),
+          Row(
+            children: [
+              const Expanded(child: Divider(color: lightBorder)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Text(
-                  "Sign Up",
-                  style: TextStyle(color: primaryPink, fontWeight: FontWeight.w700, fontSize: 14),
+                  t?.continueWith ?? "Continue with",
+                  style: const TextStyle(color: greyText, fontSize: 14),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-      ],
+              const Expanded(child: Divider(color: lightBorder)),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SocialButton(icon: 'assets/google.png', onTap: _signInWithGoogle),
+              const SizedBox(width: 20),
+              SocialButton(icon: 'assets/instagram.png', onTap: _signInWithInstagram),
+              const SizedBox(width: 20),
+              SocialButton(icon: 'assets/facebook.png', onTap: _signInWithFacebook),
+            ],
+          ),
+
+          const SizedBox(height: 40),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                t?.createAnAccountLogin ?? "Don't have an account?",
+                style: const TextStyle(color: greyText, fontSize: 14),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen()));
+                },
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                  child: Text(
+                    "Sign Up",
+                    style: TextStyle(color: primaryPink, fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 }
@@ -370,6 +387,12 @@ class _CustomInput extends StatelessWidget {
   final bool obscureText;
   final VoidCallback? toggleVisibility;
 
+  // new:
+  final String? Function(String?)? validator;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final void Function(String)? onSubmitted;
+
   const _CustomInput({
     super.key,
     required this.hintText,
@@ -378,13 +401,21 @@ class _CustomInput extends StatelessWidget {
     this.isPassword = false,
     this.obscureText = false,
     this.toggleVisibility,
+    this.validator,
+    this.keyboardType,
+    this.textInputAction,
+    this.onSubmitted,
   });
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       obscureText: isPassword ? obscureText : false,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onSubmitted,
+      validator: validator,
       style: const TextStyle(fontSize: 16, color: Colors.black87),
       decoration: InputDecoration(
         filled: true,
