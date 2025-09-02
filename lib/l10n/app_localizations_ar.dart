@@ -2444,4 +2444,33 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noTransactionsAvailable => 'لا توجد معاملات متاحة';
+
+  @override
+  String get filterEnabledProducts => 'المنتجات المفعلة';
+
+  @override
+  String get filterDisabledProducts => 'المنتجات المعطلة';
+
+  @override
+  String get filterLowStock => 'مخزون منخفض';
+
+  @override
+  String get filterOutOfStock=> 'إنتهى من المخزون';
+
+  @override
+  String get filterDeniedProduct => 'منتج مرفوض';
+
+  @override
+  String get filterAll => 'الكل';
+
+  @override
+  String get confirmLogout=> 'تأكيد تسجيل الخروج';
+
+  @override
+  String get logoutSuccessful => 'تم تسجيل الخروج بنجاح';
+
+  @override
+  String get logoutFailed => 'فشل تسجيل الخروج';
+
+
 }

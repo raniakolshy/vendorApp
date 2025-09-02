@@ -58,11 +58,12 @@ class ProductsListScreen extends StatefulWidget {
 }
 
 class _ProductsListScreenState extends State<ProductsListScreen> {
-  // UI state
+
   final TextEditingController _searchCtrl = TextEditingController();
   String? _filter;
   static const int _pageSize = 2;
   int _shown = _pageSize;
+  bool _loadingMore = false;
 
   // Data
   final List<Product> _allProducts = [
@@ -145,24 +146,19 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     final localizations = AppLocalizations.of(context)!;
     final q = _searchCtrl.text.trim().toLowerCase();
     final byText = _allProducts.where((p) => p.name.toLowerCase().contains(q));
-    switch (_filter) {
-      case 'Produits actifs':
-      case 'Enabled Products':
-        return byText.where((p) => p.status == ProductStatus.active).toList();
-      case 'Produits désactivés':
-      case 'Disabled Products':
-        return byText.where((p) => p.status == ProductStatus.disabled).toList();
-      case 'Faible stock':
-      case 'Low Stock':
-        return byText.where((p) => p.status == ProductStatus.lowStock).toList();
-      case 'En rupture de stock':
-      case 'Out of Stock':
-        return byText.where((p) => p.status == ProductStatus.outOfStock).toList();
-      case 'Produit refusé':
-      case 'Denied Product':
-        return byText.where((p) => p.status == ProductStatus.denied).toList();
-      default:
-        return byText.toList();
+
+    if (_filter == localizations.filterEnabledProducts) {
+      return byText.where((p) => p.status == ProductStatus.active).toList();
+    } else if (_filter == localizations.filterDisabledProducts) {
+      return byText.where((p) => p.status == ProductStatus.disabled).toList();
+    } else if (_filter == localizations.filterLowStock) {
+      return byText.where((p) => p.status == ProductStatus.lowStock).toList();
+    } else if (_filter == localizations.filterOutOfStock) {
+      return byText.where((p) => p.status == ProductStatus.outOfStock).toList();
+    } else if (_filter == localizations.filterDeniedProduct) {
+      return byText.where((p) => p.status == ProductStatus.denied).toList();
+    } else {
+      return byText.toList();
     }
   }
 
@@ -178,8 +174,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     });
   }
 
-  void _loadMore() {
-    setState(() => _shown = (_shown + _pageSize).clamp(0, _filtered.length));
+  Future<void> _loadMore() async {
+    setState(() => _loadingMore = true);
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    setState(() {
+      _loadingMore = false;
+      _shown = (_shown + _pageSize).clamp(0, _filtered.length);
+    });
   }
 
   void _deleteProduct(Product product) {
@@ -250,7 +251,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
     final visible = _filtered.take(_shown).toList();
-    final canLoadMore = _shown < _filtered.length;
+    final canLoadMore = _shown < _filtered.length && !_loadingMore;
 
     final filters = [
       localizations.allProducts,
@@ -402,11 +403,18 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Image.asset(
-                                      'assets/icons/loading.png',
-                                      width: 18,
-                                      height: 18,
-                                    ),
+                                    if (_loadingMore)
+                                      const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    else
+                                      Image.asset(
+                                        'assets/icons/loading.png',
+                                        width: 18,
+                                        height: 18,
+                                      ),
                                     const SizedBox(width: 10),
                                     Text(
                                       localizations.loadMore,
@@ -427,7 +435,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         padding: const EdgeInsets.only(top: 12),
                         child: Center(
                           child: Text(
-                            localizations.noProductsMatchSearch,
+                            localizations.noDraftsMatchSearch,
                             style: const TextStyle(color: Colors.black54),
                           ),
                         ),

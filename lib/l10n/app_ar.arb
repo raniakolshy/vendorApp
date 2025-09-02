@@ -1133,5 +1133,14 @@
   "download" :"تحميل",
   "clearFilter": "مسح الفلتر",
   "noTransactionsForDateRange" :"لا توجد معاملات لنطاق التاريخ",
-  "noTransactionsAvailable" : "لا توجد معاملات متاحة"
+  "noTransactionsAvailable" : "لا توجد معاملات متاحة",
+  "filterAll": "الكل",
+  "filterEnabledProducts": "المنتجات المفعلة",
+  "filterDisabledProducts": "المنتجات المعطلة",
+  "filterLowStock": "مخزون منخفض",
+  "filterOutOfStock": "إنتهى من المخزون",
+  "filterDeniedProduct": "منتج مرفوض",
+  "confirmLogout" :"تأكيد تسجيل الخروج",
+  "logoutSuccessful" : "تم تسجيل الخروج بنجاح",
+  "logoutFailed": "فشل تسجيل الخروج",
 }

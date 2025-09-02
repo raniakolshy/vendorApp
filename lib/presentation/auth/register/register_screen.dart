@@ -3,6 +3,7 @@ import 'package:app_vendor/main.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../services/api_client.dart';
+import '../../../services/auth_service.dart';
 import '../login/login_screen.dart';
 
 // Imports for social sign-up
@@ -81,48 +82,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final registerUrl = Uri.parse('https://kolshy.ae/rest/V1/customer');
-
     try {
-      final response = await http.post(
-        registerUrl,
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{
-          'firstname': _firstNameController.text,
-          'lastname': _lastNameController.text,
-          'email': _emailController.text,
-          'password': _passwordController.text,
-          'phone': _phoneController.text,
-        }),
+      final token = await AuthService().registerCustomer(
+        email: _emailController.text,
+        firstname: _firstNameController.text,
+        lastname: _lastNameController.text,
+        password: _passwordController.text,
       );
 
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = jsonDecode(response.body);
-        final String? token = responseData['token'];
-
-        if (token != null) {
-          await ApiClient().saveAuthToken(token);
-          _showMessage('Account created successfully!', isError: false);
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
-        } else {
-          _showMessage('Registration successful, but no token was returned. Please try logging in.');
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
-        }
-      } else {
-        final responseData = jsonDecode(response.body);
-        _showMessage('Registration failed: ${responseData['message'] ?? response.body}');
+      if (token.isNotEmpty) {
+        _showMessage('Account created successfully!', isError: false);
+        if (!mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+        return;
       }
+
+      _showMessage('Registration successful. Please log in.', isError: false);
+      if (!mounted) return;
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
     } catch (e) {
-      _showMessage('An error occurred: $e');
+      _showMessage(e.toString());
     }
   }
 
-  // --- Social Sign-Up Methods ---
 
   Future<void> _signUpWithGoogle() async {
     _showMessage('Initiating Google Sign-Up...', isError: false);

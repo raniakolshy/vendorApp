@@ -64,7 +64,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
     10,
         (index) => Transaction(
       id: '12345',
-      transactionId: 'TXN AED{1000 + index}',
+      transactionId: 'TXN ${1000 + index}',
       status: index.isEven
           ? TransactionStatus.paid
           : TransactionStatus.onProcess,
@@ -225,7 +225,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                "AED {AppLocalizations.of(context)!.filtered}: AED {tempRange.start.toLocal()} → AED {tempRange.end.toLocal()}",
+                                "${AppLocalizations.of(context)!.filtered}: ${tempRange.start.toLocal()} → ${tempRange.end.toLocal()}",
                               ),
                               duration: const Duration(seconds: 3),
                             ),

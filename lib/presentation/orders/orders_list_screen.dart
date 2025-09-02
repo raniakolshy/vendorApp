@@ -4,6 +4,9 @@ import '../../l10n/app_localizations.dart';
 
 void main() => runApp(const OrdersApp());
 
+// New enum for filter states
+enum FilterOption { all, delivered, processing, cancelled }
+
 class OrdersApp extends StatelessWidget {
   const OrdersApp({super.key});
 
@@ -39,7 +42,7 @@ class OrdersListScreen extends StatefulWidget {
 
 class _OrdersListScreenState extends State<OrdersListScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
-  String _filter = 'All Orders';
+  FilterOption _filter = FilterOption.all; // Use enum for the filter state
   static const int _pageSize = 2;
   int _shown = _pageSize;
   bool _loadingMore = false;
@@ -96,26 +99,23 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
   ];
 
   @override
-  void didChangeDependencies(){
+  void didChangeDependencies() {
     super.didChangeDependencies();
-        if(_filter == null){
-          _filter = AppLocalizations.of(context)!.allOrders;
-        }
   }
 
   List<Order> get _filtered {
     final q = _searchCtrl.text.trim().toLowerCase();
     final byText = _allOrders.where((o) => o.name.toLowerCase().contains(q));
+
+    // Use enum in the switch statement to fix the "constant pattern" error
     switch (_filter) {
-      case 'Delivered':
-      case 'تم التوصيل':
+      case FilterOption.delivered:
         return byText.where((o) => o.status == OrderStatus.delivered).toList();
-      case 'Processing':
-      case 'قيد المعالجة':
+      case FilterOption.processing:
         return byText.where((o) => o.status == OrderStatus.processing).toList();
-      case 'Cancelled':
-      case 'ملغاة':
+      case FilterOption.cancelled:
         return byText.where((o) => o.status == OrderStatus.cancelled).toList();
+      case FilterOption.all:
       default:
         return byText.toList();
     }
@@ -125,7 +125,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
     setState(() => _shown = _pageSize);
   }
 
-  void _onFilterChanged(String? v) {
+  void _onFilterChanged(FilterOption? v) {
     if (v == null) return;
     setState(() {
       _filter = v;
@@ -150,19 +150,25 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
     super.dispose();
   }
 
+  // Helper method to localize the enum value for display
+  String _localizeFilter(FilterOption option, AppLocalizations l10n) {
+    switch (option) {
+      case FilterOption.all:
+        return l10n.allOrders;
+      case FilterOption.delivered:
+        return l10n.delivered;
+      case FilterOption.processing:
+        return l10n.processing;
+      case FilterOption.cancelled:
+        return l10n.cancelled;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final _localizations = AppLocalizations.of(context)!;
     final visible = _filtered.take(_shown).toList();
     final canLoadMore = _shown < _filtered.length && !_loadingMore;
-
-
-    final List<String> filterOptions = [
-      _localizations.allOrders,
-      _localizations.delivered,
-      _localizations.processing,
-      _localizations.cancelled,
-    ];
 
     return Scaffold(
       body: Column(
@@ -225,7 +231,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
                         Expanded(
                           flex: 2,
-                          child: DropdownButtonFormField<String>(
+                          child: DropdownButtonFormField<FilterOption>(
                             value: _filter,
                             decoration: InputDecoration(
                               filled: true,
@@ -244,8 +250,11 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                             borderRadius: BorderRadius.circular(12),
                             isExpanded: true,
                             style: const TextStyle(color: Colors.black, fontSize: 16),
-                            items: filterOptions
-                                .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                            items: FilterOption.values
+                                .map((e) => DropdownMenuItem(
+                              value: e,
+                              child: Text(_localizeFilter(e, _localizations)),
+                            ))
                                 .toList(),
                             onChanged: _onFilterChanged,
                           ),
@@ -362,86 +371,92 @@ class _OrderRow extends StatelessWidget {
         ?.copyWith(
         fontWeight: FontWeight.w600, color: Colors.black.withOpacity(.85));
 
+    final isRTL = Directionality.of(context) == TextDirection.rtl;
+
+    final children = [
+      ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: 90,
+          height: 90,
+          color: const Color(0xFFEDEEEF),
+          child: Image.asset(order.thumbnailAsset, fit: BoxFit.cover),
+        ),
+      ),
+      const SizedBox(width: 16),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Text(
+              order.name,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: isRTL ? TextAlign.right : TextAlign.left,
+            ),
+            const SizedBox(height: 8),
+            _PriceChip('\$${order.price.toStringAsFixed(2)}'),
+            const SizedBox(height: 8),
+            Text(
+              order.type,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: Colors.black54),
+              textAlign: isRTL ? TextAlign.right : TextAlign.left,
+            ),
+            const SizedBox(height: 16),
+            _RowKVText(
+              k: _localizations.status,
+              v: _StatusPill(status: order.status),
+              keyStyle: keyStyle,
+              valStyle: valStyle,
+              isWidgetValue: true,
+            ),
+            const SizedBox(height: 10),
+            _RowKVText(
+                k: _localizations.orderId,
+                vText: order.orderId,
+                keyStyle: keyStyle,
+                valStyle: valStyle),
+            const SizedBox(height: 10),
+            _RowKVText(
+                k: _localizations.purchasedOn,
+                vText: order.purchasedOn,
+                keyStyle: keyStyle,
+                valStyle: valStyle),
+            const SizedBox(height: 10),
+            _RowKVText(
+                k: _localizations.baseTotal,
+                vText: order.baseTotal,
+                keyStyle: keyStyle,
+                valStyle: valStyle),
+            const SizedBox(height: 10),
+            _RowKVText(
+                k: _localizations.purchasedTotal,
+                vText: order.purchasedTotal,
+                keyStyle: keyStyle,
+                valStyle: valStyle),
+            const SizedBox(height: 10),
+            _RowKVText(
+                k: _localizations.customer,
+                vText: order.customer,
+                keyStyle: keyStyle,
+                valStyle: valStyle),
+          ],
+        ),
+      ),
+    ];
+
     return Column(
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                width: 90,
-                height: 90,
-                color: const Color(0xFFEDEEEF),
-                child: Image.asset(order.thumbnailAsset, fit: BoxFit.cover),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    order.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  _PriceChip('\$${order.price.toStringAsFixed(2)}'),
-                  const SizedBox(height: 8),
-                  Text(
-                    order.type,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.black54),
-                  ),
-                  const SizedBox(height: 16),
-                  _RowKVText(
-                    k: _localizations.status,
-                    v: _StatusPill(status: order.status),
-                    keyStyle: keyStyle,
-                    valStyle: valStyle,
-                    isWidgetValue: true,
-                  ),
-                  const SizedBox(height: 10),
-                  _RowKVText(
-                      k: _localizations.status,
-                      vText: order.orderId,
-                      keyStyle: keyStyle,
-                      valStyle: valStyle),
-                  const SizedBox(height: 10),
-                  _RowKVText(
-                      k: _localizations.status,
-                      vText: order.purchasedOn,
-                      keyStyle: keyStyle,
-                      valStyle: valStyle),
-                  const SizedBox(height: 10),
-                  _RowKVText(
-                      k: _localizations.status,
-                      vText: order.baseTotal,
-                      keyStyle: keyStyle,
-                      valStyle: valStyle),
-                  const SizedBox(height: 10),
-                  _RowKVText(
-                      k: _localizations.status,
-                      vText: order.purchasedTotal,
-                      keyStyle: keyStyle,
-                      valStyle: valStyle),
-                  const SizedBox(height: 10),
-                  _RowKVText(
-                      k: _localizations.status,
-                      vText: order.customer,
-                      keyStyle: keyStyle,
-                      valStyle: valStyle),
-                ],
-              ),
-            ),
-          ],
+          children: isRTL ? children.reversed.toList() : children,
         ),
       ],
     );
@@ -467,18 +482,29 @@ class _RowKVText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isRTL = Directionality.of(context) == TextDirection.rtl;
+
     return Row(
+      textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
       children: [
         Expanded(
           flex: 2,
-          child: Text(k, style: keyStyle),
+          child: Text(
+            k,
+            style: keyStyle,
+            textAlign: isRTL ? TextAlign.right : TextAlign.left, // Set alignment based on direction
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
           flex: 3,
           child: isWidgetValue && v != null
               ? v!
-              : Text(vText ?? '', style: valStyle),
+              : Text(
+            vText ?? '',
+            style: valStyle,
+            textAlign: isRTL ? TextAlign.right : TextAlign.left, // Set alignment based on direction
+          ),
         ),
       ],
     );
@@ -524,11 +550,11 @@ class _StatusPill extends StatelessWidget {
       case OrderStatus.cancelled:
         return const Color(0xFFFFE0E0);
       case OrderStatus.onHold:
-        return const Color(0xFFEDE7FE); // soft purple
+        return const Color(0xFFEDE7FE);
       case OrderStatus.closed:
-        return const Color(0xFFECEFF1); // neutral gray
+        return const Color(0xFFECEFF1);
       case OrderStatus.pending:
-        return const Color(0xFFE7F0FF); // soft blue
+        return const Color(0xFFE7F0FF);
     }
   }
 

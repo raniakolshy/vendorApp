@@ -10,11 +10,18 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:app_vendor/services/api_client.dart';
+import '../../../services/auth_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
+Future<bool> checkConnectivity() async {
+  final connectivityResult = await Connectivity().checkConnectivity();
+  return connectivityResult != ConnectivityResult.none;
+}
+
 const Color primaryPink = Color(0xFFE51742);
 const Color inputFill = Color(0xFFF4F4F4);
 const Color lightBorder = Color(0xFFDDDDDD);
 const Color greyText = Color(0xFF777777);
-
 
 final GoogleSignIn _googleSignIn = GoogleSignIn(
   clientId: '701685580916-4hv0pfq73jksr1ga8pp22p8clt80uioe.apps.googleusercontent.com',
@@ -49,61 +56,61 @@ class _LoginFormState extends State<LoginForm> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
-  static const String _fakeUsername = 'test@test.com';
-  static const String _fakePassword = 'testpassword123';
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _showMessage(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? Colors.red : primaryPink,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
 
   Future<void> _onLoginPressed() async {
-    // Get the values from the text controllers
-    final username = _usernameController.text.trim();
-    final password = _passwordController.text.trim();
+    if (_isLoading) return;
 
-    if (username == _fakeUsername && password == _fakePassword) {
-      _showMessage('Fake login successful!');
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const Home()),
-      );
+    final isConnected = await checkConnectivity();
+    if (!isConnected) {
+      _showMessage('No internet connection', isError: true);
       return;
     }
 
-    // New API-based validation
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
     if (username.isEmpty || password.isEmpty) {
       _showMessage('Please enter your username/email and password.');
       return;
     }
 
-    // Now, perform the real API call
+    setState(() => _isLoading = true);
     try {
-      final response = await http.post(
-        Uri.parse('https://kolshy.ae/rest/V1/integration/customer/token'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{
-          'username': username,
-          'password': password,
-        }),
-      );
+      // AuthService().login throws with a readable Magento message on failure.
+      final token = await AuthService().login(username, password);
 
-      if (response.statusCode == 200) {
-        final String token = response.body;
-        await ApiClient().saveAuthToken(token);
-
+      if (token.isNotEmpty) {
         _showMessage('Login successful!', isError: false);
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const Home()),
         );
-      } else {
-        final responseData = jsonDecode(response.body);
-        _showMessage(
-          'Login failed: ${responseData['message'] ?? 'Invalid credentials'}',
-          isError: true,
-        );
       }
     } catch (e) {
-      _showMessage('An error occurred during login: ${e.toString()}', isError: true);
+      _showMessage(e.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -111,20 +118,16 @@ class _LoginFormState extends State<LoginForm> {
     _showMessage('Initiating Google Sign-In...');
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
       if (googleUser == null) {
         _showMessage('Google Sign-In cancelled.');
         return;
       }
 
-      final GoogleSignInAuthentication googleAuth =
-      await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       final response = await http.post(
         Uri.parse('https://kolshy.ae/sociallogin/social/callback/'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
+        headers: <String, String>{'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode(<String, String>{
           'provider': 'google',
           'idToken': googleAuth.idToken ?? '',
@@ -136,12 +139,11 @@ class _LoginFormState extends State<LoginForm> {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        final String? token = responseData['token']; // Get the token from the response
-
+        final String? token = responseData['token'];
         if (token != null) {
-          await ApiClient().saveAuthToken(token);
-
-          _showMessage('Google Sign-In successful!');
+          await ApiClient().saveAuthToken(token.replaceAll('"', ''));
+          _showMessage('Google Sign-In successful!', isError: false);
+          if (!mounted) return;
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
         } else {
           _showMessage('Token not found in the response.');
@@ -157,16 +159,13 @@ class _LoginFormState extends State<LoginForm> {
   Future<void> _signInWithFacebook() async {
     _showMessage('Initiating Facebook Sign-In...');
     try {
-      final LoginResult result =
-      await FacebookAuth.instance.login(permissions: ['email', 'public_profile']);
+      final LoginResult result = await FacebookAuth.instance.login(permissions: ['email', 'public_profile']);
 
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
         final response = await http.post(
           Uri.parse('https://kolshy.ae/sociallogin/social/callback/'),
-          headers: <String, String>{
-            'Content-Type': 'application/json; charset=UTF-8',
-          },
+          headers: <String, String>{'Content-Type': 'application/json; charset=UTF-8'},
           body: jsonEncode(<String, String>{
             'provider': 'facebook',
             'accessToken': accessToken.token,
@@ -175,10 +174,9 @@ class _LoginFormState extends State<LoginForm> {
 
         if (response.statusCode == 200) {
           final responseData = jsonDecode(response.body);
-          _showMessage(
-              'Facebook Sign-In successful with backend: ${responseData['message']}');
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => const Home()));
+          _showMessage('Facebook Sign-In successful with backend: ${responseData['message']}');
+          if (!mounted) return;
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
         } else {
           _showMessage('Backend authentication failed: ${response.body}');
         }
@@ -196,8 +194,7 @@ class _LoginFormState extends State<LoginForm> {
     _showMessage('Initiating Instagram Sign-In...');
     try {
       const String instagramAppId = '642270335021538';
-      const String redirectUri =
-          'https://kolshy.ae/sociallogin/social/callback/instagram.php';
+      const String redirectUri = 'https://kolshy.ae/sociallogin/social/callback/instagram.php';
       const String authorizationUrl =
           'https://api.instagram.com/oauth/authorize'
           '?client_id=$instagramAppId'
@@ -216,29 +213,21 @@ class _LoginFormState extends State<LoginForm> {
 
       if (code != null) {
         final response = await http.post(
-          Uri.parse(
-              'https://kolshy.ae/sociallogin/social/callback/instagram.php'),
-          headers: <String, String>{
-            'Content-Type': 'application/json; charset=UTF-8',
-          },
-          body: jsonEncode(<String, String>{
-            'provider': 'instagram',
-            'code': code,
-          }),
+          Uri.parse('https://kolshy.ae/sociallogin/social/callback/instagram.php'),
+          headers: <String, String>{'Content-Type': 'application/json; charset=UTF-8'},
+          body: jsonEncode(<String, String>{'provider': 'instagram', 'code': code}),
         );
 
         if (response.statusCode == 200) {
           final responseData = jsonDecode(response.body);
-          _showMessage(
-              'Instagram Sign-In successful with backend: ${responseData['message']}');
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => const Home()));
+          _showMessage('Instagram Sign-In successful with backend: ${responseData['message']}');
+          if (!mounted) return;
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
         } else {
           _showMessage('Backend authentication failed: ${response.body}');
         }
       } else if (error != null) {
-        _showMessage(
-            'Instagram Sign-In failed: ${uri.queryParameters['error_description']}');
+        _showMessage('Instagram Sign-In failed: ${uri.queryParameters['error_description'] ?? error}');
       } else {
         _showMessage('Instagram Sign-In cancelled.');
       }
@@ -247,26 +236,16 @@ class _LoginFormState extends State<LoginForm> {
     }
   }
 
-  void _showMessage(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? Colors.red : primaryPink,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 32),
         Text(
-          AppLocalizations.of(context)?.welcomeBack ?? "Welcome Back",
+          t?.welcomeBack ?? "Welcome Back",
           style: GoogleFonts.poppins(
             fontSize: 36,
             fontWeight: FontWeight.w800,
@@ -276,32 +255,24 @@ class _LoginFormState extends State<LoginForm> {
         const SizedBox(height: 36),
         _CustomInput(
           controller: _usernameController,
-          hintText: AppLocalizations.of(context)?.usernameOrEmail ??
-              "Username or Email",
+          hintText: t?.usernameOrEmail ?? "Username or Email",
           icon: Icons.person_outline,
         ),
         const SizedBox(height: 20),
         _CustomInput(
           controller: _passwordController,
-          hintText:
-          AppLocalizations.of(context)?.password ?? "Password",
+          hintText: t?.password ?? "Password",
           icon: Icons.lock_outline,
           isPassword: true,
           obscureText: _obscurePassword,
-          toggleVisibility: () {
-            setState(() => _obscurePassword = !_obscurePassword);
-          },
+          toggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
         const SizedBox(height: 10),
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const ForgotPasswordScreen()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()));
             },
             style: TextButton.styleFrom(
               foregroundColor: primaryPink,
@@ -310,11 +281,8 @@ class _LoginFormState extends State<LoginForm> {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: Text(
-              AppLocalizations.of(context)?.forgotPwd ?? "Forgot Password?",
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
+              t?.forgotPwd ?? "Forgot Password?",
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -322,20 +290,22 @@ class _LoginFormState extends State<LoginForm> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _onLoginPressed,
+            onPressed: _isLoading ? null : _onLoginPressed,
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryPink,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 4,
             ),
-            child: Text(
-              AppLocalizations.of(context)?.login ?? "Login",
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold),
+            child: _isLoading
+                ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            )
+                : Text(
+              t?.login ?? "Login",
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -346,8 +316,7 @@ class _LoginFormState extends State<LoginForm> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Text(
-                AppLocalizations.of(context)?.continueWith ??
-                    "Continue with",
+                t?.continueWith ?? "Continue with",
                 style: const TextStyle(color: greyText, fontSize: 14),
               ),
             ),
@@ -370,26 +339,18 @@ class _LoginFormState extends State<LoginForm> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              AppLocalizations.of(context)?.createAnAccountLogin ??
-                  "Don't have an account?",
+              t?.createAnAccountLogin ?? "Don't have an account?",
               style: const TextStyle(color: greyText, fontSize: 14),
             ),
             GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen()));
               },
-              child: Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
                 child: Text(
-                  AppLocalizations.of(context)?.signUp ?? "Sign Up",
-                  style: const TextStyle(
-                      color: primaryPink,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14),
+                  "Sign Up",
+                  style: TextStyle(color: primaryPink, fontWeight: FontWeight.w700, fontSize: 14),
                 ),
               ),
             ),
@@ -410,13 +371,13 @@ class _CustomInput extends StatelessWidget {
   final VoidCallback? toggleVisibility;
 
   const _CustomInput({
+    super.key,
     required this.hintText,
     required this.icon,
     required this.controller,
     this.isPassword = false,
     this.obscureText = false,
     this.toggleVisibility,
-    super.key,
   });
 
   @override
@@ -433,14 +394,11 @@ class _CustomInput extends StatelessWidget {
         prefixIcon: Icon(icon, color: greyText),
         suffixIcon: isPassword
             ? IconButton(
-          icon: Icon(
-              obscureText ? Icons.visibility_off : Icons.visibility,
-              color: greyText),
+          icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: greyText),
           onPressed: toggleVisibility,
         )
             : null,
-        contentPadding:
-        const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: lightBorder),

@@ -467,7 +467,10 @@ class _CustomerRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            margin: const EdgeInsets.only(right: 20),
+            margin: EdgeInsets.only(
+              right: Directionality.of(context) == TextDirection.ltr ? 20 : 0,
+              left: Directionality.of(context) == TextDirection.rtl ? 20 : 0,
+            ),
             width: 60,
             height: 60,
             decoration: BoxDecoration(

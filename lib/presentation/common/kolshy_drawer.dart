@@ -1,5 +1,6 @@
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import '../../services/api_client.dart';
 import '../Translation/Language.dart';
 import '../admin/admin_news_screen.dart';
 import '../admin/ask_admin_screen.dart';
@@ -491,14 +492,61 @@ class _ProfileMenuDialog extends StatelessWidget {
               ),
 
               // Destructive action
+              // In your drawer file, update the logout section:
               InkWell(
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                        (route) => false,
+
+                  // Show confirmation dialog
+                  final bool? confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: Text(AppLocalizations.of(context)!.logout),
+                        content: Text(AppLocalizations.of(context)!.confirmLogout),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: Text(AppLocalizations.of(context)!.cancel),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: Text(AppLocalizations.of(context)!.logout),
+                          ),
+                        ],
+                      );
+                    },
                   );
+
+                  if (confirm == true) {
+                    try {
+                      // Call the logout API
+                      await ApiClient().logout();
+
+                      // Navigate to welcome screen
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                            (route) => false,
+                      );
+
+                      // Show success message
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(AppLocalizations.of(context)!.logoutSuccessful),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } catch (e) {
+                      // Show error message
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${AppLocalizations.of(context)!.logoutFailed}: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 },
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(

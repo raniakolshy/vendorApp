@@ -3,6 +3,8 @@ import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/api_client.dart';
+
 /// =============================================================
 /// Constants / Colors
 /// =============================================================
@@ -407,10 +409,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadUserName() async {
-    final String? loggedInUserName = 'Mr. Jake';
-    setState(() {
-      _userName = loggedInUserName;
-    });
+    try {
+      final customerInfo = await ApiClient().getCustomerInfo();
+
+      if (customerInfo != null) {
+        final firstName = customerInfo['firstname'] ?? '';
+        final lastName = customerInfo['lastname'] ?? ''; // FIXED: lowercase 'l'
+        final email = customerInfo['email'] ?? '';
+
+        setState(() {
+          _userName = '$firstName $lastName'.trim(); // FIXED: lowercase 'l'
+          if (_userName!.isEmpty) _userName = email;
+        });
+      } else {
+        setState(() {
+          _userName = 'Guest';
+        });
+      }
+    } catch (e) {
+      print('Error loading user name: $e');
+      setState(() {
+        _userName = 'Guest';
+      });
+    }
   }
 }
 

@@ -1,3 +1,4 @@
+import 'package:app_vendor/services/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_vendor/state_management/locale_provider.dart';
@@ -84,9 +85,40 @@ class _HomeState extends State<Home> {
   NavKey _selected = NavKey.dashboard;
   int _bottomIndex = 1;
   int _unreadCount = 4;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthentication();
+  }
+
+  Future<void> _checkAuthentication() async {
+    final isLoggedIn = await ApiClient().isLoggedIn();
+
+    if (!isLoggedIn) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     return AppShell(
       scaffoldKey: _scaffoldKey,
       selected: _selected,

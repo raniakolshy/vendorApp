@@ -1161,5 +1161,14 @@
   "country_uae": "United Arab Emirates",
   "Egypte": "Egypte",
   "download" : "download",
-  "clearFilter": "clear Filter"
+  "clearFilter": "clear Filter",
+  "filterAll": "All",
+  "filterEnabledProducts": "Enabled Products",
+  "filterDisabledProducts": "Disabled Products",
+  "filterLowStock": "Low Stock",
+  "filterOutOfStock": "Out of Stock",
+  "filterDeniedProduct": "Denied Product",
+  "confirmLogout" :"Confirm Logout",
+  "logoutSuccessful" : "Logout Successful",
+  "logoutFailed": "Logout Failed"
 }
