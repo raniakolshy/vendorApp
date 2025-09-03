@@ -1,7 +1,9 @@
+// lib/presentation/dashboard/dashboard_screen.dart
 import 'dart:math' show min, max, pi, atan2;
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../services/api_client.dart';
 
@@ -17,35 +19,6 @@ const Color kPrimaryLine  = Color(0xFF97ADFF); // 97ADFF
 const Color kCompareLine  = Color(0xFFFFC879); // FFC879
 const Color kPageBg       = Color(0xFFF6F7FB);
 const Color kHeaderColor  = Color(0xFF222222);
-
-/// =============================================================
-/// Example website-like data holder (plug your API here)
-/// =============================================================
-class WebsiteSeries {
-  final Map<DateTime, double> totalSales; // AED in millions for the “m” ticks
-  final Map<DateTime, double> aov;
-
-  WebsiteSeries({
-    required this.totalSales,
-    required this.aov,
-  });
-
-  factory WebsiteSeries.flat({
-    required DateTime start,
-    required int days,
-    double sales = 8.2, // “8.2m”
-    double aov = 0.0,
-  }) {
-    final s = <DateTime, double>{};
-    final v = <DateTime, double>{};
-    for (var i = 0; i < days; i++) {
-      final d = DateTime(start.year, start.month, start.day).add(Duration(days: i));
-      s[d] = sales;
-      v[d] = aov;
-    }
-    return WebsiteSeries(totalSales: s, aov: v);
-  }
-}
 
 /// =============================================================
 /// Models for UI
@@ -100,7 +73,6 @@ List<String> xLabelsForRangeKey(BuildContext context, String key) {
     case kRange7:
       return [l.weekMon, l.weekTue, l.weekWed, l.weekThu, l.weekFri, l.weekSat, l.weekSun];
     case kRange30:
-    // anchor ticks the same as before
       return ['1','5','10','15','20','25','30'];
     case kRangeYear:
       return [l.monthJan, l.monthFeb, l.monthMar, l.monthApr, l.monthMay, l.monthJun, l.monthJul, l.monthAug, l.monthSep, l.monthOct, l.monthNov, l.monthDec];
@@ -191,27 +163,34 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  Map<String, dynamic>? _dashboardStats;
+  Map<String, double>? _salesHistory;
+  Map<String, int>? _customerBreakdown;
+  List<dynamic> _topProducts = [];
+  List<dynamic> _topCategories = [];
+  Map<String, Map<int, double>>? _productRatings;
+  List<dynamic> _latestReviews = [];
+  bool _isLoading = false;
   String _salesRangeKey = kRangeAll;
   String _aovRangeKey   = kRangeAll;
   String? _userName;
-
-  final WebsiteSeries site = WebsiteSeries.flat(
-    start: DateTime.now().subtract(const Duration(days: 60)),
-    days: 90,
-    sales: 8.2,
-    aov: 0.0,
-  );
 
   @override
   void initState() {
     super.initState();
     _loadUserName();
+    _fetchDashboardData();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: kPageBg,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       backgroundColor: kPageBg,
       body: SafeArea(
@@ -226,16 +205,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   clipBehavior: Clip.none,
                   children: [
                     Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: kHeaderHeight,
+                      top: 0, left: 0, right: 0, height: kHeaderHeight,
                       child: Container(
                         decoration: const BoxDecoration(
                           color: kHeaderColor,
-                          borderRadius: BorderRadius.only(
-                            bottomLeft: Radius.circular(32),
-                          ),
+                          borderRadius: BorderRadius.only(bottomLeft: Radius.circular(32)),
                         ),
                         padding: const EdgeInsets.only(top: 16),
                         child: Column(
@@ -282,15 +256,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       left: 0, right: 0, height: kStatOverlap + 16,
                       child: Container(color: kPageBg),
                     ),
-                    const Positioned(
+                    Positioned(
                       top: kHeaderHeight - kStatOverlap + 4,
                       left: 0, right: 0,
-                      child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: _StatRow()),
+                      child: const SizedBox.shrink(),
+                    ),
+                    Positioned(
+                      top: kHeaderHeight - kStatOverlap + 4,
+                      left: 0, right: 0,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _StatRow(dashboardStats: _dashboardStats),
+                      ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 12),
 
               // ---------- Content ----------
@@ -302,8 +283,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     TotalSalesCard(
                       rangeKey: _salesRangeKey,
                       onRangeChanged: (v) => setState(() => _salesRangeKey = v),
-                      data: site.totalSales,
-                      compareData: site.totalSales,
+                      salesHistory: _salesHistory,
                     ),
                     const SizedBox(height: 20),
 
@@ -311,11 +291,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _TwoUpGrid(children: [
                       SectionCard(
                         title: l10n.totalCustomers,
-                        child: const _CustomersCard(),
+                        child: _CustomersCard(customerBreakdown: _customerBreakdown),
                       ),
                       SectionCard(
                         title: l10n.averageOrderValue,
-                        child: AOVSection(rangeKey: _aovRangeKey, siteAov: site.aov),
+                        child: AOVSection(rangeKey: _aovRangeKey, salesHistory: _salesHistory),
                         trailing: _RangeDropDown(
                           value: _aovRangeKey,
                           items: rangeKeys().map((k) => DropdownMenuItem(value: k, child: Text(rangeLabel(context, k)))).toList(),
@@ -330,37 +310,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _TwoUpGrid(children: [
                       SectionCard(
                         title: l10n.topSellingProducts,
-                        child: ProductCarousel(products: [
-                          ProductTileData(
-                            name: 'Wireless Headphones Pro 300',
-                            price: 249.00, sold: 132,
-                            thumb: Image.network('https://picsum.photos/seed/hdph/320/200', fit: BoxFit.cover),
-                          ),
-                          ProductTileData(
-                            name: 'Smartwatch Lite',
-                            price: 99.00, sold: 98,
-                            thumb: Image.network('https://picsum.photos/seed/watch/320/200', fit: BoxFit.cover),
-                          ),
-                          ProductTileData(
-                            name: '4K Action Camera',
-                            price: 179.99, sold: 76,
-                            thumb: Image.network('https://picsum.photos/seed/cam/320/200', fit: BoxFit.cover),
-                          ),
-                          ProductTileData(
-                            name: 'USB-C Charging Cable 2m',
-                            price: 12.49, sold: 240,
-                            thumb: Image.network('https://picsum.photos/seed/cable/320/200', fit: BoxFit.cover),
-                          ),
-                        ]),
+                        child: ProductCarousel(products: _convertProductsToTileData(_topProducts)),
                       ),
                       SectionCard(
                         title: l10n.topCategories,
-                        child: CategoryCarousel(categories: [
-                          CategoryTileData(name: l10n.catHeadphones, items: 42, icon: const Icon(Icons.headphones_outlined)),
-                          CategoryTileData(name: l10n.catWatches,     items: 18, icon: const Icon(Icons.watch_outlined)),
-                          CategoryTileData(name: l10n.catCameras,     items: 26, icon: const Icon(Icons.photo_camera_outlined)),
-                          CategoryTileData(name: l10n.catAccessories, items: 120, icon: const Icon(Icons.extension_outlined)),
-                        ]),
+                        child: CategoryCarousel(categories: _convertCategoriesToTileData(_topCategories)),
                       ),
                     ]),
 
@@ -370,9 +324,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     SectionCard(
                       title: l10n.ratings,
                       child: RatingsPanel(
-                        price:  const {5:12,4:18,3:32,2:21,1:17},
-                        value:  const {5:15,4:20,3:30,2:20,1:15},
-                        quality:const {5:10,4:25,3:30,2:25,1:10},
+                        price: _productRatings?['price'] ?? const {5:0,4:0,3:0,2:0,1:0},
+                        value: _productRatings?['value'] ?? const {5:0,4:0,3:0,2:0,1:0},
+                        quality: _productRatings?['quality'] ?? const {5:0,4:0,3:0,2:0,1:0},
                       ),
                     ),
 
@@ -381,20 +335,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // Reviews
                     SectionCard(
                       title: l10n.latestCommentsReviews,
-                      child: LatestReviewsList(reviews: [
-                        Review(
-                          user: 'Courtney Henry',
-                          rating: 5, timeAgo: '2h',
-                          product: 'Wireless Headphones Pro 300',
-                          comment: l10n.r1,
-                        ),
-                        Review(
-                          user: 'Jenny Wilson',
-                          rating: 4, timeAgo: '1d',
-                          product: 'Smartwatch Lite',
-                          comment: l10n.r2,
-                        ),
-                      ]),
+                      child: LatestReviewsList(reviews: _convertReviewsToModel(_latestReviews)),
                     ),
 
                     const SizedBox(height: 28),
@@ -408,17 +349,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  List<ProductTileData> _convertProductsToTileData(List<dynamic> products) {
+    return products.map((product) {
+      return ProductTileData(
+        name: product['name'] ?? 'Unknown Product',
+        price: double.tryParse(product['price']?.toString() ?? '0') ?? 0.0,
+        sold: int.tryParse(product['qty_ordered']?.toString() ?? '0') ?? 0,
+        thumb: product['image'] != null
+            ? Image.network(product['image'].toString(), fit: BoxFit.cover)
+            : null,
+      );
+    }).toList();
+  }
+
+  List<CategoryTileData> _convertCategoriesToTileData(List<dynamic> categories) {
+    return categories.map((category) {
+      return CategoryTileData(
+        name: category['name'] ?? 'Unknown Category',
+        items: int.tryParse(category['product_count']?.toString() ?? '0') ?? 0,
+        icon: const Icon(Icons.category_outlined),
+      );
+    }).toList();
+  }
+
+  List<Review> _convertReviewsToModel(List<dynamic> reviews) {
+    return reviews.map((review) {
+      return Review(
+        user: review['nickname'] ?? 'Anonymous',
+        rating: (int.tryParse(review['rating_summary']?.toString() ?? '0') ?? 0) ~/ 20,
+        timeAgo: _formatTimeAgo(review['created_at']?.toString() ?? ''),
+        comment: review['detail'] ?? 'No comment',
+        product: review['product_name']?.toString(),
+      );
+    }).toList();
+  }
+
+  String _formatTimeAgo(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays > 0) return '${difference.inDays}d';
+      if (difference.inHours > 0) return '${difference.inHours}h';
+      if (difference.inMinutes > 0) return '${difference.inMinutes}m';
+      return 'Just now';
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
+
   Future<void> _loadUserName() async {
     try {
       final customerInfo = await ApiClient().getCustomerInfo();
 
       if (customerInfo != null) {
         final firstName = customerInfo['firstname'] ?? '';
-        final lastName = customerInfo['lastname'] ?? ''; // FIXED: lowercase 'l'
+        final lastName = customerInfo['lastname'] ?? '';
         final email = customerInfo['email'] ?? '';
 
         setState(() {
-          _userName = '$firstName $lastName'.trim(); // FIXED: lowercase 'l'
+          _userName = '$firstName $lastName'.trim();
           if (_userName!.isEmpty) _userName = email;
         });
       } else {
@@ -427,10 +418,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       }
     } catch (e) {
-      print('Error loading user name: $e');
+      // ignore
+      setState(() => _userName = 'Guest');
+    }
+  }
+
+  Future<void> _fetchDashboardData() async {
+    setState(() => _isLoading = true);
+    try {
+      final apiClient = ApiClient();
+      final stats            = await apiClient.getDashboardStats();
+      final salesHistory     = await apiClient.getSalesHistory();
+      final customerBreakdown= await apiClient.getCustomerBreakdown();
+      final topProducts      = await apiClient.getTopSellingProducts();
+      final topCategories    = await apiClient.getTopCategories();
+      final productRatings   = await apiClient.getProductRatings();
+      final latestReviews    = await apiClient.getLatestReviews();
+
       setState(() {
-        _userName = 'Guest';
+        _dashboardStats     = stats;
+        _salesHistory       = salesHistory;
+        _customerBreakdown  = customerBreakdown;
+        _topProducts        = topProducts;
+        _topCategories      = topCategories;
+        _productRatings     = productRatings;
+        _latestReviews      = latestReviews;
       });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load data: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 }
@@ -477,123 +498,21 @@ class _RangeDropDown extends StatelessWidget {
   }
 }
 
-/// Animated painter-based donut with round caps & smooth motion.
-class AnimatedDonut extends StatelessWidget {
-  final List<double> values;
-  final List<Color> colors;
-  final double strokeWidth;
-  final double size;
-  final Duration duration;
-  final Curve curve;
-  final int? highlightedIndex;
-
-  const AnimatedDonut({
-    super.key,
-    required this.values,
-    required this.colors,
-    this.strokeWidth = 16,
-    this.size = 160,
-    this.duration = const Duration(milliseconds: 800),
-    this.curve = Curves.easeOut,
-    this.highlightedIndex,
-  }) : assert(values.length == colors.length);
-
-  @override
-  Widget build(BuildContext context) {
-    final total = values.fold<double>(0, (p, c) => p + c);
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: duration,
-      curve: curve,
-      builder: (_, t, __) {
-        return SizedBox(
-          width: size,
-          height: size,
-          child: CustomPaint(
-            painter: _DonutPainter(
-              t: t,
-              values: values,
-              colors: colors,
-              total: total == 0 ? 1 : total,
-              strokeWidth: strokeWidth,
-              highlightedIndex: highlightedIndex,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _DonutPainter extends CustomPainter {
-  final double t; // 0..1 animation progress
-  final List<double> values;
-  final List<Color> colors;
-  final double total;
-  final double strokeWidth;
-  final int? highlightedIndex;
-
-  _DonutPainter({
-    required this.t,
-    required this.values,
-    required this.colors,
-    required this.total,
-    required this.strokeWidth,
-    required this.highlightedIndex,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final center = rect.center;
-    final radius = size.width / 2 - strokeWidth / 2;
-
-    // tiny spin-in for a bit of delight
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate((1 - t) * 0.25);
-    canvas.translate(-center.dx, -center.dy);
-
-    // background track
-    final bg = Paint()
-      ..color = const Color(0xFFF1F3F8)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-    canvas.drawArc(Rect.fromCircle(center: center, radius: radius), 0, 2 * pi, false, bg);
-
-    double start = -pi / 2;
-    for (var i = 0; i < values.length; i++) {
-      final sweep = (values[i] / total) * 2 * pi * t;
-      if (sweep <= 0) continue;
-
-      final p = Paint()
-        ..color = colors[i]
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth + (i == highlightedIndex ? 2.5 : 0) // subtle hover/tap highlight
-        ..strokeCap = StrokeCap.round;
-
-      canvas.drawArc(Rect.fromCircle(center: center, radius: radius), start, sweep, false, p);
-      start += sweep;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DonutPainter old) =>
-      old.t != t ||
-          old.values != values ||
-          old.colors != colors ||
-          old.strokeWidth != strokeWidth ||
-          old.highlightedIndex != highlightedIndex;
-}
-
 /// =============================================================
 /// Small stat row
 /// =============================================================
 class _StatRow extends StatelessWidget {
-  const _StatRow();
+  final Map<String, dynamic>? dashboardStats;
+  const _StatRow({this.dashboardStats});
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
+
+    final totalRevenue = (dashboardStats?['totalRevenue'] ?? 0.0) as double;
+    final orderCount   = (dashboardStats?['orderCount'] ?? 0) as int;
+    final customerCount= (dashboardStats?['customerCount'] ?? 0) as int;
+
     return SizedBox(
       height: kStatCardHeight + 4,
       child: ListView(
@@ -603,24 +522,24 @@ class _StatRow extends StatelessWidget {
           _MiniStatCard(
             iconPath: 'assets/icons/payments_outlined.png',
             label: l.revenue,
-            value: l.currencyAmount('AED', '500'),
-            delta: '+50% ${l.lastWeek}',
+            value: l.currencyAmount('AED', totalRevenue.toStringAsFixed(2)),
+            delta: '+0% ${l.lastWeek}',
             deltaColor: Colors.green,
           ),
           const SizedBox(width: 12),
           _MiniStatCard(
             iconPath: 'assets/icons/shopping_bag_outlined.png',
             label: l.orders,
-            value: '100',
-            delta: '-50% ${l.lastWeek}',
-            deltaColor: Colors.red,
+            value: orderCount.toString(),
+            delta: '+0% ${l.lastWeek}',
+            deltaColor: Colors.green,
           ),
           const SizedBox(width: 12),
           _MiniStatCard(
             iconPath: 'assets/icons/people_alt_outlined.png',
             label: l.customers,
-            value: '562',
-            delta: '+20% ${l.lastWeek}',
+            value: customerCount.toString(),
+            delta: '+0% ${l.lastWeek}',
             deltaColor: Colors.green,
           ),
         ],
@@ -739,21 +658,20 @@ class SectionCard extends StatelessWidget {
     );
   }
 }
+
 /// =============================================================
 /// TOTAL SALES card
 /// =============================================================
 class TotalSalesCard extends StatefulWidget {
   final String rangeKey;
   final ValueChanged<String> onRangeChanged;
-  final Map<DateTime, double> data;
-  final Map<DateTime, double>? compareData;
+  final Map<String, double>? salesHistory;
 
   const TotalSalesCard({
     super.key,
     required this.rangeKey,
     required this.onRangeChanged,
-    required this.data,
-    this.compareData,
+    required this.salesHistory,
   });
 
   @override
@@ -764,10 +682,24 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
+
+    // Convert sales history to the format expected by spotsFromSiteByKey
+    final Map<DateTime, double> salesData = {};
+    if (widget.salesHistory != null) {
+      for (var entry in widget.salesHistory!.entries) {
+        try {
+          final date = DateTime.parse(entry.key);
+          salesData[date] = entry.value;
+        } catch (_) {}
+      }
+    }
+
     final labels  = xLabelsForRangeKey(context, widget.rangeKey);
-    final primary = spotsFromSiteByKey(widget.data, widget.rangeKey);
-    final compare = widget.compareData != null ? spotsFromSiteByKey(widget.compareData!, widget.rangeKey) : <FlSpot>[];
-    final bounds  = yBounds(primary, compare.isEmpty ? null : compare);
+    final primary = spotsFromSiteByKey(salesData, widget.rangeKey);
+    final bounds  = yBounds(primary);
+
+    // Calculate total sales
+    final totalSales = salesData.values.fold<double>(0, (sum, value) => sum + value);
 
     return Container(
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8))]),
@@ -784,7 +716,7 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
         ]),
         const SizedBox(height: 8),
         Row(children: [
-          Text(l.currencyAmount('AED', '0.00'), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+          Text(l.currencyAmount('AED', totalSales.toStringAsFixed(2)), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(width: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -792,7 +724,7 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
             child: Row(children: [
               const Icon(Icons.arrow_upward_rounded, size: 14, color: Colors.green),
               const SizedBox(width: 4),
-              Text(l.percentTotalSales('37.8'), style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600)),
+              Text(l.percentTotalSales('0.0'), style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600)),
             ]),
           ),
         ]),
@@ -823,7 +755,7 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
                     interval: 0.2,
                     getTitlesWidget: (v, _) => SizedBox(
                       width: 42,
-                      child: Text('${v.toStringAsFixed(1)}${AppLocalizations.of(context)!.millionsSuffix}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                      child: Text('${v.toStringAsFixed(1)}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
                     ),
                   ),
                 ),
@@ -842,15 +774,6 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
               ),
               borderData: FlBorderData(show: false),
               lineBarsData: [
-                if (compare.isNotEmpty)
-                  LineChartBarData(
-                    spots: compare, isCurved: true, barWidth: 2,
-                    color: kCompareLine.withOpacity(0.45),
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (s, p, bar, i) => FlDotCirclePainter(radius: 2.5, color: kCompareLine.withOpacity(0.9), strokeColor: Colors.white, strokeWidth: 1),
-                    ),
-                  ),
                 LineChartBarData(
                   spots: primary, isCurved: true, barWidth: 3, color: kPrimaryLine,
                   dotData: FlDotData(
@@ -870,7 +793,7 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
                   getTooltipItems: (spots) {
                     if (spots.isEmpty) return [];
                     final idx = spots.first.x.toInt().clamp(0, labels.length - 1);
-                    return [LineTooltipItem(labels[idx], const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w700, fontSize: 12))];
+                    return [LineTooltipItem('${labels[idx]}: ${spots.first.y.toStringAsFixed(2)}', const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w700, fontSize: 12))];
                   },
                 ),
               ),
@@ -879,9 +802,7 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
         ),
         const SizedBox(height: 8),
         Row(children: [
-          _LegendSwatch(label: l.legendRangeYear('2022'), color: kPrimaryLine, solid: true),
-          const SizedBox(width: 18),
-          _LegendSwatch(label: l.legendRangeYear('2023'), color: kCompareLine, solid: false, dimmed: true),
+          _LegendSwatch(label: l.legendRangeYear('Current'), color: kPrimaryLine, solid: true),
         ]),
       ]),
     );
@@ -969,31 +890,47 @@ class _LinePainter extends CustomPainter {
 /// Animated Donut (for “Total customers”)
 /// =============================================================
 class _CustomersCard extends StatefulWidget {
-  const _CustomersCard();
+  final Map<String, int>? customerBreakdown;
+  const _CustomersCard({this.customerBreakdown});
 
   @override
   State<_CustomersCard> createState() => _CustomersCardState();
 }
 
 class _CustomersCardState extends State<_CustomersCard> {
-  // Order matters (arc order)
-  late final List<_DonutSegment> segments;
-
   // UI knobs (keep in sync with painter)
   final double _size = 170;
   final double _stroke = 18;
 
   int? _hovered; // null = nothing active
+  late List<_DonutSegment> segments;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _rebuildSegments(); // build once for initial paint
+  }
+
+  void _rebuildSegments() {
     final l = AppLocalizations.of(context)!;
+
+    final oldC       = (widget.customerBreakdown?['old'] ?? 0).toDouble();
+    final newC       = (widget.customerBreakdown?['new'] ?? 0).toDouble();
+    final returningC = (widget.customerBreakdown?['returning'] ?? 0).toDouble();
+
     segments = [
-      _DonutSegment(label: l.oldCustomer,       value: 65, color: const Color(0xFFB7A6FF)), // purple
-      _DonutSegment(label: l.newCustomer,       value: 25, color: const Color(0xFFFFC879)), // peach
-      _DonutSegment(label: l.returningCustomer, value: 10, color: const Color(0xFFFF96B5)), // pink
+      _DonutSegment(label: l.oldCustomer,       value: oldC,       color: const Color(0xFFB7A6FF)),
+      _DonutSegment(label: l.newCustomer,       value: newC,       color: const Color(0xFFFFC879)),
+      _DonutSegment(label: l.returningCustomer, value: returningC, color: const Color(0xFFFF96B5)),
     ];
+  }
+
+  @override
+  void didUpdateWidget(covariant _CustomersCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.customerBreakdown != widget.customerBreakdown) {
+      _rebuildSegments();
+    }
   }
 
   void _updateFromLocalPos(Offset local) {
@@ -1022,7 +959,7 @@ class _CustomersCardState extends State<_CustomersCard> {
           child: Center(
             child: MouseRegion(
               onHover: (e) => _updateFromLocalPos(
-                _localFromGlobal(context, e.position, boxSize: Size(_size, _size)),
+                _localFromGlobal(context, e.position),
               ),
               onExit: (_) => setState(() => _hovered = null),
               child: GestureDetector(
@@ -1032,7 +969,6 @@ class _CustomersCardState extends State<_CustomersCard> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Donut itself (highlight the hovered slice a bit thicker)
                     AnimatedDonut(
                       values: segments.map((e) => e.value).toList(),
                       colors: segments.map((e) => e.color).toList(),
@@ -1042,12 +978,10 @@ class _CustomersCardState extends State<_CustomersCard> {
                       duration: const Duration(milliseconds: 900),
                       curve: Curves.easeOutCubic,
                     ),
-
-                    // Floating info card
                     if (active != null)
                       _FloatingInfoCard(
                         label: active.label,
-                        valueText: _formatCount(active.value, total),
+                        valueText: _formatCount(active.value, total), // shows %
                         color: active.color,
                       ),
                   ],
@@ -1056,26 +990,21 @@ class _CustomersCardState extends State<_CustomersCard> {
             ),
           ),
         ),
-
         const SizedBox(height: 8),
-
-        // Legends
         Wrap(
-          spacing: 18,
-          runSpacing: 8,
-          children: [
-            _DotLegend(color: segments[1].color, label: segments[1].label), // New
-            _DotLegend(color: segments[2].color, label: segments[2].label), // Returning
-          ],
+          spacing: 18, runSpacing: 8,
+          children: [for (final seg in segments) _DotLegend(color: seg.color, label: seg.label)],
         ),
-
         const SizedBox(height: 12),
         RichText(
           text: TextSpan(
             style: text.bodyMedium?.copyWith(color: const Color(0xFF111827)),
             children: [
               TextSpan(text: '${l.welcome} '),
-              TextSpan(text: l.customersCount('291'), style: const TextStyle(fontWeight: FontWeight.w700)),
+              TextSpan(
+                text: l.customersCount(total.toInt().toString()),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
               TextSpan(text: ' ${l.withPersonalMessage} 🥳'),
             ],
           ),
@@ -1085,116 +1014,11 @@ class _CustomersCardState extends State<_CustomersCard> {
   }
 }
 
-class _FloatingInfoCard extends StatelessWidget {
-  final String label;
-  final String valueText;
-  final Color color;
-
-  const _FloatingInfoCard({
-    required this.label,
-    required this.valueText,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Material(
-      elevation: 16,
-      borderRadius: BorderRadius.circular(14),
-      color: Colors.white,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 24, offset: const Offset(0, 12))],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: text.labelLarge?.copyWith(color: const Color(0xFF6B7280))),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
-                const SizedBox(width: 8),
-                Text(valueText, style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-Offset _localFromGlobal(BuildContext context, Offset global, {required Size boxSize}) {
-  final box = context.findRenderObject() as RenderBox?;
-  if (box == null) return Offset.zero;
-  final localTopLeft = box.globalToLocal(global);
-  final origin = Offset((box.size.width - boxSize.width) / 2, (box.size.height - boxSize.height) / 2);
-  return localTopLeft - origin;
-}
-
-int? _hitTestDonut({
-  required Offset localPos,
-  required Size size,
-  required double strokeWidth,
-  required List<double> values,
-}) {
-  final total = values.fold<double>(0, (p, v) => p + v);
-  if (total <= 0) return null;
-
-  final center = Offset(size.width / 2, size.height / 2);
-  final r = size.width / 2;
-  final innerR = r - strokeWidth;
-  final d = (localPos - center).distance;
-
-  if (d < innerR || d > r) return null;
-
-  double ang = atan2(localPos.dy - center.dy, localPos.dx - center.dx);
-  ang = (ang + 2 * pi) % (2 * pi);
-  ang = (ang + pi / 2) % (2 * pi);
-
-  double acc = 0;
-  for (var i = 0; i < values.length; i++) {
-    final sweep = (values[i] / total) * 2 * pi;
-    if (ang >= acc && ang < acc + sweep) return i;
-    acc += sweep;
-  }
-  return values.isEmpty ? null : values.length - 1;
-}
-
+/// Format percentage properly
 String _formatCount(double part, double total) {
-  final pct = total == 0 ? 0 : part / total;
-  final approx = (pct * 100000).round();
-  if (approx >= 1000) return '${(approx / 1000).round()}k';
-  return approx.toString();
-}
-
-class _DonutSegment {
-  final String label;
-  final double value;
-  final Color color;
-  const _DonutSegment({required this.label, required this.value, required this.color});
-}
-
-class _DotLegend extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _DotLegend({required this.color, required this.label});
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(width: 8),
-        Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: const Color(0xFF6B7280))),
-      ],
-    );
-  }
+  if (total == 0) return '0%';
+  final pct = (part / total * 100).toStringAsFixed(1);
+  return '$pct%';
 }
 
 /// =============================================================
@@ -1202,26 +1026,47 @@ class _DotLegend extends StatelessWidget {
 /// =============================================================
 class AOVSection extends StatelessWidget {
   final String rangeKey;
-  final Map<DateTime, double> siteAov;
-  const AOVSection({super.key, required this.rangeKey, required this.siteAov});
+  final Map<String, double>? salesHistory;
+  const AOVSection({super.key, required this.rangeKey, required this.salesHistory});
+
+  Map<DateTime, double> _toDateMap(Map<String, double>? src) {
+    final out = <DateTime, double>{};
+    if (src == null) return out;
+    for (final e in src.entries) {
+      try {
+        out[DateTime.parse(e.key)] = e.value;
+      } catch (_) {}
+    }
+    return out;
+  }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
+    final data = _toDateMap(salesHistory);
     final labels = xLabelsForRangeKey(context, rangeKey);
-    final series = spotsFromSiteByKey(siteAov, rangeKey);
+    final series = spotsFromSiteByKey(data, rangeKey);
     final b = yBounds(series);
+
+    // Simple AOV proxy: mean of visible points (replace with true AOV if available)
+    final avg = (series.isEmpty)
+        ? 0.0
+        : series.map((s) => s.y).reduce((a, b) => a + b) / series.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(children: [
-          Text(l.currencyAmount('AED', '0.00'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            l.currencyAmount('AED', avg.toStringAsFixed(2)),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(color: const Color(0xFFE9F7EF), borderRadius: BorderRadius.circular(8)),
-            child: Text(l.percentAov('+37.8'), style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600)),
+            child: Text(l.percentAov('+0.0'),
+                style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ]),
         const SizedBox(height: 8),
@@ -1239,36 +1084,39 @@ class AOVSection extends StatelessWidget {
                     interval: 0.2,
                     getTitlesWidget: (v, _) => SizedBox(
                       width: 42,
-                      child: Text('${v.toStringAsFixed(1)}${l.millionsSuffix}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                      child: Text('${v.toStringAsFixed(1)}${l.millionsSuffix}',
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
                     ),
                   ),
                 ),
                 rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                bottomTitles: AxisTitles(sideTitles: SideTitles(
-                  showTitles: true,
-                  interval: 1,
-                  getTitlesWidget: (value, meta) {
-                    final i = value.toInt();
-                    if (i < 0 || i >= labels.length) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(labels[i], style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
-                    );
-                  },
-                )),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true, interval: 1,
+                    getTitlesWidget: (value, meta) {
+                      final i = value.toInt();
+                      if (i < 0 || i >= labels.length) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(labels[i], style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                      );
+                    },
+                  ),
+                ),
               ),
               gridData: FlGridData(
-                show: true,
-                drawVerticalLine: true,
-                horizontalInterval: 0.2,
-                verticalInterval: 1,
+                show: true, drawVerticalLine: true, horizontalInterval: 0.2, verticalInterval: 1,
                 getDrawingHorizontalLine: (v) => const FlLine(color: Color(0xFFEDEEF2), strokeWidth: 1),
                 getDrawingVerticalLine:   (v) => const FlLine(color: Color(0xFFEDEEF2), strokeWidth: 1),
               ),
               borderData: FlBorderData(show: false),
               lineBarsData: [
-                LineChartBarData(spots: series, isCurved: true, barWidth: 3, color: kPrimaryLine, dotData: const FlDotData(show: false)),
+                LineChartBarData(
+                  spots: series, isCurved: true, barWidth: 3, color: kPrimaryLine,
+                  dotData: const FlDotData(show: false),
+                ),
               ],
               lineTouchData: const LineTouchData(enabled: true),
             ),
@@ -1602,11 +1450,7 @@ class _ModernReviewCard extends StatelessWidget {
                     r.user.isNotEmpty
                         ? r.user.trim().split(RegExp(r'\s+')).map((w) => w[0]).take(2).join().toUpperCase()
                         : '?',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        fontSize: 14
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 14),
                   ),
                 ),
               ),
@@ -1636,8 +1480,7 @@ class _ModernReviewCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           r.timeAgo,
-                          style: textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF6B7280)),
+                          style: textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280)),
                         ),
                       ],
                     ),
@@ -1699,11 +1542,7 @@ class _InteractiveButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
 
-  const _InteractiveButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
+  const _InteractiveButton({required this.icon, required this.label, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -1718,11 +1557,7 @@ class _InteractiveButton extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: const Color(0xFF6B7280)),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF6B7280)),
-          ),
+          Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280))),
         ],
       ),
     );
@@ -1763,6 +1598,206 @@ class _TwoUpGrid extends StatelessWidget {
           children: children.map((w) => SizedBox(width: itemWidth, child: w)).toList(),
         );
       },
+    );
+  }
+}
+
+/// =============================================================
+/// Donut plumbing: model + painter + helpers
+/// =============================================================
+class _DonutSegment {
+  final String label;
+  final double value;
+  final Color color;
+  const _DonutSegment({required this.label, required this.value, required this.color});
+}
+
+/// Converts a global position into the local coordinates of [context].
+Offset _localFromGlobal(BuildContext context, Offset global) {
+  final box = context.findRenderObject() as RenderBox?;
+  if (box == null) return Offset.zero;
+  return box.globalToLocal(global);
+}
+
+/// Hit-test which donut slice is under [localPos].
+/// Returns the segment index or null if outside of the ring.
+int? _hitTestDonut({
+  required Offset localPos,
+  required Size size,
+  required double strokeWidth,
+  required List<double> values,
+}) {
+  if (values.isEmpty) return null;
+
+  final center = Offset(size.width / 2, size.height / 2);
+  final dx = localPos.dx - center.dx;
+  final dy = localPos.dy - center.dy;
+  final r = (size.shortestSide / 2);
+
+  // Donut ring bounds (use squared distances to avoid sqrt)
+  final outerR2 = r * r;
+  final innerR = r - strokeWidth;
+  final innerR2 = innerR * innerR;
+
+  final dist2 = dx * dx + dy * dy;
+  if (dist2 < innerR2 || dist2 > outerR2) return null;
+
+  // Angle 0 at +X axis, normalize to [0, 2π)
+  var angle = atan2(dy, dx);
+  if (angle < 0) angle += 2 * pi;
+
+  final total = values.fold<double>(0, (p, v) => p + (v.isFinite ? v : 0));
+  if (total <= 0) return null;
+
+  double acc = 0.0;
+  for (int i = 0; i < values.length; i++) {
+    final sweep = (values[i] / total) * 2 * pi;
+    final start = acc;
+    final end = acc + sweep;
+    if (angle >= start && angle < end) return i;
+    acc = end;
+  }
+  return values.isNotEmpty ? values.length - 1 : null;
+}
+
+/// Animated donut that paints proportions of [values] with [colors].
+class AnimatedDonut extends StatelessWidget {
+  final List<double> values;
+  final List<Color> colors;
+  final double strokeWidth;
+  final double size;
+  final int? highlightedIndex;
+  final Duration duration;
+  final Curve curve;
+
+  const AnimatedDonut({
+    super.key,
+    required this.values,
+    required this.colors,
+    required this.strokeWidth,
+    required this.size,
+    this.highlightedIndex,
+    this.duration = const Duration(milliseconds: 800),
+    this.curve = Curves.easeOut,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: duration,
+      curve: curve,
+      builder: (context, t, _) {
+        return CustomPaint(
+          size: Size.square(size),
+          painter: _DonutPainter(
+            values: values,
+            colors: colors,
+            strokeWidth: strokeWidth,
+            highlightedIndex: highlightedIndex,
+            t: t,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DonutPainter extends CustomPainter {
+  final List<double> values;
+  final List<Color> colors;
+  final double strokeWidth;
+  final int? highlightedIndex;
+  final double t; // 0..1 animation progress
+
+  _DonutPainter({
+    required this.values,
+    required this.colors,
+    required this.strokeWidth,
+    required this.highlightedIndex,
+    required this.t,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = values.fold<double>(0, (p, v) => p + (v.isFinite ? v : 0));
+    if (total <= 0) return;
+
+    final center = size.center(Offset.zero);
+    final radius = size.shortestSide / 2 - strokeWidth / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    double acc = -pi / 2; // start at top
+    for (int i = 0; i < values.length; i++) {
+      final frac = (values[i] / total);
+      final sweep = frac * 2 * pi * t;
+      if (sweep <= 0) continue;
+
+      final paint = Paint()
+        ..color = colors[i % colors.length]
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = (i == highlightedIndex) ? (strokeWidth + 1.5) : strokeWidth;
+
+      canvas.drawArc(rect, acc, sweep, false, paint);
+      acc += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutPainter old) {
+    return old.values != values ||
+        old.colors != colors ||
+        old.strokeWidth != strokeWidth ||
+        old.highlightedIndex != highlightedIndex ||
+        old.t != t;
+  }
+}
+
+class _FloatingInfoCard extends StatelessWidget {
+  final String label;
+  final String valueText;
+  final Color color;
+  const _FloatingInfoCard({required this.label, required this.valueText, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10)],
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 6),
+          Text(valueText, style: const TextStyle(color: Color(0xFF6B7280))),
+        ],
+      ),
+    );
+  }
+}
+
+class _DotLegend extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _DotLegend({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(label, style: const TextStyle(color: Color(0xFF374151))),
+      ],
     );
   }
 }

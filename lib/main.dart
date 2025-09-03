@@ -12,7 +12,7 @@ import 'presentation/admin/ask_admin_screen.dart';
 import 'presentation/pdf/print_pdf_screen.dart';
 import 'presentation/profile/edit_profile_screen.dart';
 import 'presentation/analytics/customer_analytics_screen.dart';
-import 'presentation/dashboard/dashboard_screen.dart';
+import 'presentation/dashboard/dashboard_screen.dart' hide AppLocalizations, ApiClient;
 import 'presentation/orders/orders_list_screen.dart';
 import 'presentation/products/add_product_screen.dart';
 import 'presentation/products/drafts_list_screen.dart';

@@ -1,5 +1,6 @@
 import 'package:app_vendor/presentation/auth/login/login_screen.dart';
 import 'package:app_vendor/presentation/auth/register/register_screen.dart';
+import 'package:app_vendor/presentation/dashboard/dashboard_screen.dart'; // New import for the DashboardScreen
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:app_vendor/main.dart'; // Make sure this path is correct for your Home() widget
@@ -121,7 +122,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
                 ],
               ),
             ),

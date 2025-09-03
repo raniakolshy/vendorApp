@@ -26,6 +26,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phone = TextEditingController();
   final _pass  = TextEditingController();
   final _confirm = TextEditingController();
+  final _businessNameController = TextEditingController();
+  final _vendorPhoneController = TextEditingController();
 
   final _api = ApiClient();
 
@@ -65,46 +67,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _loading = true);
     try {
-      print('Creating customer with: ${_email.text.trim()}');
+      print('Creating vendor account: ${_email.text.trim()}');
 
-      // 1. Create customer
-      final customerResponse = await _api.createCustomer(
+      // 1. Create vendor account directly
+      final vendorResponse = await _api.createVendorAccount(
         firstname: _first.text.trim(),
         lastname: _last.text.trim(),
         email: _email.text.trim(),
         password: _pass.text.trim(),
+        phone: _vendorPhoneController.text.trim(),
+        businessName: _businessNameController.text.trim(),
       );
 
-      print('Customer creation response: $customerResponse');
+      print('Vendor creation response: $vendorResponse');
 
-      // 2. Login to get token
-      print('Attempting to login with new credentials');
+      // 2. Login automatically
       final token = await _api.loginCustomer(_email.text.trim(), _pass.text.trim());
       print('Login successful, token received');
 
-      // 3. Convert customer to vendor (this is the missing step)
-      try {
-        await _api.convertCustomerToVendor(
-          customerId: customerResponse['id'], // You'll need to extract this from response
-          phone: _phone.text.trim(),
-        );
-        print('Customer converted to vendor successfully');
-      } catch (e) {
-        print('Vendor conversion failed: $e');
-      }
-
-      _toast('Account created & logged in!', err: false);
+      _toast('Vendor account created & logged in!', err: false);
 
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
     } catch (e) {
       print('Registration error: $e');
-
-      if (e.toString().contains('already exists')) {
-        _toast('Email address is already registered');
-      } else {
-        _toast('Registration failed: ${e.toString()}');
-      }
+      _toast('Registration failed: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
