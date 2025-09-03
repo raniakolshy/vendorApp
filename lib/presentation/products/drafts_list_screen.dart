@@ -1,7 +1,90 @@
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import '../../services/api_client.dart';
 import 'add_product_screen.dart';
 
+// ===== Models =====
+
+enum DraftStatus {
+  draft,
+  pendingReview,
+}
+
+enum Gender {
+  male,
+  female,
+}
+
+class _Draft {
+  _Draft({
+    required this.id,
+    required this.name,
+    required this.sku,
+    required this.qty,
+    required this.price,
+    required this.created,
+    required this.status,
+    required this.gender,
+    this.thumbnail,
+  });
+
+  final int id;
+  final String name;
+  final String sku;
+  final int qty;
+  final double price;
+  final DateTime created;
+  final DraftStatus status;
+  final Gender gender;
+  final String? thumbnail;
+
+  factory _Draft.fromMagentoProduct(Map<String, dynamic> product) {
+    return _Draft(
+      id: product['id'] ?? 0,
+      name: product['name'] ?? 'No Name',
+      sku: product['sku'] ?? 'No SKU',
+      qty: product['extension_attributes']?['stock_item']?['qty']?.toInt() ?? 0,
+      price: (product['price'] ?? 0.0).toDouble(),
+      created: DateTime.parse(product['created_at'] ?? DateTime.now().toString()),
+      status: _parseStatus(product['status']),
+      gender: Gender.male, // You'll need to map this from custom attributes
+      thumbnail: product['media_gallery_entries']?[0]?['file'],
+    );
+  }
+  static DraftStatus _parseStatus(dynamic status) {
+    if (status == null) return DraftStatus.draft;
+    final statusStr = status.toString();
+    if (statusStr == '2') return DraftStatus.draft;
+    if (statusStr == '1') return DraftStatus.pendingReview;
+    return DraftStatus.draft;
+  }
+}
+
+// Product model for passing to AddProductScreen
+class Product {
+  Product({
+    required this.name,
+    required this.sku,
+    required this.quantity,
+    required this.price,
+  });
+
+  final String name;
+  final String sku;
+  final int quantity;
+  final double price;
+}
+
+// ===== Utils =====
+
+String _fmtDate(DateTime d) {
+  final dd = d.day.toString().padLeft(2, '0');
+  final mm = d.month.toString().padLeft(2, '0');
+  final yyyy = d.year.toString();
+  return '$dd / $mm / $yyyy';
+}
+
+// Main Screen Widget
 class DraftsListScreen extends StatefulWidget {
   const DraftsListScreen({super.key});
 
@@ -16,37 +99,16 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
   static const int _pageSize = 2;
   int _shown = _pageSize;
   bool _loadingMore = false;
+  bool _isLoading = true;
+  List<_Draft> _all = [];
+  final ApiClient _apiClient = ApiClient();
 
-  // Data
-  final List<_Draft> _all = <_Draft>[
-    _Draft(
-      name: 'Gray vintage 3D computer',
-      sku: '223',
-      qty: 100,
-      price: 14.88,
-      created: DateTime(2025, 10, 10),
-      status: DraftStatus.draft,
-      gender: Gender.male,
-    ),
-    _Draft(
-      name: '3D computer improved version',
-      sku: '224',
-      qty: 60,
-      price: 8.99,
-      created: DateTime(2025, 10, 10),
-      status: DraftStatus.draft,
-      gender: Gender.female,
-    ),
-    _Draft(
-      name: '3D dark mode wallpaper',
-      sku: '225',
-      qty: 40,
-      price: 213.99,
-      created: DateTime(2025, 10, 10),
-      status: DraftStatus.pendingReview,
-      gender: Gender.male,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(_onSearchChanged);
+    _loadDrafts();
+  }
 
   @override
   void didChangeDependencies() {
@@ -54,6 +116,28 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
     final localizations = AppLocalizations.of(context)!;
     if (_filter == null) {
       _filter = localizations.allDrafts;
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.removeListener(_onSearchChanged);
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadDrafts() async {
+    setState(() => _isLoading = true);
+    try {
+      // Corrected call to not pass a page parameter
+      final products = await _apiClient.getDraftProducts();
+      _all = products.map((product) => _Draft.fromMagentoProduct(product)).toList();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load drafts: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -77,21 +161,23 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
   }
 
   Future<void> _loadMore() async {
+    if (_loadingMore) return;
+
     setState(() => _loadingMore = true);
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    setState(() {
-      _all.addAll(List.generate(3, (i) => _Draft(
-        name: 'New draft ${i + 1}',
-        sku: 'N${230 + i}',
-        qty: 10 + i,
-        price: 9.99 + i,
-        created: DateTime.now(),
-        status: DraftStatus.draft,
-        gender: i.isEven ? Gender.male : Gender.female, // Added gender property
-      )));
-      _loadingMore = false;
-      _shown = (_shown + _pageSize).clamp(0, _filtered.length);
-    });
+    try {
+      // The new API client loads all drafts at once, so we handle pagination locally.
+      // This is the fix for the named parameter 'page' error.
+      await Future.delayed(const Duration(milliseconds: 500)); // Simulate a slight delay
+      setState(() {
+        _shown += _pageSize;
+        _loadingMore = false;
+      });
+    } catch (e) {
+      setState(() => _loadingMore = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load more: $e')),
+      );
+    }
   }
 
   void _onSearchChanged() {
@@ -122,7 +208,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
         ),
         title: Text(
           localizations.deleteDraftQuestion,
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -139,25 +225,14 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: Text(
                 localizations.deleteButton,
-                style: TextStyle(color: Colors.red),
+                style: const TextStyle(color: Colors.red),
               )),
         ],
       ),
     );
+    // You would typically call an API here to delete the draft by its ID.
+    // For now, we'll just remove it from the local list.
     if (ok == true && mounted) setState(() => _all.remove(d));
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _searchCtrl.addListener(_onSearchChanged);
-  }
-
-  @override
-  void dispose() {
-    _searchCtrl.removeListener(_onSearchChanged);
-    _searchCtrl.dispose();
-    super.dispose();
   }
 
   @override
@@ -387,9 +462,9 @@ class _DraftRow extends StatelessWidget {
                     width: 86,
                     height: 86,
                     color: const Color(0xFFEDEEEF),
-                    child: draft.gender == Gender.male
-                        ? Image.asset('assets/avatar_placeholder.jpg', fit: BoxFit.cover)
-                        : Image.asset('assets/female.jpg', fit: BoxFit.cover),
+                    child: draft.thumbnail != null && draft.thumbnail!.isNotEmpty
+                        ? Image.network(draft.thumbnail!, fit: BoxFit.cover, errorBuilder: (ctx, err, stack) => Image.asset(draft.gender == Gender.male ? 'assets/avatar_placeholder.jpg' : 'assets/female.jpg', fit: BoxFit.cover))
+                        : Image.asset(draft.gender == Gender.male ? 'assets/avatar_placeholder.jpg' : 'assets/female.jpg', fit: BoxFit.cover),
                   ),
                 ),
               ),
@@ -615,60 +690,4 @@ class _StatusPill extends StatelessWidget {
       ),
     );
   }
-}
-
-// ===== Models =====
-
-enum DraftStatus {
-  draft,
-  pendingReview,
-}
-
-enum Gender {
-  male,
-  female,
-}
-
-class _Draft {
-  _Draft({
-    required this.name,
-    required this.sku,
-    required this.qty,
-    required this.price,
-    required this.created,
-    required this.status,
-    required this.gender,
-  });
-
-  final String name;
-  final String sku;
-  final int qty;
-  final double price;
-  final DateTime created;
-  final DraftStatus status;
-  final Gender gender; // Added gender property
-}
-
-// Product model for passing to AddProductScreen
-class Product {
-  Product({
-    required this.name,
-    required this.sku,
-    required this.quantity,
-    required this.price,
-  });
-
-  final String name;
-  final String sku;
-  final int quantity;
-  final double price;
-}
-
-// ===== Utils =====
-
-String _fmtDate(DateTime d) {
-  final dd = d.day.toString().padLeft(2, '0');
-  final mm = d.month.toString().padLeft(2, '0');
-  final yyyy = d.year.toString();
-  return '$dd / $mm / $yyyy';
 }

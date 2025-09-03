@@ -1,5 +1,6 @@
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import '../../services/api_client.dart';
 
 void main() => runApp(const ProductsApp());
 
@@ -50,6 +51,108 @@ class EditProductScreen extends StatelessWidget {
   }
 }
 
+// ===== Models =====
+
+enum ProductStatus {
+  active,
+  disabled,
+  lowStock,
+  outOfStock,
+  denied,
+}
+
+enum ProductVisibility {
+  catalogSearch,
+  catalogOnly,
+  searchOnly,
+  notVisible,
+}
+
+class Product {
+  Product({
+    required this.thumbnailUrl,
+    required this.name,
+    required this.price,
+    required this.type,
+    required this.status,
+    required this.id,
+    required this.sku,
+    required this.createdAt,
+    required this.quantityPerSource,
+    required this.salableQuantity,
+    required this.quantitySold,
+    required this.quantityConfirmed,
+    required this.quantityPending,
+    required this.visibility,
+  });
+
+  final String? thumbnailUrl;
+  final String name;
+  final double price;
+  final String type;
+  final ProductStatus status;
+  final String id;
+  final String sku;
+  final String createdAt;
+  final int quantityPerSource;
+  final int salableQuantity;
+  final int quantitySold;
+  final int quantityConfirmed;
+  final int quantityPending;
+  final ProductVisibility visibility;
+
+  factory Product.fromMagentoProduct(Map<String, dynamic> product) {
+    final extensionAttributes = product['extension_attributes'] ?? {};
+    final stockItem = extensionAttributes['stock_item'] ?? {};
+
+    return Product(
+      thumbnailUrl: product['media_gallery_entries']?.isNotEmpty == true
+          ? product['media_gallery_entries'][0]['file']
+          : null,
+      name: product['name'] ?? 'No Name',
+      price: (product['price'] ?? 0.0).toDouble(),
+      type: product['type_id'] ?? 'N/A',
+      status: _parseStatus(product['status']),
+      id: (product['id'] ?? 0).toString(),
+      sku: product['sku'] ?? 'No SKU',
+      createdAt: _fmtDate(DateTime.parse(product['created_at'] ?? DateTime.now().toString())),
+      quantityPerSource: stockItem['qty']?.toInt() ?? 0,
+      salableQuantity: stockItem['is_in_stock'] == true ? stockItem['qty']?.toInt() ?? 0 : 0,
+      quantitySold: 0, // Not available in this API, defaulting to 0
+      quantityConfirmed: 0, // Not available in this API, defaulting to 0
+      quantityPending: 0, // Not available in this API, defaulting to 0
+      visibility: _parseVisibility(product['visibility']),
+    );
+  }
+  static ProductStatus _parseStatus(dynamic status) {
+    if (status == null) return ProductStatus.disabled;
+    if (status.toString() == '1') return ProductStatus.active;
+    return ProductStatus.disabled;
+  }
+
+  static ProductVisibility _parseVisibility(dynamic visibility) {
+    switch (visibility.toString()) {
+      case '4':
+        return ProductVisibility.catalogSearch;
+      case '3':
+        return ProductVisibility.catalogOnly;
+      case '2':
+        return ProductVisibility.searchOnly;
+      case '1':
+      default:
+        return ProductVisibility.notVisible;
+    }
+  }
+
+  static String _fmtDate(DateTime d) {
+    final dd = d.day.toString().padLeft(2, '0');
+    final mm = d.month.toString().padLeft(2, '0');
+    final yyyy = d.year.toString();
+    return '$dd / $mm / $yyyy';
+  }
+}
+
+// Main Screen Widget
 class ProductsListScreen extends StatefulWidget {
   const ProductsListScreen({super.key});
 
@@ -58,80 +161,21 @@ class ProductsListScreen extends StatefulWidget {
 }
 
 class _ProductsListScreenState extends State<ProductsListScreen> {
-
   final TextEditingController _searchCtrl = TextEditingController();
   String? _filter;
   static const int _pageSize = 2;
   int _shown = _pageSize;
   bool _loadingMore = false;
+  bool _isLoading = true;
+  final ApiClient _apiClient = ApiClient();
+  List<Product> _allProducts = [];
 
-  // Data
-  final List<Product> _allProducts = [
-    Product(
-      thumbnailAsset: 'assets/img_square.jpg',
-      name: 'Gray vintage 3D computer',
-      price: 14.88,
-      type: '3D Product',
-      status: ProductStatus.active,
-      id: 'PRD-001',
-      sku: 'SKU-001',
-      createdAt: '10/10/2025',
-      quantityPerSource: '100',
-      salableQuantity: '95',
-      quantitySold: '5 (+10%)',
-      quantityConfirmed: '5',
-      quantityPending: '0',
-      visibility: ProductVisibility.catalogSearch,
-    ),
-    Product(
-      thumbnailAsset: 'assets/img_square.jpg',
-      name: '3D computer improved version',
-      price: 8.99,
-      type: '3D Product',
-      status: ProductStatus.active,
-      id: 'PRD-002',
-      sku: 'SKU-002',
-      createdAt: '11/10/2025',
-      quantityPerSource: '50',
-      salableQuantity: '45',
-      quantitySold: '5 (+5%)',
-      quantityConfirmed: '5',
-      quantityPending: '0',
-      visibility: ProductVisibility.catalogSearch,
-    ),
-    Product(
-      thumbnailAsset: 'assets/img_square.jpg',
-      name: '3D dark mode wallpaper',
-      price: 213.99,
-      type: 'Wallpaper',
-      status: ProductStatus.disabled,
-      id: 'PRD-003',
-      sku: 'SKU-003',
-      createdAt: '12/10/2025',
-      quantityPerSource: '200',
-      salableQuantity: '200',
-      quantitySold: '0 (0%)',
-      quantityConfirmed: '0',
-      quantityPending: '0',
-      visibility: ProductVisibility.notVisible,
-    ),
-    Product(
-      thumbnailAsset: 'assets/img_square.jpg',
-      name: 'Retro CRT display',
-      price: 19.99,
-      type: '3D Product',
-      status: ProductStatus.lowStock,
-      id: 'PRD-004',
-      sku: 'SKU-004',
-      createdAt: '13/10/2025',
-      quantityPerSource: '10',
-      salableQuantity: '2',
-      quantitySold: '8 (+80%)',
-      quantityConfirmed: '8',
-      quantityPending: '0',
-      visibility: ProductVisibility.catalogOnly,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(_onSearchChanged);
+    _loadProducts();
+  }
 
   @override
   void didChangeDependencies() {
@@ -139,6 +183,27 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     final localizations = AppLocalizations.of(context)!;
     if (_filter == null) {
       _filter = localizations.allProducts;
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.removeListener(_onSearchChanged);
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() => _isLoading = true);
+    try {
+      final productsData = await _apiClient.getProducts();
+      _allProducts = productsData.map((p) => Product.fromMagentoProduct(p)).toList();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load products: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -176,6 +241,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
   Future<void> _loadMore() async {
     setState(() => _loadingMore = true);
+    // Simulate a slight delay to mimic a network call
     await Future<void>.delayed(const Duration(milliseconds: 900));
     setState(() {
       _loadingMore = false;
@@ -212,7 +278,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  _allProducts.remove(product);
+                  _allProducts.removeWhere((p) => p.id == product.id);
                 });
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -232,19 +298,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
   void _editProduct(Product product) {
     Navigator.pushNamed(context, '/edit_product');
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _searchCtrl.addListener(_onSearchChanged);
-  }
-
-  @override
-  void dispose() {
-    _searchCtrl.removeListener(_onSearchChanged);
-    _searchCtrl.dispose();
-    super.dispose();
   }
 
   @override
@@ -351,9 +404,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     ),
 
                     const SizedBox(height: 18),
-
-                    // Products list with soft dividers
-                    ListView.separated(
+                    _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : ListView.separated(
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       itemCount: visible.length,
@@ -430,7 +483,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         ),
                       ),
 
-                    if (_filtered.isEmpty)
+                    if (_filtered.isEmpty && !_isLoading)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
                         child: Center(
@@ -488,7 +541,9 @@ class _ProductRow extends StatelessWidget {
                 width: 86,
                 height: 86,
                 color: const Color(0xFFEDEEEF),
-                child: Image.asset(product.thumbnailAsset, fit: BoxFit.cover),
+                child: product.thumbnailUrl != null
+                    ? Image.network(product.thumbnailUrl!, fit: BoxFit.cover, errorBuilder: (ctx, err, stack) => const Icon(Icons.error))
+                    : const Icon(Icons.image, size: 50, color: Colors.black54),
               ),
             ),
             const SizedBox(width: 14),
@@ -542,13 +597,13 @@ class _ProductRow extends StatelessWidget {
                   ),
                   _ProductDetailRow(
                     label: localizations.quantityPerSourceLabel,
-                    value: product.quantityPerSource,
+                    value: product.quantityPerSource.toString(),
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
                     label: localizations.salableQuantityLabel,
-                    value: product.salableQuantity,
+                    value: product.salableQuantity.toString(),
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
@@ -556,13 +611,13 @@ class _ProductRow extends StatelessWidget {
                     label: localizations.quantitySoldLabel,
                     valueWidget: Row(
                       children: [
-                        Text(product.quantitySold.split(' ')[0],
+                        Text(product.quantitySold.toString(),
                             style: valStyle),
                         const SizedBox(width: 4),
                         const Icon(Icons.arrow_upward,
                             color: Colors.green,
                             size: 16),
-                        Text(' ${product.quantitySold.split(' ')[1]}',
+                        Text(' (+0%)',
                             style: valStyle?.copyWith(color: Colors.green)),
                       ],
                     ),
@@ -571,13 +626,13 @@ class _ProductRow extends StatelessWidget {
                   ),
                   _ProductDetailRow(
                     label: localizations.quantityConfirmedLabel,
-                    value: product.quantityConfirmed,
+                    value: product.quantityConfirmed.toString(),
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
                   _ProductDetailRow(
                     label: localizations.quantityPendingLabel,
-                    value: product.quantityPending,
+                    value: product.quantityPending.toString(),
                     keyStyle: keyStyle,
                     valStyle: valStyle,
                   ),
@@ -819,55 +874,4 @@ class _InputSurface extends StatelessWidget {
       ),
     );
   }
-}
-
-// ===== Models
-
-enum ProductStatus {
-  active,
-  disabled,
-  lowStock,
-  outOfStock,
-  denied,
-}
-
-enum ProductVisibility {
-  catalogSearch,
-  catalogOnly,
-  searchOnly,
-  notVisible,
-}
-
-class Product {
-  Product({
-    required this.thumbnailAsset,
-    required this.name,
-    required this.price,
-    required this.type,
-    required this.status,
-    required this.id,
-    required this.sku,
-    required this.createdAt,
-    required this.quantityPerSource,
-    required this.salableQuantity,
-    required this.quantitySold,
-    required this.quantityConfirmed,
-    required this.quantityPending,
-    required this.visibility,
-  });
-
-  final String thumbnailAsset;
-  final String name;
-  final double price;
-  final String type;
-  final ProductStatus status;
-  final String id;
-  final String sku;
-  final String createdAt;
-  final String quantityPerSource;
-  final String salableQuantity;
-  final String quantitySold;
-  final String quantityConfirmed;
-  final String quantityPending;
-  final ProductVisibility visibility;
 }

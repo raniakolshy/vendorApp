@@ -496,8 +496,6 @@ class _ProfileMenuDialog extends StatelessWidget {
               // In your drawer file, update the logout section:
               InkWell(
                 onTap: () async {
-                  Navigator.pop(context);
-
                   // Show confirmation dialog
                   final bool? confirm = await showDialog<bool>(
                     context: context,
@@ -524,7 +522,7 @@ class _ProfileMenuDialog extends StatelessWidget {
                       // Call the logout API
                       await ApiClient().logout();
 
-                      // Navigate to welcome screen
+                      // Navigate to welcome screen and clear the stack
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (_) => const WelcomeScreen()),

@@ -427,25 +427,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => _isLoading = true);
     try {
       final apiClient = ApiClient();
-      final stats            = await apiClient.getDashboardStats();
-      final salesHistory     = await apiClient.getSalesHistory();
-      final customerBreakdown= await apiClient.getCustomerBreakdown();
-      final topProducts      = await apiClient.getTopSellingProducts();
-      final topCategories    = await apiClient.getTopCategories();
-      final productRatings   = await apiClient.getProductRatings();
-      final latestReviews    = await apiClient.getLatestReviews();
+
+      final stats = await apiClient.getDashboardStats();
+      print('Dashboard Stats: $stats');
+
+      final salesHistory = await apiClient.getSalesHistory();
+      print('Sales History: $salesHistory');
+
+      final customerBreakdown = await apiClient.getCustomerBreakdown();
+      print('Customer Breakdown: $customerBreakdown');
+
+      final topProducts = await apiClient.getTopSellingProducts();
+      print('Top Products: $topProducts');
+
+      final topCategories = await apiClient.getTopCategories();
+      print('Top Categories: $topCategories');
+
+      final productRatings = await apiClient.getProductRatings();
+      print('Product Ratings: $productRatings');
+
+      final latestReviews = await apiClient.getLatestReviews();
+      print('Latest Reviews: $latestReviews');
 
       setState(() {
-        _dashboardStats     = stats;
-        _salesHistory       = salesHistory;
-        _customerBreakdown  = customerBreakdown;
-        _topProducts        = topProducts;
-        _topCategories      = topCategories;
-        _productRatings     = productRatings;
-        _latestReviews      = latestReviews;
+        _dashboardStats = stats;
+        _salesHistory = salesHistory;
+        _customerBreakdown = customerBreakdown;
+        _topProducts = topProducts;
+        _topCategories = topCategories;
+        _productRatings = productRatings;
+        _latestReviews = latestReviews;
       });
     } catch (e) {
       if (mounted) {
+        print('Failed to load data: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to load data: $e')),
         );
@@ -454,6 +469,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
 }
 
 // =============================================================
