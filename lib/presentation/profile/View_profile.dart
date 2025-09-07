@@ -237,7 +237,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                         itemCount: _products.length,
                         itemBuilder: (context, index) {
                           final product = _products[index];
-                          final imageUrl = ApiClient().productImageUrl(product);
+                          final imageUrl = ApiClient().productImageUrl(product as String?);
                           final price = (product['price'] is num)
                               ? (product['price'] as num).toDouble()
                               : double.tryParse('${product['price']}');

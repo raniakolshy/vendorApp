@@ -1,11 +1,10 @@
-// services/auth_service.dart
+// lib/services/auth_service.dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_client.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
-
   AuthService._internal();
 
   final ApiClient _api = ApiClient();
@@ -18,9 +17,12 @@ class AuthService {
     await _secureStorage.delete(key: 'is_guest');
   }
 
-  /// Login that enforces "vendor-only" immediately
+  /// Login restricted to SELLERS (Webkul)
   Future<String> loginVendor(String email, String password) async {
-    return _api.loginVendor(email: email, password: password);
+    final token = await _api.loginVendor(email: email, password: password);
+    await _secureStorage.write(key: 'authToken', value: token);
+    await _secureStorage.write(key: 'is_guest', value: 'false');
+    return token;
   }
 
   Future<bool> isLoggedIn() async {

@@ -1,5 +1,4 @@
-
-import 'dart:convert';
+// presentation/auth/register/register_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app_vendor/l10n/app_localizations.dart';
@@ -27,6 +26,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirm = TextEditingController();
   final _businessNameController = TextEditingController();
   final _vendorPhoneController = TextEditingController();
+  final _shopUrl = TextEditingController(); // NEW: Webkul requires unique shop URL
 
   final _api = ApiClient();
 
@@ -43,6 +43,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _phone.dispose();
     _pass.dispose();
     _confirm.dispose();
+    _businessNameController.dispose();
+    _vendorPhoneController.dispose();
+    _shopUrl.dispose();
     super.dispose();
   }
 
@@ -59,9 +62,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // In your RegisterScreen's _onRegister method:
   Future<void> _onRegister() async {
     if (_loading) return;
+
     if (!_isChecked) {
       _toast('You must accept the terms and conditions');
       return;
@@ -70,27 +73,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _toast('Passwords do not match');
       return;
     }
+    if (_shopUrl.text.trim().isEmpty) {
+      _toast('Shop URL is required');
+      return;
+    }
+
+    // sanitize shop url: lowercase, remove spaces
+    final shop = _shopUrl.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
 
     setState(() => _loading = true);
-
     try {
       final token = await _api.registerVendorAndLogin(
         firstname: _first.text.trim(),
         lastname: _last.text.trim(),
         email: _email.text.trim(),
         password: _pass.text.trim(),
-        phone: _vendorPhoneController.text.trim(),
-        businessName: _businessNameController.text.trim(),
+        shopUrl: shop,
       );
 
-      print('Registration successful! Token: $token');
+      debugPrint('Registration successful! Token: $token');
       _toast('Vendor account created successfully!', err: false);
 
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
-
     } catch (e) {
-      print('Registration error: $e');
       _toast('Registration failed: ${e.toString().replaceFirst("Exception: ", "")}');
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -127,15 +133,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
               const SizedBox(height: 20),
 
+              // NEW: Shop URL (Webkul)
               _Input(
-                controller: _pass, hintText: t?.password ?? 'Password', icon: Icons.lock_outline,
-                isPassword: true, obscureText: _obscurePass,
+                controller: _shopUrl,
+                hintText: 'Shop URL (unique, e.g. my-store)',
+                icon: Icons.storefront_outlined,
+              ),
+              const SizedBox(height: 20),
+
+              _Input(
+                controller: _pass,
+                hintText: t?.password ?? 'Password',
+                icon: Icons.lock_outline,
+                isPassword: true,
+                obscureText: _obscurePass,
                 toggleVisibility: () => setState(() => _obscurePass = !_obscurePass),
               ),
               const SizedBox(height: 20),
               _Input(
-                controller: _confirm, hintText: t?.passworConfirmation ?? 'Password confirmation',
-                icon: Icons.lock_outline, isPassword: true, obscureText: _obscureConfirm,
+                controller: _confirm,
+                hintText: t?.passworConfirmation ?? 'Password confirmation',
+                icon: Icons.lock_outline,
+                isPassword: true,
+                obscureText: _obscureConfirm,
                 toggleVisibility: () => setState(() => _obscureConfirm = !_obscureConfirm),
               ),
 
@@ -166,10 +186,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _loading
-                      ? const SizedBox(width: 22, height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(t?.create ?? 'Create',
-                      style: const TextStyle(color: Colors.white, fontSize: 18)),
+                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(t?.create ?? 'Create', style: const TextStyle(color: Colors.white, fontSize: 18)),
                 ),
               ),
 
@@ -177,15 +195,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(t?.alreadyHaveAnAccount ?? 'Already have an account?',
-                      style: const TextStyle(color: greyText, fontSize: 14)),
+                  Text(t?.alreadyHaveAnAccount ?? 'Already have an account?', style: const TextStyle(color: greyText, fontSize: 14)),
                   GestureDetector(
-                    onTap: () => Navigator.pushReplacement(
-                        context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+                    onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                      child: Text('Login',
-                          style: TextStyle(color: primaryPink, fontWeight: FontWeight.w700, fontSize: 14)),
+                      child: Text('Login', style: TextStyle(color: primaryPink, fontWeight: FontWeight.w700, fontSize: 14)),
                     ),
                   ),
                 ],
@@ -252,23 +267,16 @@ class _Input extends StatelessWidget {
         filled: true, fillColor: inputFill,
         hintText: hintText, hintStyle: const TextStyle(color: greyText, fontSize: 16),
         prefixIcon: Icon(icon, color: greyText),
-        suffixIcon: isPassword ? IconButton(
+        suffixIcon: isPassword
+            ? IconButton(
           icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: greyText),
           onPressed: toggleVisibility,
-        ) : null,
+        )
+            : null,
         contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: lightBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: lightBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryPink, width: 2),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: primaryPink, width: 2)),
       ),
     );
   }

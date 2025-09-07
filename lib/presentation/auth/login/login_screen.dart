@@ -83,7 +83,6 @@ class _LoginFormState extends State<LoginForm> {
       return;
     }
 
-
     if (!await checkConnectivity()) {
       _showMessage("No internet connection.", isError: true);
       return;
@@ -96,13 +95,9 @@ class _LoginFormState extends State<LoginForm> {
         password: _passwordController.text,
       );
 
-      _showMessage("Login successful!", isError: false);
-
+      _showMessage("Login successful!");
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const Home()),
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
     } catch (e) {
       _showMessage("Login failed: ${_cleanError(e)}", isError: true);
     } finally {
@@ -110,23 +105,9 @@ class _LoginFormState extends State<LoginForm> {
     }
   }
 
-
-  Future<void> _signInWithGoogle() async {
-    _showMessage('Google Sign-In is coming soon! Please use email login.', isError: false);
-  }
-
-  Future<void> _signInWithFacebook() async {
-    _showMessage('Facebook Sign-In is coming soon! Please use email login.', isError: false);
-  }
-
-  Future<void> _signInWithInstagram() async {
-    _showMessage('Instagram Sign-In is coming soon! Please use email login.', isError: false);
-  }
-
   String? _emailValidator(String? v) {
     final value = (v ?? '').trim();
     if (value.isEmpty) return 'Email is required';
-    // simple email check
     final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);
     if (!ok) return 'Enter a valid email';
     return null;
@@ -150,15 +131,10 @@ class _LoginFormState extends State<LoginForm> {
           const SizedBox(height: 32),
           Text(
             t?.welcomeBack ?? "Welcome Back",
-            style: GoogleFonts.poppins(
-              fontSize: 36,
-              fontWeight: FontWeight.w800,
-              color: Colors.black87,
-            ),
+            style: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.black87),
           ),
           const SizedBox(height: 36),
 
-          // Email
           _CustomInput(
             controller: _emailController,
             hintText: t?.usernameOrEmail ?? "Username or Email",
@@ -169,7 +145,6 @@ class _LoginFormState extends State<LoginForm> {
           ),
           const SizedBox(height: 20),
 
-          // Password
           _CustomInput(
             controller: _passwordController,
             hintText: t?.password ?? "Password",
@@ -189,16 +164,8 @@ class _LoginFormState extends State<LoginForm> {
               onPressed: () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()));
               },
-              style: TextButton.styleFrom(
-                foregroundColor: primaryPink,
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                t?.forgotPwd ?? "Forgot Password?",
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
+              style: TextButton.styleFrom(foregroundColor: primaryPink),
+              child: Text(t?.forgotPwd ?? "Forgot Password?", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ),
 
@@ -214,63 +181,21 @@ class _LoginFormState extends State<LoginForm> {
                 elevation: 4,
               ),
               child: _isLoading
-                  ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-              )
-                  : Text(
-                t?.login ?? "Login",
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(t?.login ?? "Login", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           ),
 
           const SizedBox(height: 40),
           Row(
-            children: [
-              const Expanded(child: Divider(color: lightBorder)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  t?.continueWith ?? "Continue with",
-                  style: const TextStyle(color: greyText, fontSize: 14),
-                ),
-              ),
-              const Expanded(child: Divider(color: lightBorder)),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SocialButton(icon: 'assets/google.png', onTap: _signInWithGoogle),
-              const SizedBox(width: 20),
-              SocialButton(icon: 'assets/instagram.png', onTap: _signInWithInstagram),
-              const SizedBox(width: 20),
-              SocialButton(icon: 'assets/facebook.png', onTap: _signInWithFacebook),
-            ],
-          ),
-
-          const SizedBox(height: 40),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                t?.createAnAccountLogin ?? "Don't have an account?",
-                style: const TextStyle(color: greyText, fontSize: 14),
-              ),
+              Text(t?.createAnAccountLogin ?? "Don't have an account?", style: const TextStyle(color: greyText, fontSize: 14)),
               GestureDetector(
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen()));
-                },
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                  child: Text(
-                    "Sign Up",
-                    style: TextStyle(color: primaryPink, fontWeight: FontWeight.w700, fontSize: 14),
-                  ),
+                  child: Text("Sign Up", style: TextStyle(color: primaryPink, fontWeight: FontWeight.w700, fontSize: 14)),
                 ),
               ),
             ],
@@ -289,7 +214,6 @@ class _CustomInput extends StatelessWidget {
   final bool isPassword;
   final bool obscureText;
   final VoidCallback? toggleVisibility;
-
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -320,10 +244,8 @@ class _CustomInput extends StatelessWidget {
       validator: validator,
       style: const TextStyle(fontSize: 16, color: Colors.black87),
       decoration: InputDecoration(
-        filled: true,
-        fillColor: inputFill,
-        hintText: hintText,
-        hintStyle: const TextStyle(color: greyText, fontSize: 16),
+        filled: true, fillColor: inputFill,
+        hintText: hintText, hintStyle: const TextStyle(color: greyText, fontSize: 16),
         prefixIcon: Icon(icon, color: greyText),
         suffixIcon: isPassword
             ? IconButton(
@@ -332,51 +254,9 @@ class _CustomInput extends StatelessWidget {
         )
             : null,
         contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: lightBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: lightBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryPink, width: 2),
-        ),
-      ),
-    );
-  }
-}
-
-class SocialButton extends StatelessWidget {
-  final String icon;
-  final VoidCallback? onTap;
-
-  const SocialButton({super.key, required this.icon, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: primaryPink, width: 1.5),
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 3,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Image.asset(icon, fit: BoxFit.contain),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: primaryPink, width: 2)),
       ),
     );
   }
