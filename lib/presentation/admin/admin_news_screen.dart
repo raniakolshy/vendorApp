@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:app_vendor/l10n/app_localizations_ar.dart';
 import 'package:app_vendor/l10n/app_localizations_en.dart';
 import 'package:flutter/material.dart';
+
+import '../../services/api_client.dart';
 
 class AdminNewsScreen extends StatefulWidget {
   const AdminNewsScreen({super.key});
@@ -11,76 +15,102 @@ class AdminNewsScreen extends StatefulWidget {
 }
 
 class _AdminNewsScreenState extends State<AdminNewsScreen> {
-  final List<Map<String, dynamic>> _newsItems = [
-    {
-      'title': 'issueFixed',
-      'content': 'issueFixedContent',
-      'time': 'time2mAgo',
-      'type': 'fix',
-    },
-    {
-      'title': 'newFeature',
-      'content': 'newFeatureContent',
-      'time': 'time10mAgo',
-      'type': 'feature',
-    },
-    {
-      'title': 'serverMaintenance',
-      'content': 'serverMaintenanceContent',
-      'time': 'time1hAgo',
-      'type': 'maintenance',
-    },
-    {
-      'title': 'deliveryIssues',
-      'content': 'deliveryIssuesContent',
-      'time': 'time3hAgo',
-      'type': 'delivery',
-    },
-    {
-      'title': 'paymentUpdate',
-      'content': 'paymentUpdateContent',
-      'time': 'time5hAgo',
-      'type': 'payment',
-    },
-    {
-      'title': 'securityAlert',
-      'content': 'securityAlertContent',
-      'time': 'time1dAgo',
-      'type': 'security',
-    },
-  ];
+  final List<Map<String, dynamic>> _newsItems = [];
+  bool _loading = false;
 
-  void _refreshNews() {
-    setState(() {
-      _newsItems.clear();
-      _newsItems.addAll([
-        {
-          'title': 'refreshed1',
-          'content': 'refreshed1Content',
-          'time': 'timeJustNow',
-          'type': 'feature',
-        },
-        {
-          'title': 'deliveryImproved',
-          'content': 'deliveryImprovedContent',
-          'time': 'time2mAgo',
+  @override
+  void initState() {
+    super.initState();
+    _loadFromMagento();
+  }
+
+  Future<void> _loadFromMagento() async {
+    setState(() => _loading = true);
+
+    final List<Map<String, dynamic>> aggregated = [];
+
+    try {
+      final latestOrders = await ApiClient().getOrdersAdmin(
+        pageSize: 5,
+        currentPage: 1,
+      );
+      for (final o in latestOrders) {
+        final id = (o['increment_id'] ?? o['entity_id'] ?? '').toString();
+        final total = (o['grand_total'] ?? o['base_grand_total'] ?? 0).toString();
+        final created = (o['created_at'] ?? '').toString();
+        aggregated.add({
+          'title': 'Order #$id',
+          'content': 'New order placed • Total: $total',
+          'time': _friendlyTime(created),
           'type': 'delivery',
-        },
-        {
-          'title': 'paymentGatewayUpdated',
-          'content': 'paymentGatewayUpdatedContent',
-          'time': 'time5mAgo',
-          'type': 'payment',
-        },
-        {
-          'title': 'bugFixes',
-          'content': 'bugFixesContent',
-          'time': 'time10mAgo',
-          'type': 'fix',
-        },
-      ]);
-    });
+        });
+      }
+    } catch (e) {
+      _toastError(context, 'Orders: $e');
+    }
 
+    try {
+      final latestProducts = await ApiClient().getProductsAdmin(pageSize: 5);
+      for (final p in latestProducts) {
+        final sku = (p['sku'] ?? '').toString();
+        final name = (p['name'] ?? '').toString();
+        final created = (p['created_at'] ?? '').toString();
+        aggregated.add({
+          'title': name.isNotEmpty ? name : 'New product',
+          'content': 'SKU: $sku',
+          'time': _friendlyTime(created),
+          'type': 'feature',
+        });
+      }
+    } catch (e) {
+      _toastError(context, 'Products: $e');
+    }
+
+    try {
+      final rp = await ApiClient().getProductReviewsAdmin(page: 1, pageSize: 5);
+      for (final r in rp.items) {
+        final title = (r.title ?? '').toString();
+        final created = (r.createdAt ?? '').toString();
+        final status = r.status;
+        String statusTxt = 'Pending';
+        if (status == 1) statusTxt = 'Approved';
+        if (status == 3) statusTxt = 'Rejected';
+
+        aggregated.add({
+          'title': title.isNotEmpty ? title : 'Product review',
+          'content': 'Status: $statusTxt',
+          'time': _friendlyTime(created),
+          'type': 'fix',
+        });
+      }
+    } catch (e) {
+      _toastError(context, 'Reviews: $e');
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _newsItems
+        ..clear()
+        ..addAll(aggregated);
+      _loading = false;
+    });
+  }
+
+  String _friendlyTime(String iso) {
+    if (iso.isEmpty) return '—';
+    DateTime? t = DateTime.tryParse(iso);
+    if (t == null) return iso;
+    final diff = DateTime.now().toUtc().difference(t.toUtc());
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+    // (your l10n keys still work; we feed plain strings that render as-is)
+  }
+
+  void _refreshNews() async {
+    await _loadFromMagento();
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(AppLocalizations.of(context)!.newsRefreshed),
@@ -116,6 +146,17 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
             });
           },
         ),
+      ),
+    );
+  }
+
+  void _toastError(BuildContext ctx, String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -208,15 +249,20 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.refresh, color: Colors.grey),
-                            onPressed: _refreshNews,
+                            icon: _loading
+                                ? const SizedBox(
+                                width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.refresh, color: Colors.grey),
+                            onPressed: _loading ? null : _refreshNews,
                             tooltip: loc.refreshNews,
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
                       Expanded(
-                        child: _newsItems.isEmpty
+                        child: _loading
+                            ? const Center(child: CircularProgressIndicator())
+                            : _newsItems.isEmpty
                             ? Center(
                           child: Text(
                             loc.noNews,
@@ -230,6 +276,9 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                           itemCount: _newsItems.length,
                           itemBuilder: (context, index) {
                             final newsItem = _newsItems[index];
+                            // NOTE: We now pass plain strings already suitable for display.
+                            // The old loc.getString() helper will simply return the same text
+                            // if there is no matching key, preserving the UI.
                             return Dismissible(
                               key: Key('news_${newsItem['title']}_$index'),
                               direction: DismissDirection.endToStart,
@@ -245,11 +294,11 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                               ),
                               onDismissed: (direction) => _deleteNewsItem(index),
                               child: _buildNewsItem(
-                                title: loc.getString(newsItem['title']),
-                                content: loc.getString(newsItem['content']),
-                                time: loc.getString(newsItem['time']),
-                                icon: _getIconForType(newsItem['type']),
-                                color: _getColorForType(newsItem['type']),
+                                title: newsItem['title'] as String,
+                                content: newsItem['content'] as String,
+                                time: newsItem['time'] as String,
+                                icon: _getIconForType(newsItem['type'] as String),
+                                color: _getColorForType(newsItem['type'] as String),
                               ),
                             );
                           },

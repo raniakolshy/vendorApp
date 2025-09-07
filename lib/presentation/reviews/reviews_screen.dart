@@ -1,8 +1,21 @@
+// lib/presentation/reviews/reviews_screen.dart
+
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/api_client.dart';
+import 'package:app_vendor/services/api_client.dart' as api;
+
 class ReviewsScreen extends StatefulWidget {
-  const ReviewsScreen({super.key});
+  const ReviewsScreen({
+    super.key,
+    this.adminToken = '87igct1wbbphdok6dk1roju4i83kyub9',
+    this.pageSize = 10,
+  });
+
+  final String adminToken;
+
+  final int pageSize;
 
   @override
   State<ReviewsScreen> createState() => _ReviewsScreenState();
@@ -10,60 +23,22 @@ class ReviewsScreen extends StatefulWidget {
 
 class _ReviewsScreenState extends State<ReviewsScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
-  late String _filter;
-  static const int _pageSize = 2;
-  int _shown = _pageSize;
 
-  final List<Review> _allReviews = [
-    Review(
-      productImage: 'assets/img_square.jpg',
-      productName: '3D brush marks',
-      productType: 'Art Wallpaper',
-      priceRating: 4.8,
-      valueRating: 4.5,
-      qualityRating: 4.9,
-      reviewCount: 87,
-      feedSummary: 'Lorem ipsum dolor sit amet',
-      feedReview: 'Consectetur adipiscing elit. Sed do eiusmod tempor.',
-      status: ReviewStatus.approved,
-    ),
-    Review(
-      productImage: 'assets/img_square.jpg',
-      productName: 'Vintage computer',
-      productType: '3D Model',
-      priceRating: 4.2,
-      valueRating: 4.7,
-      qualityRating: 4.8,
-      reviewCount: 42,
-      feedSummary: 'Sed ut perspiciatis unde',
-      feedReview: 'Omnis iste natus error sit voluptatem.',
-      status: ReviewStatus.pending,
-    ),
-    Review(
-      productImage: 'assets/img_square.jpg',
-      productName: 'Dark mode wallpaper',
-      productType: 'Digital Art',
-      priceRating: 4.9,
-      valueRating: 4.8,
-      qualityRating: 5.0,
-      reviewCount: 125,
-      feedSummary: 'At vero eos et accusamus',
-      feedReview: 'Et iusto odio dignissimos ducimus.',
-      status: ReviewStatus.approved,
-    ),
-    Review(
-      productImage: 'assets/img_square.jpg',
-      productName: 'Retro CRT display',
-      productType: '3D Model',
-      priceRating: 3.9,
-      valueRating: 4.1,
-      qualityRating: 4.3,
-      reviewCount: 56,
-      feedSummary: 'Temporibus autem quibusdam',
-      feedReview: 'Et aut officiis debitis aut rerum.',
-      status: ReviewStatus.rejected,
-    ),
-  ];
+  late String _filter;
+
+  static const int _pageSizeClient = 2;
+  int _shown = _pageSizeClient;
+
+  int _page = 1;
+  int _totalCount = 0;
+  bool _loading = false;
+
+  final List<Review> _allReviews = [];
+
+  final Map<String, _ProductLite> _productCache = {};
+
+  String get _mediaBase =>
+      ApiClient().mediaBaseUrlForCatalog;
 
   @override
   void initState() {
@@ -74,8 +49,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Initialize filter after localizations are loaded
     _filter = AppLocalizations.of(context)!.allReviews;
+    _refreshFromServer();
   }
 
   @override
@@ -85,51 +60,223 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
     super.dispose();
   }
 
-  List<Review> get _filtered {
-    final l10n = AppLocalizations.of(context)!;
-    final q = _searchCtrl.text.trim().toLowerCase();
-    final byText = _allReviews.where((r) => r.productName.toLowerCase().contains(q));
-    switch (_filter) {
-      case 'Approved':
-      case 'Approved': // Fallback for old key, remove later
-        return byText.where((r) => r.status == ReviewStatus.approved).toList();
-      case 'Pending':
-      case 'Pending': // Fallback for old key, remove later
-        return byText.where((r) => r.status == ReviewStatus.pending).toList();
-      case 'Rejected':
-      case 'Rejected': // Fallback for old key, remove later
-        return byText.where((r) => r.status == ReviewStatus.rejected).toList();
-      default:
-        return byText.toList();
+  Future<void> _refreshFromServer() async {
+    setState(() {
+      _loading = true;
+      _page = 1;
+      _totalCount = 0;
+      _allReviews.clear();
+      _shown = _pageSizeClient;
+    });
+    await _fetchNextPage();
+  }
+
+  Future<void> _fetchNextPage() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      final l10n = AppLocalizations.of(context)!;
+      final int? statusEq = _statusToMagento(_filter, l10n);
+
+      final ReviewPage pageData = await ApiClient().getProductReviewsAdmin(
+        page: _page,
+        pageSize: widget.pageSize,
+        statusEq: statusEq, // null => all
+      );
+
+      _totalCount = pageData.totalCount;
+      final List<MagentoReview> items = pageData.items;
+
+      for (final r in items) {
+        final String sku = _extractSkuFromReview(r) ?? '';
+
+        _ProductLite? p = _productCache[sku];
+        if (p == null && sku.isNotEmpty) {
+          final Map<String, dynamic> pj = await api.ApiClient().getProductLiteBySku(sku: sku);
+          p = _ProductLite.fromJson(pj);
+          _productCache[sku] = p;
+        }
+
+        _allReviews.add(_mapMagentoToReview(r, p));
+      }
+      _page += 1;
+
+      _shown = _shown.clamp(0, _filtered.length);
+      if (_shown == 0 && _filtered.isNotEmpty) {
+        _shown = _pageSizeClient;
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${AppLocalizations.of(context)!.failedToExport} $e'),
+        backgroundColor: Colors.red,
+      ));
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _onSearchChanged() {
-    setState(() => _shown = _pageSize);
+  String? _extractSkuFromReview(dynamic r) {
+    if (r is MagentoReview) {
+      if ((r.productSku ?? '').isNotEmpty) return r.productSku!;
+    }
+    try {
+      if (r is Map<String, dynamic>) {
+        final ext = r['extension_attributes'];
+        if (ext is Map && ext['sku'] is String) return ext['sku'] as String;
+        if (r['product_sku'] is String) return r['product_sku'] as String;
+      }
+    } catch (_) {}
+    return null;
   }
 
-  void _onFilterChanged(String? v) {
+  Review _mapMagentoToReview(dynamic r, _ProductLite? p) {
+    int? statusCode;
+    if (r is MagentoReview) {
+      statusCode = r.status;
+    } else if (r is Map && r['status_id'] is num) {
+      statusCode = (r['status_id'] as num).toInt();
+    }
+
+    double? price, value, quality;
+    int votesCount = 0;
+
+    List ratingsList = const [];
+    if (r is MagentoReview) {
+      ratingsList = r.ratings ?? const [];
+    } else if (r is Map<String, dynamic>) {
+      if (r['ratings'] is List) {
+        ratingsList = r['ratings'] as List;
+      } else if (r['rating_votes'] is List) {
+        ratingsList = r['rating_votes'] as List;
+      }
+    }
+
+    if (ratingsList.isNotEmpty) {
+      for (final v in ratingsList) {
+        final name = (v is Map && v['rating_name'] != null)
+            ? v['rating_name'].toString().toLowerCase()
+            : (v is Map && v['rating_code'] != null)
+            ? v['rating_code'].toString().toLowerCase()
+            : '';
+        final percent =
+        (v is Map && v['percent'] is num) ? (v['percent'] as num).toDouble() : null;
+        final val = (v is Map && v['value'] is num) ? (v['value'] as num).toDouble() : null;
+        final double? stars = percent != null ? (percent / 20.0) : (val != null ? val : null);
+        if (name.contains('price')) price = stars;
+        if (name.contains('value')) value = stars;
+        if (name.contains('quality')) quality = stars;
+      }
+      votesCount = ratingsList.length;
+      final all = <double>[
+        if (price != null) price!,
+        if (value != null) value!,
+        if (quality != null) quality!,
+      ];
+      final avg = all.isNotEmpty ? (all.reduce((a, b) => a + b) / all.length) : 0.0;
+      price ??= avg;
+      value ??= avg;
+      quality ??= avg;
+    }
+
+    String title = '';
+    String detail = '';
+    if (r is MagentoReview) {
+      title = (r.title ?? '').toString();
+      detail = (r.detail ?? '').toString();
+    } else if (r is Map<String, dynamic>) {
+      title = (r['title'] ?? '').toString();
+      detail = (r['detail'] ?? '').toString();
+    }
+
+    // status mapping
+    final st = _statusFromMagento(statusCode);
+
+    // image url
+    String productImagePath = p?.image ?? '';
+    if (productImagePath.startsWith('/')) {
+      productImagePath = productImagePath.substring(1);
+    }
+    final imageUrl =
+    (_mediaBase.isNotEmpty && productImagePath.isNotEmpty) ? '$_mediaBase/$productImagePath' : '';
+
+    return Review(
+      productImage: imageUrl.isEmpty ? 'assets/img_square.jpg' : imageUrl,
+      productName: p?.name ?? (title.isNotEmpty ? title : '—'),
+      productType: p?.typeId ?? 'simple',
+      priceRating: (price ?? 0).clamp(0, 5),
+      valueRating: (value ?? 0).clamp(0, 5),
+      qualityRating: (quality ?? 0).clamp(0, 5),
+      reviewCount: votesCount,
+      feedSummary: title,
+      feedReview: detail,
+      status: st,
+    );
+  }
+
+  // ------ filters/search (client side) ------
+  List<Review> get _filtered {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    final all = _allReviews.where((r) => r.productName.toLowerCase().contains(q));
+    return all.toList();
+  }
+
+  void _onSearchChanged() {
+    setState(() => _shown = _pageSizeClient);
+  }
+
+  void _onFilterChanged(String? v) async {
     if (v == null) return;
     setState(() {
       _filter = v;
-      _shown = _pageSize;
+      _shown = _pageSizeClient;
     });
+    await _refreshFromServer();
   }
 
-  void _loadMore() {
-    setState(() => _shown = (_shown + _pageSize).clamp(0, _filtered.length));
+  void _loadMoreClient() {
+    setState(() => _shown = (_shown + _pageSizeClient).clamp(0, _filtered.length));
+  }
+
+  Future<void> _loadMoreServer() async {
+    if (_allReviews.length < _totalCount && !_loading) {
+      await _fetchNextPage();
+    } else {
+      _loadMoreClient();
+    }
+  }
+
+  // ------- helpers for status mapping -------
+  ReviewStatus _statusFromMagento(int? code) {
+    switch (code) {
+      case 1:
+        return ReviewStatus.approved;
+      case 2:
+        return ReviewStatus.pending;
+      case 3:
+        return ReviewStatus.rejected;
+      default:
+        return ReviewStatus.pending;
+    }
+  }
+
+  int? _statusToMagento(String filterTxt, AppLocalizations l10n) {
+    if (filterTxt == l10n.approved) return 1;
+    if (filterTxt == l10n.pending) return 2;
+    if (filterTxt == l10n.rejected) return 3;
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final visible = _filtered.take(_shown).toList();
-    final canLoadMore = _shown < _filtered.length;
+    final canLoadMoreClient = _shown < _filtered.length;
+    final canLoadMoreServer = _allReviews.length < _totalCount;
 
     return Scaffold(
       body: Column(
         children: [
-          // Main card
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(14),
@@ -149,7 +296,6 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     Text(
                       l10n.reviews,
                       style: Theme.of(context)
@@ -159,45 +305,34 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Search
                     _InputSurface(
                       child: TextField(
                         controller: _searchCtrl,
                         decoration: InputDecoration(
                           hintText: l10n.searchReviews,
-                          hintStyle: TextStyle(
-                            color: Colors.black.withOpacity(.35),
-                          ),
+                          hintStyle: TextStyle(color: Colors.black.withOpacity(.35)),
                           border: InputBorder.none,
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            size: 22,
-                            color: Colors.black54,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 14,
-                          ),
+                          prefixIcon: const Icon(Icons.search, size: 22, color: Colors.black54),
+                          contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
                         ),
                       ),
                     ),
                     const SizedBox(height: 12),
 
-                    // Filter
                     DropdownButtonFormField<String>(
                       value: _filter,
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                        contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                          color: Colors.black54),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black54),
                       dropdownColor: Colors.white,
                       elevation: 8,
                       borderRadius: BorderRadius.circular(12),
@@ -208,38 +343,41 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                         l10n.approved,
                         l10n.pending,
                         l10n.rejected,
-                      ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                          .toList(),
+                      ].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
                       onChanged: _onFilterChanged,
                     ),
 
                     const SizedBox(height: 18),
 
-                    // Reviews list
-                    ListView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      itemCount: visible.length,
-                      itemBuilder: (context, i) => _ReviewRow(review: visible[i]),
-                    ),
+                    if (_loading && _allReviews.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else
+                      ListView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: visible.length,
+                        itemBuilder: (context, i) => _ReviewRow(review: visible[i]),
+                      ),
 
                     const SizedBox(height: 22),
 
-                    // Load more button
                     if (_filtered.isNotEmpty)
                       Center(
                         child: Opacity(
-                          opacity: canLoadMore ? 1 : 0.6,
+                          opacity: (canLoadMoreClient || canLoadMoreServer || _loading) ? 1 : 0.6,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(28),
-                            onTap: canLoadMore ? _loadMore : null,
+                            onTap: _loading ? null : _loadMoreServer,
                             child: DecoratedBox(
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(28),
-                                border: Border.all(
-                                  color: const Color(0x22000000),
-                                ),
+                                border: Border.all(color: const Color(0x22000000)),
                                 boxShadow: const [
                                   BoxShadow(
                                     color: Color(0x0C000000),
@@ -249,22 +387,24 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                 ],
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 18, vertical: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Image.asset(
-                                      'assets/icons/loading.png',
-                                      width: 18,
-                                      height: 18,
-                                    ),
+                                    if (_loading)
+                                      const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    else
+                                      Image.asset('assets/icons/loading.png',
+                                          width: 18, height: 18),
                                     const SizedBox(width: 10),
                                     Text(
                                       l10n.loadMore,
                                       style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600),
+                                          fontSize: 16, fontWeight: FontWeight.w600),
                                     ),
                                   ],
                                 ),
@@ -274,7 +414,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                         ),
                       ),
 
-                    if (_filtered.isEmpty)
+                    if (!_loading && _filtered.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
                         child: Center(
@@ -295,6 +435,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   }
 }
 
+// UI widgets below are unchanged
+
 class _ReviewRow extends StatelessWidget {
   const _ReviewRow({required this.review});
   final Review review;
@@ -302,57 +444,33 @@ class _ReviewRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final keyStyle = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(color: Colors.black.withOpacity(.65));
-    final valStyle = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(
-        fontWeight: FontWeight.w600, color: Colors.black.withOpacity(.85));
+    final image = review.productImage.startsWith('http')
+        ? Image.network(review.productImage, width: 86, height: 86, fit: BoxFit.cover)
+        : Image.asset(review.productImage, width: 86, height: 86, fit: BoxFit.cover);
 
     return Column(
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.asset(
-                review.productImage,
-                width: 86,
-                height: 86,
-                fit: BoxFit.cover,
-              ),
-            ),
+            ClipRRect(borderRadius: BorderRadius.circular(14), child: image),
             const SizedBox(width: 14),
-
-            // Review Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Product Name and Type
                   Text(
                     review.productName,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style:
+                    Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     review.productType,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.black54),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
                   ),
                   const SizedBox(height: 16),
 
-                  // Ratings
                   Row(
                     children: [
                       Expanded(child: _RatingItem(l10n.priceRating, review.priceRating, review.reviewCount)),
@@ -368,21 +486,24 @@ class _ReviewRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // Review Sections
                   _ReviewSection(l10n.feedSummary, review.feedSummary),
                   const SizedBox(height: 12),
                   _ReviewSection(l10n.feedReview, review.feedReview),
                   const SizedBox(height: 12),
-                  _ReviewSection(l10n.status, l10n.reviewStatus(review.status.toString().split('.').last),
-                      isStatus: true, status: review.status),
+                  _ReviewSection(
+                    l10n.status,
+                    l10n.reviewStatus(review.status.toString().split('.').last),
+                    isStatus: true,
+                    status: review.status,
+                  ),
                 ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 24), // Increased space before the divider
+        const SizedBox(height: 24),
         const Divider(height: 1, thickness: 1, color: Color(0x11000000)),
-        const SizedBox(height: 16), // Added space after the divider
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -397,32 +518,16 @@ class _RatingItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.black.withOpacity(0.65),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            const Icon(Icons.star, color: Color(0xFFFFC107), size: 16),
-            const SizedBox(width: 4),
-            Text(
-              '${rating.toStringAsFixed(1)} ($count)',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: TextStyle(fontSize: 12, color: Colors.black.withOpacity(0.65))),
+      const SizedBox(height: 4),
+      Row(children: [
+        const Icon(Icons.star, color: Color(0xFFFFC107), size: 16),
+        const SizedBox(width: 4),
+        Text('${rating.toStringAsFixed(1)} ($count)',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+      ]),
+    ]);
   }
 }
 
@@ -460,20 +565,11 @@ class _ReviewSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.black.withOpacity(0.65),
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.black.withOpacity(0.65))),
         const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(20),
-          ),
+          decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(20)),
           child: Text(
             text,
             style: TextStyle(
@@ -500,10 +596,7 @@ class _InputSurface extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0x22000000)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: child),
     );
   }
 }
@@ -534,4 +627,44 @@ class Review {
   final String feedSummary;
   final String feedReview;
   final ReviewStatus status;
+}
+
+class _ProductLite {
+  final String sku;
+  final String name;
+  final String typeId;
+  final String? image;
+
+  _ProductLite({
+    required this.sku,
+    required this.name,
+    required this.typeId,
+    required this.image,
+  });
+
+  factory _ProductLite.fromJson(Map<String, dynamic> j) {
+    String? image;
+    if (j['custom_attributes'] is List) {
+      for (final ca in (j['custom_attributes'] as List)) {
+        if (ca is Map && ca['attribute_code'] == 'image' && ca['value'] is String) {
+          image = ca['value'] as String;
+          break;
+        }
+      }
+    }
+    if (image == null &&
+        j['media_gallery_entries'] is List &&
+        (j['media_gallery_entries'] as List).isNotEmpty) {
+      final first = (j['media_gallery_entries'] as List).first;
+      if (first is Map && first['file'] is String) {
+        image = first['file'] as String;
+      }
+    }
+    return _ProductLite(
+      sku: (j['sku'] ?? '').toString(),
+      name: (j['name'] ?? '').toString(),
+      typeId: (j['type_id'] ?? '').toString(),
+      image: image,
+    );
+  }
 }

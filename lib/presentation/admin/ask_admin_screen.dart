@@ -1,8 +1,61 @@
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/api_client.dart';
+import 'package:dio/dio.dart';
+
 class AskAdminScreen extends StatelessWidget {
   const AskAdminScreen({super.key});
+
+  Future<void> _submitToMagento(BuildContext context, {
+    required String subject,
+    required String message,
+  }) async {
+    try {
+      final me = await ApiClient().getCustomerMe();
+      final name = '${(me?['firstname'] ?? '').toString()} ${(me?['lastname'] ?? '').toString()}'.trim();
+      final email = (me?['email'] ?? '').toString();
+      final Map<String, dynamic> body = {
+        'name': name.isNotEmpty ? name : 'App User',
+        'email': email.isNotEmpty ? email : 'no-reply@kolshy.ae',
+        'telephone': '',
+        'comment': '[${subject.trim()}]\n\n${message.trim()}',
+      };
+
+      await ApiClient().dio.post(
+        'contact',
+        data: body,
+        options: Options(headers: {'Authorization': null}),
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.requestSent),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } on DioException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send: ${ApiClient().parseMagentoError(e)}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,29 +154,31 @@ class AskAdminScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: () {
-                        if (subjectController.text.isEmpty) {
+                      onPressed: () async {
+                        if (subjectController.text.trim().isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(AppLocalizations.of(context)!.enterSubject),
                               backgroundColor: Colors.red,
                             ),
                           );
-                        } else if (queryController.text.isEmpty) {
+                          return;
+                        }
+                        if (queryController.text.trim().isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(AppLocalizations.of(context)!.enterQuery),
                               backgroundColor: Colors.red,
                             ),
                           );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(AppLocalizations.of(context)!.requestSent),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
+                          return;
                         }
+
+                        await _submitToMagento(
+                          context,
+                          subject: subjectController.text,
+                          message: queryController.text,
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFDD1E1E),

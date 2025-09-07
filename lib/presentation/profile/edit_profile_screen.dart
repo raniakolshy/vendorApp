@@ -1,18 +1,19 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:typed_data';
-import 'package:file_picker/file_picker.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dropzone/flutter_dropzone.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 
-// L10n
-
+import '../../services/api_client.dart';
 import '../common/description_markdown_field.dart';
 import 'View_profile.dart';
-
+import 'package:app_vendor/services/api_client.dart' as api;
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -54,6 +55,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // State
   Uint8List? _logoBytes;
   Uint8List? _bannerBytes;
+  String? _logoUrl;   // if your backend returns a media path/url
+  String? _bannerUrl;
+
   DropzoneViewController? _dzCtrl;
 
   bool _twitterEnabled = false;
@@ -70,6 +74,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     'Japan', 'Australia', 'Brazil', 'India', 'China'
   ];
   String _selectedCountry = 'United Arab Emirates';
+
+  int? _customerId;
+  bool _loading = true;
+  bool _saving = false;
 
   // ---------- styling helpers ----------
   BorderRadius get _radius => BorderRadius.circular(16);
@@ -103,6 +111,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderSide: const BorderSide(color: Colors.black87, width: 1.5),
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFromMagento();
+  }
+
+  Future<void> _loadFromMagento() async {
+    setState(() => _loading = true);
+    try {
+      final vp = await ApiClient().getVendorProfileMe();
+      if (vp != null) {
+        _customerId = vp.customerId;
+        _companyName.text = vp.companyName ?? '';
+        _bio.text = vp.bio ?? '';
+        _selectedCountry = vp.country?.isNotEmpty == true ? vp.country! : _selectedCountry;
+        _phoneNumber.text = vp.phone ?? '';
+        _lowStockQuantity.text = vp.lowStockQty ?? '';
+        _taxVatNumber.text = vp.vatNumber ?? '';
+        _paymentDetails.text = vp.paymentDetails ?? '';
+
+        _twitterId.text = vp.twitter ?? '';
+        _facebookId.text = vp.facebook ?? '';
+        _instagramId.text = vp.instagram ?? '';
+        _youtubeId.text = vp.youtube ?? '';
+        _vimeoId.text = vp.vimeo ?? '';
+        _pinterestId.text = vp.pinterest ?? '';
+        _moleskineId.text = vp.moleskine ?? '';
+        _tiktokId.text = vp.tiktok ?? '';
+
+        _twitterEnabled = _twitterId.text.isNotEmpty;
+        _facebookEnabled = _facebookId.text.isNotEmpty;
+        _instagramEnabled = _instagramId.text.isNotEmpty;
+        _youtubeEnabled = _youtubeId.text.isNotEmpty;
+        _vimeoEnabled = _vimeoId.text.isNotEmpty;
+        _pinterestEnabled = _pinterestId.text.isNotEmpty;
+        _moleskineEnabled = _moleskineId.text.isNotEmpty;
+        _tiktokEnabled = _tiktokId.text.isNotEmpty;
+
+        _returnPolicy.text = vp.returnPolicy ?? '';
+        _shippingPolicy.text = vp.shippingPolicy ?? '';
+        _privacyPolicy.text = vp.privacyPolicy ?? '';
+
+        _metaKeywords.text = vp.metaKeywords ?? '';
+        _metaDescription.text = vp.metaDescription ?? '';
+        _googleAnalyticId.text = vp.googleAnalyticsId ?? '';
+
+        _profilePageRequestUrlPath.text = vp.profilePathReq ?? '';
+        _collectionPageRequestUrlPath.text = vp.collectionPathReq ?? '';
+        _reviewPageRequestUrlPath.text = vp.reviewPathReq ?? '';
+        _locationPageRequestUrlPath.text = vp.locationPathReq ?? '';
+        _privacyPolicyRequestUrlPath.text = vp.privacyPathReq ?? '';
+
+        // Images
+        _logoUrl = vp.logoUrl;
+        _bannerUrl = vp.bannerUrl;
+        if (vp.logoBase64?.isNotEmpty == true) {
+          _logoBytes = base64Decode(vp.logoBase64!.split(',').last);
+        }
+        if (vp.bannerBase64?.isNotEmpty == true) {
+          _bannerBytes = base64Decode(vp.bannerBase64!.split(',').last);
+        }
+      }
+    } catch (e) {
+      _snack('Failed to load profile: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   // ---------- Section Card ----------
@@ -140,8 +217,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         if (isLogo) {
           _logoBytes = file.bytes;
+          _logoUrl = null; // prefer picked bytes over previous URL
         } else {
           _bannerBytes = file.bytes;
+          _bannerUrl = null;
         }
       });
     }
@@ -150,8 +229,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ---------- Save ----------
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    // TODO: call API to save profile
-    _snack(AppLocalizations.of(context)!.toast_profile_saved);
+    if (_customerId == null) {
+      _snack('Not authenticated', error: true);
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final vp = api.VendorProfile(
+        customerId: _customerId!,
+        companyName: _companyName.text.trim(),
+        bio: _bio.text.trim(),
+        country: _selectedCountry,
+        phone: _phoneNumber.text.trim(),
+        lowStockQty: _lowStockQuantity.text.trim(),
+        vatNumber: _taxVatNumber.text.trim(),
+        paymentDetails: _paymentDetails.text.trim(),
+        twitter: _twitterEnabled ? _twitterId.text.trim() : '',
+        facebook: _facebookEnabled ? _facebookId.text.trim() : '',
+        instagram: _instagramEnabled ? _instagramId.text.trim() : '',
+        youtube: _youtubeEnabled ? _youtubeId.text.trim() : '',
+        vimeo: _vimeoEnabled ? _vimeoId.text.trim() : '',
+        pinterest: _pinterestEnabled ? _pinterestId.text.trim() : '',
+        moleskine: _moleskineEnabled ? _moleskineId.text.trim() : '',
+        tiktok: _tiktokEnabled ? _tiktokId.text.trim() : '',
+        returnPolicy: _returnPolicy.text.trim(),
+        shippingPolicy: _shippingPolicy.text.trim(),
+        privacyPolicy: _privacyPolicy.text.trim(),
+        metaKeywords: _metaKeywords.text.trim(),
+        metaDescription: _metaDescription.text.trim(),
+        googleAnalyticsId: _googleAnalyticId.text.trim(),
+        profilePathReq: _profilePageRequestUrlPath.text.trim(),
+        collectionPathReq: _collectionPageRequestUrlPath.text.trim(),
+        reviewPathReq: _reviewPageRequestUrlPath.text.trim(),
+        locationPathReq: _locationPageRequestUrlPath.text.trim(),
+        privacyPathReq: _privacyPolicyRequestUrlPath.text.trim(),
+        // images:
+        logoUrl: _logoUrl,         // if you have a media uploader, set this instead of base64
+        bannerUrl: _bannerUrl,
+        logoBase64: _logoBytes != null ? 'data:image/*;base64,${base64Encode(_logoBytes!)}' : null,
+        bannerBase64: _bannerBytes != null ? 'data:image/*;base64,${base64Encode(_bannerBytes!)}' : null,
+      );
+
+      await ApiClient().updateVendorProfileMe(vp);
+      _snack(AppLocalizations.of(context)!.toast_profile_saved);
+    } catch (e) {
+      _snack('Failed to save profile: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   void _snack(String msg, {bool error = false}) {
@@ -182,7 +308,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 900),
-              child: Column(
+              child: _loading
+                  ? const Padding(
+                padding: EdgeInsets.only(top: 60),
+                child: CircularProgressIndicator(),
+              )
+                  : Column(
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
@@ -452,14 +583,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: _saveProfile,
+                            onPressed: _saving ? null : _saveProfile,
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               backgroundColor: Colors.black87,
                               foregroundColor: Colors.white,
                             ),
-                            child: Text(l10n.btn_save),
+                            child: _saving
+                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : Text(l10n.btn_save),
                           ),
                         ),
                       ],
@@ -507,6 +640,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildLogoPicker(AppLocalizations l10n) {
+    ImageProvider? img;
+    if (_logoBytes != null) {
+      img = MemoryImage(_logoBytes!);
+    } else if (_logoUrl != null && _logoUrl!.isNotEmpty) {
+      final src = _logoUrl!;
+      final full = src.startsWith('http') ? src : '${ApiClient().mediaBaseUrlForVendor}/${src.startsWith('/') ? src.substring(1) : src}';
+      img = NetworkImage(full);
+    }
+
     return Row(
       children: [
         SizedBox(
@@ -521,24 +663,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.grey[200],
-                  image: _logoBytes != null
-                      ? DecorationImage(
-                    image: MemoryImage(_logoBytes!),
-                    fit: BoxFit.cover,
-                  )
+                  image: img != null
+                      ? DecorationImage(image: img, fit: BoxFit.cover)
                       : null,
                   border: Border.all(color: const Color(0xFFE5E5E5)),
                 ),
-                child: _logoBytes == null
+                child: img == null
                     ? const Center(child: Icon(Icons.business_rounded, size: 40, color: Colors.black38))
                     : null,
               ),
-              if (_logoBytes != null)
+              if (_logoBytes != null || (_logoUrl?.isNotEmpty ?? false))
                 Positioned(
                   top: -8,
                   right: -8,
                   child: InkWell(
-                    onTap: () => setState(() => _logoBytes = null),
+                    onTap: () => setState(() {
+                      _logoBytes = null;
+                      _logoUrl = null;
+                    }),
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
@@ -572,6 +714,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildBannerPicker(AppLocalizations l10n) {
+    ImageProvider? img;
+    if (_bannerBytes != null) {
+      img = MemoryImage(_bannerBytes!);
+    } else if (_bannerUrl != null && _bannerUrl!.isNotEmpty) {
+      final src = _bannerUrl!;
+      final full = src.startsWith('http') ? src : '${ApiClient().mediaBaseUrlForVendor}/${src.startsWith('/') ? src.substring(1) : src}';
+      img = NetworkImage(full);
+    }
+
     return Container(
       height: 180,
       decoration: BoxDecoration(
@@ -583,10 +734,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (_bannerBytes != null)
+          if (img != null)
             ClipRRect(
               borderRadius: BorderRadius.circular(18),
-              child: Image.memory(_bannerBytes!, fit: BoxFit.cover),
+              child: Image(image: img, fit: BoxFit.cover),
             ),
           Center(
             child: InkWell(
@@ -606,7 +757,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const Icon(Icons.download_rounded, color: Colors.black87),
                     const SizedBox(width: 8),
                     Text(
-                      _bannerBytes == null ? l10n.btn_click_or_drop_image : l10n.lbl_image_selected,
+                      (_bannerBytes == null && img == null) ? l10n.btn_click_or_drop_image : l10n.lbl_image_selected,
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black),
                     ),
                   ],
@@ -621,7 +772,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               mime: const ['image/png', 'image/jpeg', 'image/webp'],
               onDrop: (ev) async {
                 final bytes = await _dzCtrl!.getFileData(ev);
-                setState(() => _bannerBytes = bytes);
+                setState(() {
+                  _bannerBytes = bytes;
+                  _bannerUrl = null;
+                });
               },
             ),
         ],

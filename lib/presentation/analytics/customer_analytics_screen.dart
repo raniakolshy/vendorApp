@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import '../../services/api_client.dart';
 
 void main() => runApp(const CustomerAnalyticsApp());
 
@@ -37,107 +39,31 @@ class CustomerAnalyticsScreen extends StatefulWidget {
 }
 
 class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
+  // ---- CONFIG ----
+  static const int _pageSize = 20; // page size for Magento customers
+
   final TextEditingController _searchCtrl = TextEditingController();
-  String _timeFilter = ''; // Initialize with an empty string
-  static const int _pageSize = 2;
-  int _shown = _pageSize;
+
+  // Time filter values (localized labels used in UI; we’ll map to periods)
+  String _timeFilter = ''; // set in didChangeDependencies
+  int _shown = 2; // list pagination inside the card (keep your original UX)
   bool _loadingMore = false;
 
-  final List<Customer> _allCustomers = [
-    Customer(
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      contact: '+1 234 567 890',
-      gender: Gender.male,
-      address: '123 Main St, New York',
-      baseTotal: '\$1,234.00',
-      orders: '5',
-    ),
-    Customer(
-      name: 'Jane Smith',
-      email: 'jane.smith@example.com',
-      contact: '+1 987 654 321',
-      gender: Gender.female,
-      address: '456 Oak Ave, Los Angeles',
-      baseTotal: '\$2,345.00',
-      orders: '8',
-    ),
-    Customer(
-      name: 'Robert Johnson',
-      email: 'robert.j@example.com',
-      contact: '+1 555 123 4567',
-      gender: Gender.male,
-      address: '789 Pine Rd, Chicago',
-      baseTotal: '\$3,456.00',
-      orders: '12',
-    ),
-    Customer(
-      name: 'Emily Wilson',
-      email: 'emily.w@example.com',
-      contact: '+1 444 789 1234',
-      gender: Gender.female,
-      address: '321 Elm Blvd, Houston',
-      baseTotal: '\$1,987.00',
-      orders: '7',
-    ),
-  ];
+  // Magento data
+  bool _loading = true;
+  bool _loadingAgg = true;
+  String? _currency; // from orders
+  List<_CustomerDto> _customers = [];           // raw customers
+  Map<String, _Agg> _aggByEmail = {};           // aggregated orders by email for current period
+  Map<String, _Agg> _prevAggByEmail = {};       // aggregated orders for previous period (for % change)
 
-  List<Customer> get _filtered {
-    final q = _searchCtrl.text.trim().toLowerCase();
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-
-    // Apply time filter if not "All time"
-    List<Customer> timeFiltered = _allCustomers;
-    if (_timeFilter != l10n.allTime) {
-      // In a real app, you would filter by actual date/time
-      // For this example, we'll just filter by name for demonstration
-      timeFiltered = _allCustomers.where((c) =>
-      _timeFilter == l10n.last7Days ? c.name.startsWith('J') :
-      _timeFilter == l10n.last30Days ? c.name.startsWith('J') || c.name.startsWith('R') :
-      _timeFilter == l10n.lastYear ? c.name.startsWith('E') : true
-      ).toList();
-    }
-
-    return timeFiltered.where((c) =>
-    c.name.toLowerCase().contains(q) ||
-        c.email.toLowerCase().contains(q)
-    ).toList();
-  }
-
-  Future<void> _loadMore() async {
-    setState(() => _loadingMore = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() {
-      _shown = (_shown + _pageSize).clamp(0, _filtered.length);
-      _loadingMore = false;
-    });
-  }
-
-  void _onSearchChanged() {
-    setState(() => _shown = _pageSize);
-  }
-
-  void _onTimeFilterChanged(String? v) {
-    if (v == null) return;
-    setState(() {
-      _timeFilter = v;
-      _shown = _pageSize;
-    });
-  }
+  // live search
+  void _onSearchChanged() => setState(() => _shown = 2);
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(_onSearchChanged);
-  }
-
-  // Use didChangeDependencies to safely access context
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_timeFilter.isEmpty) {
-      _timeFilter = AppLocalizations.of(context)!.allTime;
-    }
   }
 
   @override
@@ -148,15 +74,187 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_timeFilter.isEmpty) {
+      _timeFilter = AppLocalizations.of(context)!.allTime;
+      _bootstrap();
+    }
+  }
+
+  Future<void> _bootstrap() async {
+    setState(() {
+      _loading = true;
+      _loadingAgg = true;
+    });
+    try {
+      final customers = await ApiClient().getCustomersAdmin(
+        currentPage: 1,
+        pageSize: _pageSize,
+      );
+      _customers = customers.map((m) => _CustomerDto.fromMagento(m)).toList();
+      await _reloadAggregates();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch customers: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _reloadAggregates() async {
+    setState(() => _loadingAgg = true);
+
+    final now = DateTime.now();
+    DateTime? from;
+    DateTime? to;
+    DateTime? prevFrom;
+    DateTime? prevTo;
+
+    final l10n = AppLocalizations.of(context)!;
+    if (_timeFilter == l10n.allTime) {
+      from = null; to = null; prevFrom = null; prevTo = null;
+    } else {
+      if (_timeFilter == l10n.last7Days) {
+        to = now;
+        from = now.subtract(const Duration(days: 6));
+        prevTo = from.subtract(const Duration(days: 1));
+        prevFrom = prevTo!.subtract(const Duration(days: 6));
+      } else if (_timeFilter == l10n.last30Days) {
+        to = now;
+        from = now.subtract(const Duration(days: 29));
+        prevTo = from.subtract(const Duration(days: 1));
+        prevFrom = prevTo!.subtract(const Duration(days: 29));
+      } else if (_timeFilter == l10n.lastYear) {
+        to = DateTime(now.year, now.month, now.day);
+        from = DateTime(now.year - 1, now.month, now.day);
+        prevTo = from.subtract(const Duration(days: 1));
+        prevFrom = DateTime(prevTo!.year - 1, prevTo.month, prevTo.day);
+      }
+    }
+
+    try {
+      final orders = await ApiClient().getOrdersAdmin(
+        dateFrom: from,
+        dateTo: to,
+        currentPage: 1,
+        pageSize: 500,
+      );
+      final prevOrders = await ApiClient().getOrdersAdmin(
+        dateFrom: prevFrom,
+        dateTo: prevTo,
+        currentPage: 1,
+        pageSize: 500,
+      );
+
+      _currency = (orders.isNotEmpty
+          ? orders.first['base_currency_code']
+          : prevOrders.isNotEmpty
+          ? prevOrders.first['base_currency_code']
+          : null)
+          ?.toString();
+
+      _aggByEmail = _aggregateByCustomerEmail(orders);
+      _prevAggByEmail = _aggregateByCustomerEmail(prevOrders);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch orders: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _loadingAgg = false);
+    }
+  }
+
+  Map<String, _Agg> _aggregateByCustomerEmail(List<Map<String, dynamic>> orders) {
+    final map = <String, _Agg>{};
+    for (final o in orders) {
+      final email = (o['customer_email'] ?? '').toString();
+      if (email.isEmpty) continue;
+
+      final tot = (o['base_grand_total'] is num)
+          ? (o['base_grand_total'] as num).toDouble()
+          : double.tryParse('${o['base_grand_total']}') ?? 0.0;
+
+      final curr = (o['base_currency_code'] ?? '').toString();
+
+      final agg = map[email] ?? _Agg.zero(curr);
+      map[email] = agg.add(tot, 1);
+    }
+    return map;
+  }
+
+  List<_CustomerDto> get _filteredCustomers {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    List<_CustomerDto> base = _customers;
+
+    if (q.isNotEmpty) {
+      base = base.where((c) {
+        return c.name.toLowerCase().contains(q) || c.email.toLowerCase().contains(q);
+      }).toList();
+    }
+    return base;
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore) return;
+    setState(() => _loadingMore = true);
+    await Future.delayed(const Duration(milliseconds: 300));
+    setState(() {
+      _shown = (_shown + 2).clamp(0, _filteredCustomers.length);
+      _loadingMore = false;
+    });
+  }
+
+  void _onTimeFilterChanged(String? v) async {
+    if (v == null || v == _timeFilter) return;
+    setState(() {
+      _timeFilter = v;
+      _shown = 2;
+    });
+    await _reloadAggregates();
+  }
+
+  int get _customersCount {
+    final emailsWithOrders = _aggByEmail.keys.toSet();
+    if (emailsWithOrders.isEmpty) return _filteredCustomers.length;
+    return _filteredCustomers.where((c) => emailsWithOrders.contains(c.email)).length;
+  }
+
+  int get _customersPrevCount {
+    final emailsWithOrders = _prevAggByEmail.keys.toSet();
+    if (emailsWithOrders.isEmpty) return _filteredCustomers.length;
+    return _filteredCustomers.where((c) => emailsWithOrders.contains(c.email)).length;
+  }
+
+  double get _incomeSum => _aggByEmail.values.fold(0.0, (p, a) => p + a.total);
+  double get _incomePrevSum => _prevAggByEmail.values.fold(0.0, (p, a) => p + a.total);
+
+  double _pctChange(num curr, num prev) {
+    if (prev == 0) return curr == 0 ? 0 : 100;
+    return ((curr - prev) / prev) * 100.0;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final visible = _filtered.take(_shown).toList();
-    final canLoadMore = _shown < _filtered.length && !_loadingMore;
+    final visible = _filteredCustomers.take(_shown).toList();
+    final canLoadMore = _shown < _filteredCustomers.length && !_loadingMore;
+    final customersNow = _customersCount;
+    final customersPrev = _customersPrevCount;
+    final customersPct = _pctChange(customersNow, customersPrev);
+
+    final incomeNow = _incomeSum;
+    final incomePrev = _incomePrevSum;
+    final incomePct = _pctChange(incomeNow, incomePrev);
+
+    final currCode = _currency ?? '';
 
     return Scaffold(
       body: Column(
         children: [
-          // Main card
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(14),
@@ -176,7 +274,6 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     Text(
                       l10n.customerAnalyticsTitle,
                       style: Theme.of(context)
@@ -186,21 +283,18 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Time filter
                     DropdownButtonFormField<String>(
                       value: _timeFilter,
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                          color: Colors.black54),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black54),
                       dropdownColor: Colors.white,
                       elevation: 8,
                       borderRadius: BorderRadius.circular(12),
@@ -211,13 +305,11 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                         l10n.last7Days,
                         l10n.last30Days,
                         l10n.lastYear,
-                      ].map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                          .toList(),
-                      onChanged: _onTimeFilterChanged,
+                      ].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+                      onChanged: (v) => _onTimeFilterChanged(v),
                     ),
                     const SizedBox(height: 16),
 
-                    // Overview card
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -227,7 +319,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          // Customers count
+                          // Customers
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,32 +338,33 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  _timeFilter == l10n.allTime ? '1,368' :
-                                  _timeFilter == l10n.last7Days ? '342' :
-                                  _timeFilter == l10n.last30Days ? '856' : '1,024',
+                                  '$customersNow',
                                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  '↓ 37.8%',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.red,
-                                  ),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      customersPct >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                                      color: customersPct >= 0 ? Colors.green : Colors.red,
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${customersPct.toStringAsFixed(1)}%',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: customersPct >= 0 ? Colors.green : Colors.red,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
 
-                          // Vertical divider
-                          Container(
-                            width: 1,
-                            height: 60,
-                            color: const Color(0xFFEDEEEF),
-                          ),
-
-                          // Income
+                          Container(width: 1, height: 60, color: const Color(0xFFEDEEEF)),
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.only(left: 16),
@@ -292,19 +385,29 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    _timeFilter == l10n.allTime ? '\$68,192' :
-                                    _timeFilter == l10n.last7Days ? '\$12,456' :
-                                    _timeFilter == l10n.last30Days ? '\$45,678' : '\$59,123',
+                                    currCode.isEmpty
+                                        ? incomeNow.toStringAsFixed(2)
+                                        : '$currCode ${incomeNow.toStringAsFixed(2)}',
                                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    '↑ 37.8%',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Colors.green,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        incomePct >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                                        color: incomePct >= 0 ? Colors.green : Colors.red,
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${incomePct.toStringAsFixed(1)}%',
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: incomePct >= 0 ? Colors.green : Colors.red,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -315,7 +418,6 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Customers section header
                     Row(
                       children: [
                         Text(
@@ -329,107 +431,100 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Search
                     _InputSurface(
                       child: TextField(
                         controller: _searchCtrl,
                         decoration: InputDecoration(
                           hintText: l10n.searchCustomerHint,
-                          hintStyle: TextStyle(
-                            color: Colors.black.withOpacity(.35),
-                          ),
+                          hintStyle: TextStyle(color: Colors.black.withOpacity(.35)),
                           border: InputBorder.none,
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            size: 22,
-                            color: Colors.black54,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 14,
-                          ),
+                          prefixIcon: const Icon(Icons.search, size: 22, color: Colors.black54),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
 
-                    // Customers list
-                    ListView.separated(
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      itemCount: visible.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 20), // Added space between items
-                      itemBuilder: (context, i) => _CustomerRow(customer: visible[i]),
-                    ),
+                    if (_loading || _loadingAgg)
+                      const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else ...[
+                      ListView.separated(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: visible.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 20),
+                        itemBuilder: (context, i) {
+                          final c = visible[i];
+                          final stats = _aggByEmail[c.email] ?? _Agg.zero(_currency ?? '');
+                          return _CustomerRow(
+                            customer: Customer(
+                              name: c.name,
+                              email: c.email,
+                              contact: c.telephone ?? '—',
+                              gender: c.gender == 2 ? Gender.female : Gender.male, // Magento: 1=Male,2=Female
+                              address: c.prettyAddress ?? '—',
+                              baseTotal: (currCode.isEmpty
+                                  ? stats.total.toStringAsFixed(2)
+                                  : '$currCode ${stats.total.toStringAsFixed(2)}'),
+                              orders: '${stats.count}',
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 22),
 
-                    const SizedBox(height: 22),
-
-                    // Load more button
-                    if (_filtered.isNotEmpty)
-                      Center(
-                        child: Opacity(
-                          opacity: canLoadMore ? 1 : 0.6,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(28),
-                            onTap: canLoadMore ? _loadMore : null,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(28),
-                                border: Border.all(
-                                  color: const Color(0x22000000),
-                                ),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x0C000000),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 4),
-                                  )
-                                ],
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 18, vertical: 12),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (_loadingMore)
-                                      const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      )
-                                    else
-                                      Image.asset(
-                                        'assets/icons/loading.png',
-                                        width: 18,
-                                        height: 18,
-                                      ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      l10n.loadMoreButton,
-                                      style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600),
-                                    ),
+                      if (_filteredCustomers.isNotEmpty)
+                        Center(
+                          child: Opacity(
+                            opacity: canLoadMore ? 1 : 0.6,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(28),
+                              onTap: canLoadMore ? _loadMore : null,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(color: const Color(0x22000000)),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x0C000000),
+                                      blurRadius: 10,
+                                      offset: Offset(0, 4),
+                                    )
                                   ],
+                                ),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                                      SizedBox(width: 10),
+                                      Text(
+                                        'Load more',
+                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-
-                    if (_filtered.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Center(
-                          child: Text(
-                            l10n.noCustomersMatch,
-                            style: const TextStyle(color: Colors.black54),
+                      if (_filteredCustomers.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Center(
+                            child: Text(
+                              l10n.noCustomersMatch,
+                              style: const TextStyle(color: Colors.black54),
+                            ),
                           ),
                         ),
-                      ),
+                    ],
                   ],
                 ),
               ),
@@ -441,120 +536,82 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
   }
 }
 
-class _CustomerRow extends StatelessWidget {
-  const _CustomerRow({required this.customer});
-  final Customer customer;
+// ---------------- helper DTOs/structs ----------------
 
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final keyStyle = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(color: Colors.black.withOpacity(.65));
-    final valStyle = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(
-        fontWeight: FontWeight.w600, color: Colors.black.withOpacity(.85));
+class _Agg {
+  final String currency;
+  final double total;
+  final int count;
+  const _Agg(this.currency, this.total, this.count);
+  factory _Agg.zero(String currency) => _Agg(currency, 0.0, 0);
+  _Agg add(double t, int c) => _Agg(currency, total + t, count + c);
+}
 
-    return Container(
-      padding: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            margin: EdgeInsets.only(
-              right: Directionality.of(context) == TextDirection.ltr ? 20 : 0,
-              left: Directionality.of(context) == TextDirection.rtl ? 20 : 0,
-            ),
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFFEDEEEF),
-              image: DecorationImage(
-                image: AssetImage(customer.gender == Gender.male
-                    ? 'assets/avatar_placeholder.jpg'
-                    : 'assets/female.jpg'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
+class _CustomerDto {
+  final int id;
+  final String email;
+  final String name;
+  final int? gender;
+  final String? telephone;
+  final String? prettyAddress;
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  customer.name,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  customer.email,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.black54),
-                ),
-                const SizedBox(height: 16),
+  _CustomerDto({
+    required this.id,
+    required this.email,
+    required this.name,
+    this.gender,
+    this.telephone,
+    this.prettyAddress,
+  });
 
-                _RowKVText(
-                  k: l10n.contactLabel,
-                  v: _InfoChip(customer.contact),
-                  keyStyle: keyStyle,
-                  valStyle: valStyle,
-                  isWidgetValue: true,
-                ),
-                const SizedBox(height: 12),
-                _RowKVText(
-                  k: l10n.genderLabel,
-                  v: _GenderChip(gender: customer.gender),
-                  keyStyle: keyStyle,
-                  valStyle: valStyle,
-                  isWidgetValue: true,
-                ),
-                const SizedBox(height: 12),
-                _RowKVText(
-                  k: l10n.addressLabel,
-                  vText: customer.address,
-                  keyStyle: keyStyle,
-                  valStyle: valStyle,
-                ),
-                const SizedBox(height: 12),
-                _RowKVText(
-                  k: l10n.baseTotalLabel,
-                  vText: customer.baseTotal,
-                  keyStyle: keyStyle,
-                  valStyle: valStyle,
-                ),
-                const SizedBox(height: 12),
-                _RowKVText(
-                  k: l10n.ordersLabel,
-                  vText: customer.orders,
-                  keyStyle: keyStyle,
-                  valStyle: valStyle,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  factory _CustomerDto.fromMagento(Map<String, dynamic> m) {
+    final first = (m['firstname'] ?? '').toString();
+    final last  = (m['lastname'] ?? '').toString();
+    final genderAttr = m['gender'];
+    int? g;
+    if (genderAttr is int) g = genderAttr;
+    if (genderAttr is String) g = int.tryParse(genderAttr);
+
+    String? tel;
+    String? pretty;
+    if (m['addresses'] is List) {
+      final addrs = (m['addresses'] as List).whereType<Map>().cast<Map<String, dynamic>>().toList();
+      if (addrs.isNotEmpty) {
+        final a = addrs.first;
+        tel = a['telephone']?.toString();
+        final street = (a['street'] is List)
+            ? (a['street'] as List).join(' ')
+            : (a['street']?.toString() ?? '');
+        final city = (a['city'] ?? '').toString();
+        final region = (a['region'] is Map ? (a['region']['region'] ?? '') : (a['region'] ?? '')).toString();
+        final country = (a['country_id'] ?? '').toString();
+        pretty = [street, city, region, country].where((e) => e.trim().isNotEmpty).join(', ');
+      }
+    }
+
+    final nameCombined = ([first, last]..removeWhere((e) => e.trim().isEmpty)).join(' ');
+    return _CustomerDto(
+      id: (m['id'] as num).toInt(),
+      email: (m['email'] ?? '').toString(),
+      name: nameCombined.isEmpty ? (m['email'] ?? '').toString() : nameCombined,
+      gender: g,
+      telephone: tel,
+      prettyAddress: pretty,
     );
   }
+}
+
+
+class Gap extends StatelessWidget {
+  final double h;
+  const Gap(this.h, {super.key});
+  @override
+  Widget build(BuildContext context) => SizedBox(height: h);
 }
 
 class _InputSurface extends StatelessWidget {
   const _InputSurface({required this.child});
   final Widget child;
-
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
@@ -563,10 +620,7 @@ class _InputSurface extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0x22000000)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: child),
     );
   }
 }
@@ -580,7 +634,6 @@ class _RowKVText extends StatelessWidget {
     required this.valStyle,
     this.isWidgetValue = false,
   }) : assert((vText != null) ^ (v != null), 'Provide either vText or v');
-
   final String k;
   final String? vText;
   final Widget? v;
@@ -594,10 +647,7 @@ class _RowKVText extends StatelessWidget {
       children: [
         Expanded(child: Text(k, style: keyStyle)),
         const SizedBox(width: 8),
-        if (isWidgetValue && v != null)
-          v!
-        else
-          Text(vText ?? '', style: valStyle),
+        if (isWidgetValue && v != null) v! else Text(vText ?? '', style: valStyle),
       ],
     );
   }
@@ -606,22 +656,15 @@ class _RowKVText extends StatelessWidget {
 class _InfoChip extends StatelessWidget {
   const _InfoChip(this.text);
   final String text;
-
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F2F4),
-        borderRadius: BorderRadius.circular(10),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFFF1F2F4), borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
           text,
-          style: Theme.of(context)
-              .textTheme
-              .labelLarge
-              ?.copyWith(fontWeight: FontWeight.w600),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -631,53 +674,20 @@ class _InfoChip extends StatelessWidget {
 class _GenderChip extends StatelessWidget {
   const _GenderChip({required this.gender});
   final Gender gender;
-
-  Color get _bg {
-    switch (gender) {
-      case Gender.male:
-        return const Color(0xFFE3F2FD);
-      case Gender.female:
-        return const Color(0xFFFCE4EC);
-    }
-  }
-
-  Color get _textColor {
-    switch (gender) {
-      case Gender.male:
-        return const Color(0xFF1565C0);
-      case Gender.female:
-        return const Color(0xFFC2185B);
-    }
-  }
+  Color get _bg => gender == Gender.male ? const Color(0xFFE3F2FD) : const Color(0xFFFCE4EC);
+  Color get _textColor => gender == Gender.male ? const Color(0xFF1565C0) : const Color(0xFFC2185B);
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    String label;
-    switch (gender) {
-      case Gender.male:
-        label = l10n.maleLabel;
-        break;
-      case Gender.female:
-        label = l10n.femaleLabel;
-        break;
-    }
+    final label = gender == Gender.male ? l10n.maleLabel : l10n.femaleLabel;
     return DecoratedBox(
-      decoration: BoxDecoration(
-          color: _bg,
-          borderRadius: BorderRadius.circular(10)
-      ),
+      decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
           label,
-          style: Theme.of(context)
-              .textTheme
-              .labelLarge
-              ?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: _textColor
-          ),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700, color: _textColor),
         ),
       ),
     );
@@ -704,4 +714,67 @@ class Customer {
   final String address;
   final String baseTotal;
   final String orders;
+}
+
+class _CustomerRow extends StatelessWidget {
+  const _CustomerRow({required this.customer});
+  final Customer customer;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final keyStyle = Theme.of(context)
+        .textTheme
+        .bodyMedium
+        ?.copyWith(color: Colors.black.withOpacity(.65));
+    final valStyle = Theme.of(context)
+        .textTheme
+        .bodyMedium
+        ?.copyWith(fontWeight: FontWeight.w600, color: Colors.black.withOpacity(.85));
+
+    return Container(
+      padding: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: EdgeInsets.only(
+              right: Directionality.of(context) == TextDirection.ltr ? 20 : 0,
+              left: Directionality.of(context) == TextDirection.rtl ? 20 : 0,
+            ),
+            width: 60,
+            height: 60,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFFEDEEEF),
+              image: DecorationImage(
+                image: AssetImage('assets/avatar_placeholder.jpg'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(customer.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text(customer.email, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
+              const SizedBox(height: 16),
+              _RowKVText(k: l10n.contactLabel, v: _InfoChip(customer.contact), keyStyle: keyStyle, valStyle: valStyle, isWidgetValue: true),
+              const SizedBox(height: 12),
+              _RowKVText(k: l10n.genderLabel, v: _GenderChip(gender: customer.gender), keyStyle: keyStyle, valStyle: valStyle, isWidgetValue: true),
+              const SizedBox(height: 12),
+              _RowKVText(k: l10n.addressLabel, vText: customer.address, keyStyle: keyStyle, valStyle: valStyle),
+              const SizedBox(height: 12),
+              _RowKVText(k: l10n.baseTotalLabel, vText: customer.baseTotal, keyStyle: keyStyle, valStyle: valStyle),
+              const SizedBox(height: 12),
+              _RowKVText(k: l10n.ordersLabel, vText: customer.orders, keyStyle: keyStyle, valStyle: valStyle),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
 }

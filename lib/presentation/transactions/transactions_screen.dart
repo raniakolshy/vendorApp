@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
+import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../services/api_client.dart';
 
 void main() => runApp(const TransactionsScreen());
 
@@ -54,33 +56,146 @@ class PayoutsScreen extends StatefulWidget {
 }
 
 class _PayoutsScreenState extends State<PayoutsScreen> {
+  // ---- unchanged UI state ----
   static const int _pageSize = 5;
   int _shownCount = _pageSize;
   bool _isLoadingMore = false;
 
+  // ---- new: data state from Magento ----
+  final _money = NumberFormat.currency(symbol: 'AED ', decimalDigits: 2);
+  bool _loading = true;
+  String? _error;
+
+  // Admin token (you provided it). You can move this to a safer place if needed.
+  static const String _ADMIN_TOKEN = '87igct1wbbphdok6dk1roju4i83kyub9';
+
   DateTimeRange? _selectedRange;
 
-  final List<Transaction> _allTransactions = List.generate(
-    10,
-        (index) => Transaction(
-      id: '12345',
-      transactionId: 'TXN ${1000 + index}',
-      status: index.isEven
-          ? TransactionStatus.paid
-          : TransactionStatus.onProcess,
-      earnings: r'AED7,750.88',
-      purchasedOn: DateTime(2025, 12, index + 1), // Use DateTime instead of String
-    ),
-  );
+  // Backing store after fetch
+  List<Transaction> _allTransactions = [];
+
+  // Aggregates for the top 2 cards (keeping your design)
+  double _totalPaid = 0.0;       // shown in first BalanceCard
+  double _totalProcessing = 0.0; // shown in second BalanceCard
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshFromMagento(); // initial load (no date filter)
+  }
+
+  Future<void> _refreshFromMagento() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+      _shownCount = _pageSize;
+    });
+
+    try {
+      final DateTime? from = _selectedRange?.start;
+      final DateTime? to = _selectedRange?.end;
+
+      final orders = await ApiClient().getOrdersAdmin(
+        dateFrom: from,
+        dateTo: to,
+        currentPage: 1,
+        pageSize: 200,
+      );
+
+      final txs = <Transaction>[];
+      double paid = 0.0;
+      double processing = 0.0;
+
+      for (final o in orders) {
+        final parsed = _mapOrderToTransaction(o);
+        if (parsed != null) {
+          txs.add(parsed);
+          switch (parsed.status) {
+            case TransactionStatus.paid:
+              paid += _parseMoney(parsed.earnings);
+              break;
+            case TransactionStatus.onProcess:
+              processing += _parseMoney(parsed.earnings);
+              break;
+            case TransactionStatus.failed:
+              break;
+          }
+        }
+      }
+
+      setState(() {
+        _allTransactions = txs;
+        _totalPaid = paid;
+        _totalProcessing = processing;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  double _parseMoney(String s) {
+    final cleaned = s.replaceAll(RegExp(r'[^0-9.\-]'), '');
+    return double.tryParse(cleaned) ?? 0.0;
+  }
+
+  Transaction? _mapOrderToTransaction(Map<String, dynamic> orderJson) {
+    try {
+      final incrementId = (orderJson['increment_id'] ?? '').toString();
+      final entityId = (orderJson['entity_id'] ?? '').toString();
+
+      final state = (orderJson['state'] ?? '').toString().toLowerCase();
+      final status = (orderJson['status'] ?? '').toString().toLowerCase();
+
+      final grandTotal = (orderJson['grand_total'] as num?)?.toDouble() ?? 0.0;
+      final currency = (orderJson['order_currency_code'] ??
+          orderJson['base_currency_code'] ??
+          'AED').toString();
+
+      // Date
+      final createdAt = (orderJson['created_at'] ?? '').toString();
+      final created =
+      createdAt.isNotEmpty ? DateTime.parse(createdAt) : DateTime.now();
+
+      TransactionStatus txStatus;
+      if (state == 'complete' ||
+          state == 'closed' ||
+          status.contains('complete')) {
+        txStatus = TransactionStatus.paid;
+      } else if (state == 'canceled' ||
+          state == 'holded' ||
+          status.contains('canceled') ||
+          status.contains('hold')) {
+        txStatus = TransactionStatus.failed;
+      } else {
+        txStatus = TransactionStatus.onProcess;
+      }
+
+      final earningsStr =
+      NumberFormat.currency(symbol: '$currency ', decimalDigits: 2)
+          .format(grandTotal);
+
+      return Transaction(
+        id: entityId,
+        transactionId: incrementId.isEmpty ? entityId : incrementId,
+        status: txStatus,
+        earnings: earningsStr,
+        purchasedOn: created,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 
   List<Transaction> get _filteredTransactions {
-    if (_selectedRange == null) {
-      return _allTransactions;
-    }
+    if (_selectedRange == null) return _allTransactions;
 
-    return _allTransactions.where((transaction) {
-      return transaction.purchasedOn.isAfter(_selectedRange!.start.subtract(const Duration(days: 1))) &&
-          transaction.purchasedOn.isBefore(_selectedRange!.end.add(const Duration(days: 1)));
+    return _allTransactions.where((t) {
+      return t.purchasedOn.isAfter(_selectedRange!.start.subtract(const Duration(days: 1))) &&
+          t.purchasedOn.isBefore(_selectedRange!.end.add(const Duration(days: 1)));
     }).toList();
   }
 
@@ -88,7 +203,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
     final filtered = _filteredTransactions;
     if (_shownCount >= filtered.length || _isLoadingMore) return;
     setState(() => _isLoadingMore = true);
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(milliseconds: 300));
     setState(() {
       _shownCount = (_shownCount + _pageSize).clamp(0, filtered.length);
       _isLoadingMore = false;
@@ -109,6 +224,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
       _selectedRange = null;
       _shownCount = _pageSize;
     });
+    _refreshFromMagento();
   }
 
   Future<void> _pickDateRange() async {
@@ -230,6 +346,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
                               duration: const Duration(seconds: 3),
                             ),
                           );
+                          _refreshFromMagento(); // re-fetch with date filter
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFE51742),
@@ -277,9 +394,13 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
               ),
             ),
             const Gap(20),
+
+            // ---- same design, values now come from Magento sums ----
             BalanceCard(
               label: AppLocalizations.of(context)!.currentBalance,
-              amount: r'AED 128k',
+              amount: _loading
+                  ? '…'
+                  : _money.format(_totalPaid),
               icon: Image.asset(
                 'assets/icons/trending_up.png',
                 width: 24,
@@ -291,7 +412,9 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
             const Gap(16),
             BalanceCard(
               label: AppLocalizations.of(context)!.currentBalance,
-              amount: r'AED 512k',
+              amount: _loading
+                  ? '…'
+                  : _money.format(_totalProcessing),
               icon: Image.asset(
                 'assets/icons/balance.png',
                 width: 24,
@@ -301,6 +424,18 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
               backgroundColor: const Color(0xFFFFB800),
             ),
             const Gap(24),
+
+            if (_error != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.withOpacity(0.2)),
+                ),
+                child: Text(_error!, style: const TextStyle(color: Colors.red)),
+              ),
+
             _PayoutHistory(
               transactions: visibleTransactions,
               canLoadMore: canLoadMore,
@@ -312,6 +447,14 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
               onClearFilter: _clearFilter,
             ),
             const Gap(30),
+
+            if (_loading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: 40),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
           ],
         ),
       ),
@@ -319,7 +462,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
   }
 }
 
-/// Balance Card
+/// Balance Card (unchanged)
 class BalanceCard extends StatelessWidget {
   final String label;
   final String amount;
@@ -374,7 +517,7 @@ class BalanceCard extends StatelessWidget {
   }
 }
 
-/// Payout History Section
+/// Payout History Section (unchanged UI)
 class _PayoutHistory extends StatelessWidget {
   final List<Transaction> transactions;
   final bool canLoadMore;
@@ -502,7 +645,7 @@ class _PayoutHistory extends StatelessWidget {
   }
 }
 
-/// Transaction Model
+/// Transaction Model (unchanged)
 enum TransactionStatus { paid, onProcess, failed }
 
 class Transaction {
@@ -521,7 +664,7 @@ class Transaction {
   });
 }
 
-/// Transaction Item
+/// Transaction Item (unchanged UI)
 class TransactionItem extends StatelessWidget {
   final Transaction transaction;
   const TransactionItem({super.key, required this.transaction});
@@ -638,7 +781,7 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-/// Load More Button
+/// Load More Button (unchanged)
 class _LoadMoreButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isLoading;

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-
 import '../../l10n/app_localizations.dart';
+import '../../services/api_client.dart';
+import '../../services/order_model.dart';
+import '../../services/order_utils.dart';
 
 void main() => runApp(const OrdersApp());
-
-// New enum for filter states
-enum FilterOption { all, delivered, processing, cancelled }
 
 class OrdersApp extends StatelessWidget {
   const OrdersApp({super.key});
@@ -42,72 +41,114 @@ class OrdersListScreen extends StatefulWidget {
 
 class _OrdersListScreenState extends State<OrdersListScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
-  FilterOption _filter = FilterOption.all; // Use enum for the filter state
-  static const int _pageSize = 2;
-  int _shown = _pageSize;
+  FilterOption _filter = FilterOption.all;
+  static const int _pageSize = 10;
+  int _currentPage = 1;
   bool _loadingMore = false;
-
-  final List<Order> _allOrders = [
-    Order(
-      thumbnailAsset: 'assets/img_square.jpg',
-      name: 'Gray vintage 3D computer',
-      price: 14.88,
-      type: '3D Product',
-      status: OrderStatus.delivered,
-      orderId: '11',
-      purchasedOn: '10 / 10 / 2025',
-      baseTotal: '21',
-      purchasedTotal: '21',
-      customer: 'Omar Omar',
-    ),
-    Order(
-      thumbnailAsset: 'assets/img_square.jpg',
-      name: '3D computer improved version',
-      price: 8.99,
-      type: '3D Product',
-      status: OrderStatus.delivered,
-      orderId: '11',
-      purchasedOn: '10 / 10 / 2025',
-      baseTotal: '21',
-      purchasedTotal: '21',
-      customer: 'Omar Omar',
-    ),
-    Order(
-      thumbnailAsset: 'assets/img_square.jpg',
-      name: '3D dark mode wallpaper',
-      price: 213.99,
-      type: 'Wallpaper',
-      status: OrderStatus.delivered,
-      orderId: '11',
-      purchasedOn: '10 / 10 / 2025',
-      baseTotal: '21',
-      purchasedTotal: '21',
-      customer: 'Omar Omar',
-    ),
-    Order(
-      thumbnailAsset: 'assets/img_square.jpg',
-      name: 'Retro CRT display',
-      price: 19.99,
-      type: '3D Product',
-      status: OrderStatus.processing,
-      orderId: '12',
-      purchasedOn: '11 / 10 / 2025',
-      baseTotal: '21',
-      purchasedTotal: '21',
-      customer: 'Omar Omar',
-    ),
-  ];
+  bool _isLoading = true;
+  List<Order> _allOrders = [];
+  final ApiClient _apiClient = ApiClient();
+  String? _errorMessage;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(_onSearchChanged);
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final magentoOrders = await _apiClient.getVendorOrders(
+        pageSize: _pageSize,
+        currentPage: _currentPage,
+      );
+
+      setState(() {
+        _allOrders = magentoOrders.map(_convertMagentoOrderToUiOrder).toList();
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load orders: $e';
+      });
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Order _convertMagentoOrderToUiOrder(MagentoOrder magentoOrder) {
+    final firstItem = magentoOrder.items.isNotEmpty ? magentoOrder.items[0] : null;
+
+    // We don’t have the product payload here, just the SKU. Use a safe asset placeholder;
+    // you can later enhance this to fetch product by SKU for thumbnails.
+    final thumb = 'assets/img_square.jpg';
+
+    return Order(
+      thumbnailAsset: thumb,
+      name: firstItem?.name ?? 'Multiple Products',
+      price: firstItem != null ? double.tryParse(firstItem.price) ?? 0.0 : 0.0,
+      type: firstItem != null ? 'Product' : 'Order',
+      status: OrderUtils.mapMagentoStatusToOrderStatus(magentoOrder.status),
+      orderId: magentoOrder.incrementId,
+      purchasedOn: OrderUtils.formatOrderDate(magentoOrder.createdAt),
+      baseTotal: magentoOrder.subtotal,
+      purchasedTotal: magentoOrder.grandTotal,
+      customer: magentoOrder.customerName,
+      magentoOrder: magentoOrder,
+    );
+  }
+
+  Future<void> _searchOrders() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final statusFilter = _getMagentoStatusFromFilter(_filter);
+      final magentoOrders = await _apiClient.searchVendorOrders(
+        _searchCtrl.text.trim(),
+        status: statusFilter,
+      );
+
+      setState(() {
+        _allOrders = magentoOrders.map(_convertMagentoOrderToUiOrder).toList();
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to search orders: $e';
+      });
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  String? _getMagentoStatusFromFilter(FilterOption filter) {
+    switch (filter) {
+      case FilterOption.delivered:
+        return 'complete';
+      case FilterOption.processing:
+        return 'processing';
+      case FilterOption.cancelled:
+        return 'canceled';
+      case FilterOption.all:
+      default:
+        return null;
+    }
   }
 
   List<Order> get _filtered {
     final q = _searchCtrl.text.trim().toLowerCase();
-    final byText = _allOrders.where((o) => o.name.toLowerCase().contains(q));
+    final byText = _allOrders.where((o) =>
+    o.name.toLowerCase().contains(q) ||
+        o.orderId.toLowerCase().contains(q) ||
+        o.customer.toLowerCase().contains(q));
 
-    // Use enum in the switch statement to fix the "constant pattern" error
     switch (_filter) {
       case FilterOption.delivered:
         return byText.where((o) => o.status == OrderStatus.delivered).toList();
@@ -122,25 +163,41 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
   }
 
   void _onSearchChanged() {
-    setState(() => _shown = _pageSize);
+    if (_searchCtrl.text.isEmpty) {
+      _loadOrders();
+    } else {
+      _searchOrders();
+    }
   }
 
   void _onFilterChanged(FilterOption? v) {
     if (v == null) return;
     setState(() {
       _filter = v;
-      _shown = _pageSize;
+      _currentPage = 1;
     });
+    _searchOrders();
   }
 
-  void _loadMore() {
-    setState(() => _shown = (_shown + _pageSize).clamp(0, _filtered.length));
-  }
+  Future<void> _loadMore() async {
+    if (_loadingMore) return;
 
-  @override
-  void initState() {
-    super.initState();
-    _searchCtrl.addListener(_onSearchChanged);
+    setState(() => _loadingMore = true);
+    try {
+      _currentPage++;
+      final magentoOrders = await _apiClient.getVendorOrders(
+        pageSize: _pageSize,
+        currentPage: _currentPage,
+      );
+
+      final newOrders = magentoOrders.map(_convertMagentoOrderToUiOrder).toList();
+      setState(() {
+        _allOrders.addAll(newOrders);
+        _loadingMore = false;
+      });
+    } catch (e) {
+      setState(() => _loadingMore = false);
+    }
   }
 
   @override
@@ -150,7 +207,6 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
     super.dispose();
   }
 
-  // Helper method to localize the enum value for display
   String _localizeFilter(FilterOption option, AppLocalizations l10n) {
     switch (option) {
       case FilterOption.all:
@@ -167,8 +223,34 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
   @override
   Widget build(BuildContext context) {
     final _localizations = AppLocalizations.of(context)!;
-    final visible = _filtered.take(_shown).toList();
-    final canLoadMore = _shown < _filtered.length && !_loadingMore;
+    final visible = _filtered;
+    final canLoadMore = !_loadingMore && _allOrders.length % _pageSize == 0 && _allOrders.isNotEmpty;
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_errorMessage!),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadOrders,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_isLoading && _allOrders.isEmpty) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     return Scaffold(
       body: Column(
@@ -209,7 +291,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                             child: TextField(
                               controller: _searchCtrl,
                               decoration: InputDecoration(
-                                hintText: 'Search product',
+                                hintText: 'Search orders',
                                 hintStyle: TextStyle(
                                   color: Colors.black.withOpacity(.35),
                                 ),
@@ -228,7 +310,6 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-
                         Expanded(
                           flex: 2,
                           child: DropdownButtonFormField<FilterOption>(
@@ -264,16 +345,24 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
                     const SizedBox(height: 24),
 
-                    ListView.separated(
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      itemCount: visible.length,
-                      separatorBuilder: (context, index) => const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Divider(height: 1, thickness: 1, color: Color(0x11000000)),
+                    if (_isLoading && _allOrders.isNotEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else
+                      ListView.separated(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: visible.length,
+                        separatorBuilder: (context, index) => const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Divider(height: 1, thickness: 1, color: Color(0x11000000)),
+                        ),
+                        itemBuilder: (context, i) => _OrderRow(order: visible[i]),
                       ),
-                      itemBuilder: (context, i) => _OrderRow(order: visible[i]),
-                    ),
 
                     const SizedBox(height: 24),
 
@@ -332,7 +421,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                         ),
                       ),
 
-                    if (_filtered.isEmpty)
+                    if (_filtered.isEmpty && !_isLoading)
                       const Padding(
                         padding: EdgeInsets.only(top: 24),
                         child: Center(
@@ -353,6 +442,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
   }
 }
 
+enum FilterOption { all, delivered, processing, cancelled }
 
 class _OrderRow extends StatelessWidget {
   const _OrderRow({required this.order});
@@ -373,6 +463,10 @@ class _OrderRow extends StatelessWidget {
 
     final isRTL = Directionality.of(context) == TextDirection.rtl;
 
+    final imageWidget = order.thumbnailAsset.startsWith('http')
+        ? Image.network(order.thumbnailAsset, fit: BoxFit.cover)
+        : Image.asset(order.thumbnailAsset, fit: BoxFit.cover);
+
     final children = [
       ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -380,7 +474,7 @@ class _OrderRow extends StatelessWidget {
           width: 90,
           height: 90,
           color: const Color(0xFFEDEEEF),
-          child: Image.asset(order.thumbnailAsset, fit: BoxFit.cover),
+          child: imageWidget,
         ),
       ),
       const SizedBox(width: 16),
@@ -492,7 +586,7 @@ class _RowKVText extends StatelessWidget {
           child: Text(
             k,
             style: keyStyle,
-            textAlign: isRTL ? TextAlign.right : TextAlign.left, // Set alignment based on direction
+            textAlign: isRTL ? TextAlign.right : TextAlign.left,
           ),
         ),
         const SizedBox(width: 12),
@@ -503,7 +597,7 @@ class _RowKVText extends StatelessWidget {
               : Text(
             vText ?? '',
             style: valStyle,
-            textAlign: isRTL ? TextAlign.right : TextAlign.left, // Set alignment based on direction
+            textAlign: isRTL ? TextAlign.right : TextAlign.left,
           ),
         ),
       ],
@@ -558,57 +652,33 @@ class _StatusPill extends StatelessWidget {
     }
   }
 
-  String get _label {
-    switch (status) {
-      case OrderStatus.delivered:
-        return 'Delivered';
-      case OrderStatus.processing:
-        return 'Processing';
-      case OrderStatus.cancelled:
-        return 'Cancelled';
-      case OrderStatus.onHold:
-        return 'On Hold';
-      case OrderStatus.closed:
-        return 'Closed';
-      case OrderStatus.pending:
-        return 'Pending';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final _localizations = AppLocalizations.of(context)!;
-    String label;
-    switch (status) {
-      case OrderStatus.delivered:
-        label = _localizations.delivered;
-        break;
-      case OrderStatus.processing:
-        label = _localizations.processing;
-        break;
-      case OrderStatus.cancelled:
-        label = _localizations.cancelled;
-        break;
-      case OrderStatus.onHold:
-        label = _localizations.onHold;
-        break;
-      case OrderStatus.closed:
-        label = _localizations.closed;
-        break;
-      case OrderStatus.pending:
-        label = _localizations.pending;
-        break;
-      default:
-        label = '';
-        break;
-    }
+    final l10n = AppLocalizations.of(context)!;
+
+    final String label = () {
+      switch (status) {
+        case OrderStatus.delivered:
+          return l10n.delivered;
+        case OrderStatus.processing:
+          return l10n.processing;
+        case OrderStatus.cancelled:
+          return l10n.cancelled;
+        case OrderStatus.onHold:
+          return l10n.onHold;
+        case OrderStatus.closed:
+          return l10n.closed;
+        case OrderStatus.pending:
+          return l10n.pending;
+      }
+    }();
+
     return DecoratedBox(
-      decoration:
-      BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Text(
-          _label,
+          label, // FIX: show localized label
           style: Theme.of(context)
               .textTheme
               .labelLarge
@@ -639,9 +709,8 @@ class _InputSurface extends StatelessWidget {
   }
 }
 
-
-enum OrderStatus { delivered, processing, cancelled, onHold, closed, pending }
-
+/// Keep OrderStatus in a non-UI place (order_utils.dart exports it)
+/// (no enum here)
 class Order {
   Order({
     required this.thumbnailAsset,
@@ -654,6 +723,7 @@ class Order {
     required this.baseTotal,
     required this.purchasedTotal,
     required this.customer,
+    this.magentoOrder,
   });
 
   final String thumbnailAsset;
@@ -666,4 +736,5 @@ class Order {
   final String baseTotal;
   final String purchasedTotal;
   final String customer;
+  final MagentoOrder? magentoOrder;
 }

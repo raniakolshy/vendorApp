@@ -1,14 +1,15 @@
-import 'package:app_vendor/l10n/app_localizations.dart';
-import 'package:app_vendor/presentation/products/drafts_list_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'dart:convert';
 import 'dart:typed_data';
+
+import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dropzone/flutter_dropzone.dart';
 
-// L10n import généré par flutter gen_l10n
-
+import '../../services/api_client.dart';
 import '../common/description_markdown_field.dart';
 
 class AddProductScreen extends StatefulWidget {
@@ -22,6 +23,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
   final _scroll = ScrollController();
 
+  // ===== Admin token (per your request) =====
+  static const String _ADMIN_TOKEN = '87igct1wbbphdok6dk1roju4i83kyub9';
+
   // Controllers
   final _title = TextEditingController();
   final _sku = TextEditingController();
@@ -33,33 +37,35 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _maxQty = TextEditingController(text: '0');
   final _stock = TextEditingController();
   final _weight = TextEditingController();
-  final _cities = TextEditingController();
+  final _cities = TextEditingController(); // unused in payload by default
   final _url = TextEditingController();
   final _metaTitle = TextEditingController();
   final _metaKeywords = TextEditingController();
   final _metaDesc = TextEditingController();
 
-  // Tags (multi)
+  // Tags
   final _tagInput = TextEditingController();
   List<String> _tags = [];
 
-  // Product images (multi)
+  // Images
   List<Uint8List> _images = [];
   List<String> _imageNames = [];
   DropzoneViewController? _dzCtrl;
 
-  // State
-  String _category = 'Food';
-  final _categories = const ['Food', 'Electronics', 'Apparel', 'Beauty', 'Home', 'Other'];
+  // State toggles (UI kept the same)
   bool _hasSpecial = false;
   bool _taxes = true;
-  String _stockAvail = 'In Stock';
-  String _visibility = 'Invisible';
+  String _stockAvail = 'In Stock';   // 'In Stock' | 'Out of Stock'
+  String _visibility = 'Invisible';  // 'Invisible' | 'Visible'
   bool _submitting = false;
+
+  // ===== Magento categories (real, no mock) =====
+  List<Map<String, dynamic>> _mgCategories = [];
+  bool _mgCatsLoading = true;
+  String? _selectedCategoryId;
 
   // ---------- styling helpers ----------
   BorderRadius get _radius => BorderRadius.circular(16);
-
   InputDecoration _dec(BuildContext context, {String? hint, Widget? prefix}) {
     final divider = const Color(0xFFE5E5E5);
     return InputDecoration(
@@ -124,11 +130,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-              softWrap: true,
-            ),
+            child: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700), softWrap: true),
           ),
           if (hasHelp) const SizedBox(width: 6),
           if (hasHelp)
@@ -146,6 +148,36 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ],
       ),
     );
+  }
+
+  // ---------- lifecycle ----------
+  @override
+  void initState() {
+    super.initState();
+    _loadMagentoCategories();
+  }
+
+  Future<void> _loadMagentoCategories() async {
+    try {
+      final items = await ApiClient().getAllCategoriesFlat();
+      // pick first non-root category by default
+      String? firstSelectableId;
+      for (final c in items) {
+        final level = (c['level'] as num?)?.toInt() ?? 0;
+        if (level > 1) {
+          firstSelectableId = c['id']?.toString();
+          break;
+        }
+      }
+      setState(() {
+        _mgCategories = items;
+        _mgCatsLoading = false;
+        _selectedCategoryId = firstSelectableId ?? (items.isNotEmpty ? items.first['id']?.toString() : null);
+      });
+    } catch (e) {
+      setState(() => _mgCatsLoading = false);
+      _snack('Failed to load Magento categories: $e', error: true);
+    }
   }
 
   // ---------- actions ----------
@@ -178,15 +210,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Future<void> _submit({required bool isDraft}) async {
     final l10n = AppLocalizations.of(context)!;
     setState(() => _submitting = true);
-    // TODO: call your API here (include _tags and _images)
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    _snack(isDraft ? l10n.toast_draft_saved : l10n.toast_product_published);
-    setState(() => _submitting = false);
+
+    try {
+      final payload = _buildMagentoPayload(isDraft: isDraft);
+      await ApiClient().createProductAsAdmin(payload);
+
+      _snack(isDraft ? l10n.toast_draft_saved : l10n.toast_product_published);
+    } on DioException catch (e) {
+      _snack(ApiClient().parseMagentoError(e), error: true);
+    } catch (e) {
+      _snack(e.toString(), error: true);
+    } finally {
+      setState(() => _submitting = false);
+    }
   }
 
   void _delete() {
     final l10n = AppLocalizations.of(context)!;
-    // TODO: delete API call
+    // If you add delete, use admin token via ApiClient as well.
     _snack(l10n.toast_product_deleted);
   }
 
@@ -194,6 +235,107 @@ class _AddProductScreenState extends State<AddProductScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), backgroundColor: error ? Colors.red : Colors.black87),
     );
+  }
+
+  // ---------- payload builder ----------
+  Map<String, dynamic> _buildMagentoPayload({required bool isDraft}) {
+    final visibility = _visibility == 'Visible' ? 4 : 1; // 4 = Catalog, Search
+    final status = isDraft ? 2 : 1;                      // 2 = Disabled (draft), 1 = Enabled
+
+    final inStock = _stockAvail == 'In Stock';
+    final qty = int.tryParse(_stock.text) ?? 0;
+
+    final price = double.tryParse(_amount.text) ?? 0.0;
+    final specialPrice = _hasSpecial && _sp.text.trim().isNotEmpty
+        ? double.tryParse(_sp.text.trim())
+        : null;
+
+    final weightVal = double.tryParse(_weight.text.trim().isEmpty ? '0' : _weight.text.trim()) ?? 0;
+
+    // Category (direct from Magento selection)
+    final categoryLinks = <Map<String, dynamic>>[];
+    if (_selectedCategoryId != null && _selectedCategoryId!.isNotEmpty) {
+      categoryLinks.add({"position": 0, "category_id": _selectedCategoryId});
+    }
+
+    // Images
+    final mediaEntries = <Map<String, dynamic>>[];
+    for (int i = 0; i < _images.length; i++) {
+      final bytes = _images[i];
+      final name = _imageNames.elementAt(i);
+      final b64 = base64Encode(bytes);
+      final mime = ApiClient().guessMimeFromName(name);
+      mediaEntries.add({
+        "id": i + 1,
+        "position": i + 1,
+        "disabled": false,
+        "types": i == 0 ? ["image", "small_image", "thumbnail"] : [],
+        "content": {
+          "base64_encoded_data": b64,
+          "type": mime,
+          "name": name,
+        }
+      });
+    }
+
+    final customAttrs = <Map<String, dynamic>>[];
+    if (_desc.text.trim().isNotEmpty) {
+      customAttrs.add({"attribute_code": "description", "value": _desc.text.trim()});
+    }
+    if (_shortDesc.text.trim().isNotEmpty) {
+      customAttrs.add({"attribute_code": "short_description", "value": _shortDesc.text.trim()});
+    }
+    if (_url.text.trim().isNotEmpty) {
+      customAttrs.add({"attribute_code": "url_key", "value": _url.text.trim()});
+    }
+    if (_metaTitle.text.trim().isNotEmpty) {
+      customAttrs.add({"attribute_code": "meta_title", "value": _metaTitle.text.trim()});
+    }
+    final combinedKeywords = ([
+      if (_metaKeywords.text.trim().isNotEmpty) _metaKeywords.text.trim(),
+      if (_tags.isNotEmpty) _tags.join(', ')
+    ]..removeWhere((e) => e.isEmpty)).join(', ');
+    if (combinedKeywords.isNotEmpty) {
+      customAttrs.add({"attribute_code": "meta_keyword", "value": combinedKeywords});
+    }
+    if (_metaDesc.text.trim().isNotEmpty) {
+      customAttrs.add({"attribute_code": "meta_description", "value": _metaDesc.text.trim()});
+    }
+    if (specialPrice != null) {
+      customAttrs.add({"attribute_code": "special_price", "value": specialPrice.toString()});
+    }
+
+    final sku = _sku.text.trim().isEmpty ? _autoSku() : _sku.text.trim();
+
+    final product = {
+      "sku": sku,
+      "name": _title.text.trim(),
+      "price": price,
+      "status": status,
+      "type_id": "simple",
+      "attribute_set_id": 4,
+      "weight": weightVal,
+      "visibility": visibility,
+      "extension_attributes": {
+        "stock_item": {
+          "qty": qty,
+          "is_in_stock": inStock,
+          "manage_stock": true,
+        },
+        if (categoryLinks.isNotEmpty) "category_links": categoryLinks,
+      },
+      if (customAttrs.isNotEmpty) "custom_attributes": customAttrs,
+      if (mediaEntries.isNotEmpty) "media_gallery_entries": mediaEntries,
+    };
+
+    return {"product": product, "saveOptions": true};
+  }
+
+  String _autoSku() {
+    final base = _title.text.trim().isEmpty
+        ? 'sku'
+        : _title.text.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-');
+    return '$base-${DateTime.now().millisecondsSinceEpoch}';
   }
 
   // ---------- UI ----------
@@ -250,19 +392,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 const SizedBox(height: 20),
 
                                 _label(l10n.lbl_category, help: l10n.help_category),
-                                DropdownButtonFormField<String>(
-                                  value: _category,
-                                  items: _categories
-                                      .map((e) => DropdownMenuItem(
-                                    value: e,
-                                    child: Text(_localizeCategory(e, l10n)),
-                                  ))
-                                      .toList(),
-                                  onChanged: (v) => setState(() => _category = v ?? _category),
-                                  decoration: _dec(context),
-                                  dropdownColor: Colors.white,
-                                  elevation: 8,
-                                ),
+                                if (_mgCatsLoading)
+                                  const LinearProgressIndicator()
+                                else
+                                  DropdownButtonFormField<String>(
+                                    value: _selectedCategoryId,
+                                    items: _mgCategories
+                                        .map((e) => DropdownMenuItem<String>(
+                                      value: e['id']?.toString(),
+                                      child: Text(_categoryLabel(e)),
+                                    ))
+                                        .toList(),
+                                    onChanged: (v) => setState(() => _selectedCategoryId = v),
+                                    decoration: _dec(context),
+                                    dropdownColor: Colors.white,
+                                    elevation: 8,
+                                  ),
                                 const SizedBox(height: 20),
 
                                 _label(l10n.lbl_tags, help: l10n.help_tags),
@@ -461,7 +606,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 ),
                                 const SizedBox(height: 20),
 
-                                // --- Product Images ---
                                 _label(l10n.lbl_product_images, help: l10n.help_product_images),
                                 Container(
                                   height: 210,
@@ -511,7 +655,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                             ],
                                           ),
                                         ),
-
                                       if (kIsWeb)
                                         DropzoneView(
                                           onCreated: (c) => _dzCtrl = c,
@@ -526,7 +669,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                             });
                                           },
                                         ),
-
                                       Center(
                                         child: ElevatedButton.icon(
                                           icon: const Icon(Icons.download_rounded),
@@ -547,16 +689,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 if (_images.length < 3)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 8),
-                                    child: Text(l10n.warn_prefer_three_images,
-                                        style: const TextStyle(color: Colors.red)),
+                                    child: Text(l10n.warn_prefer_three_images, style: const TextStyle(color: Colors.red)),
                                   ),
                               ]),
 
-                              // Linked products tabs
+                              // Linked products tabs (real data)
                               _sectionCard(
                                 title: l10n.sec_linked_products,
                                 children: [
-                                  LinkedProductsTabs(height: 600, l10n: l10n),
+                                  LinkedProductsTabs(height: 600, l10n: l10n, adminToken: _ADMIN_TOKEN),
                                 ],
                               ),
 
@@ -687,22 +828,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
-  // Helpers to localize dropdown/item labels coming from constants:
-  String _localizeCategory(String raw, AppLocalizations l10n) {
-    switch (raw) {
-      case 'Food':
-        return l10n.cat_food;
-      case 'Electronics':
-        return l10n.cat_electronics;
-      case 'Apparel':
-        return l10n.cat_apparel;
-      case 'Beauty':
-        return l10n.cat_beauty;
-      case 'Home':
-        return l10n.cat_home;
-      default:
-        return l10n.cat_other;
-    }
+  // Category label with indent (keep visuals)
+  String _categoryLabel(Map<String, dynamic> cat) {
+    final level = (cat['level'] as num?)?.toInt() ?? 0;
+    final name = (cat['name'] as String?) ?? 'Unnamed';
+    return '${'  ' * (level > 1 ? level - 2 : 0)}$name';
   }
 
   String _localizeStock(String raw, AppLocalizations l10n) {
@@ -728,38 +858,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 }
 
-class _CustomDropdownMenuItem extends StatelessWidget {
-  const _CustomDropdownMenuItem({required this.value, required this.child});
-
-  final String value;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: DropdownMenuItem(
-        value: value,
-        child: child,
-      ),
-    );
-  }
-}
+// ================= LinkedProducts tabs (real Magento data) =================
 
 class LinkedProductsTabs extends StatefulWidget {
-  const LinkedProductsTabs({super.key, this.height = 600, required this.l10n});
+  const LinkedProductsTabs({super.key, this.height = 600, required this.l10n, required this.adminToken});
   final double height;
   final AppLocalizations l10n;
+  final String adminToken;
 
   @override
   State<LinkedProductsTabs> createState() => _LinkedProductsTabsState();
@@ -783,9 +888,7 @@ class _LinkedProductsTabsState extends State<LinkedProductsTabs> with SingleTick
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final l10n = widget.l10n;
 
-    // Neutral palette
     const neutralPrimary = Colors.black;
     final bg = isDark ? const Color(0xFF101010) : Colors.white;
     final surface = isDark ? const Color(0xFF161616) : Colors.white;
@@ -793,12 +896,11 @@ class _LinkedProductsTabsState extends State<LinkedProductsTabs> with SingleTick
     final onSurface = isDark ? Colors.white : Colors.black87;
     final onSurfaceMuted = isDark ? Colors.white70 : Colors.black54;
 
+    final l10n = widget.l10n;
+
     return Theme(
       data: theme.copyWith(
-        colorScheme: theme.colorScheme.copyWith(
-          primary: neutralPrimary,
-          secondary: neutralPrimary,
-        ),
+        colorScheme: theme.colorScheme.copyWith(primary: neutralPrimary, secondary: neutralPrimary),
       ),
       child: SizedBox(
         height: widget.height,
@@ -807,28 +909,17 @@ class _LinkedProductsTabsState extends State<LinkedProductsTabs> with SingleTick
             color: bg,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: border),
-            boxShadow: [
-              if (!isDark)
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-            ],
+            boxShadow: [if (!isDark) BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 6))],
           ),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(l10n.title_product_relationships,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: onSurface,
-                  )),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: onSurface)),
               const SizedBox(height: 12),
 
-              // Segmented tabs (neutral)
+              // Tabs
               Container(
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1F1F1F) : const Color(0xFFF3F3F3),
@@ -854,20 +945,15 @@ class _LinkedProductsTabsState extends State<LinkedProductsTabs> with SingleTick
               ),
               const SizedBox(height: 16),
 
-              // Content
               Expanded(
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: border),
-                  ),
+                  decoration: BoxDecoration(color: surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: border)),
                   child: TabBarView(
                     controller: _tc,
                     children: [
-                      ProductsTableShell(title: l10n.related_products, l10n: l10n),
-                      ProductsTableShell(title: l10n.upsell_products, l10n: l10n),
-                      ProductsTableShell(title: l10n.crosssell_products, l10n: l10n),
+                      ProductsTableShell(title: l10n.related_products, l10n: l10n, adminToken: widget.adminToken),
+                      ProductsTableShell(title: l10n.upsell_products, l10n: l10n, adminToken: widget.adminToken),
+                      ProductsTableShell(title: l10n.crosssell_products, l10n: l10n, adminToken: widget.adminToken),
                     ],
                   ),
                 ),
@@ -880,11 +966,11 @@ class _LinkedProductsTabsState extends State<LinkedProductsTabs> with SingleTick
   }
 }
 
-/// The main widget that holds the product list logic and UI (single, deduplicated version)
 class ProductsTableShell extends StatefulWidget {
-  const ProductsTableShell({super.key, required this.title, required this.l10n});
+  const ProductsTableShell({super.key, required this.title, required this.l10n, required this.adminToken});
   final String title;
   final AppLocalizations l10n;
+  final String adminToken;
 
   @override
   State<ProductsTableShell> createState() => _ProductsTableShellState();
@@ -892,10 +978,18 @@ class ProductsTableShell extends StatefulWidget {
 
 class _ProductsTableShellState extends State<ProductsTableShell> {
   final _search = TextEditingController();
-
-  // filter state
   bool _showEnabled = true;
   bool _showDisabled = true;
+
+  bool _loading = true;
+  String? _error;
+  List<Map<String, dynamic>> _allProducts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProducts();
+  }
 
   @override
   void dispose() {
@@ -903,21 +997,35 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
     super.dispose();
   }
 
+  Future<void> _fetchProducts() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final items = await ApiClient().getProductsAdmin(pageSize: 1000);
+      setState(() {
+        _allProducts = items;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   bool get _filtersActive => !(_showEnabled && _showDisabled);
 
   void _openFilters() async {
     final l10n = widget.l10n;
-
     final result = await showModalBottomSheet<Map<String, bool>>(
       context: context,
       useSafeArea: true,
       isScrollControlled: false,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF161616)
-          : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF161616) : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (context) {
         bool showEnabled = _showEnabled;
         bool showDisabled = _showDisabled;
@@ -932,7 +1040,8 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
                   color: isDark ? Colors.white24 : Colors.black12,
@@ -955,10 +1064,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
               ),
               const SizedBox(height: 4),
               Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: border),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                decoration: BoxDecoration(border: Border.all(color: border), borderRadius: BorderRadius.circular(12)),
                 child: Column(
                   children: [
                     SwitchListTile(
@@ -1013,53 +1119,74 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
 
     final l10n = widget.l10n;
 
-    // Demo dataset — enabled added and status kept
-    final List<Map<String, dynamic>> products = [
-      {
-        'id': 'SKU-001',
-        'name': l10n.demo_mouse_name,
-        'type': l10n.cat_electronics,
-        'price': 49.99,
-        'status': l10n.inv_in_stock_label,
-        'enabled': true,
-      },
-      {
-        'id': 'SKU-002',
-        'name': l10n.demo_tshirt_name,
-        'type': l10n.cat_apparel,
-        'price': 29.50,
-        'status': l10n.inv_low_stock_label,
-        'enabled': true,
-      },
-      {
-        'id': 'SKU-003',
-        'name': l10n.demo_espresso_name,
-        'type': l10n.cat_home_appliances,
-        'price': 199.99,
-        'status': l10n.inv_out_stock_label,
-        'enabled': false,
-      },
-    ];
+    // Loading / error states
+    if (_loading) {
+      return const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()));
+    }
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        ),
+      );
+    }
 
-    // Filter by search text
+    // Map Magento items -> view model for filtering
+    List<Map<String, dynamic>> decorated = _allProducts.map((p) {
+      final status = (p['status'] as num?)?.toInt() ?? 2; // 1 enabled, 2 disabled
+      final enabled = status == 1;
+      final name = (p['name'] ?? '').toString();
+      final id = (p['id'] ?? '').toString();
+      final sku = (p['sku'] ?? '').toString();
+      final type = (p['type_id'] ?? '').toString();
+      final price = (p['price'] ?? 0).toString();
+      // stock info
+      final ext = p['extension_attributes'] as Map<String, dynamic>?;
+      final stock = ext?['stock_item'] as Map<String, dynamic>?;
+      final isInStock = (stock?['is_in_stock'] as bool?) ?? true;
+      final qty = (stock?['qty'] as num?)?.toInt();
+
+      String invLabel;
+      if (isInStock) {
+        if (qty != null && qty <= 5) {
+          invLabel = l10n.inv_low_stock_label; // you can adjust threshold
+        } else {
+          invLabel = l10n.inv_in_stock_label;
+        }
+      } else {
+        invLabel = l10n.inv_out_stock_label;
+      }
+
+      return <String, dynamic>{
+        'id': id,
+        'sku': sku,
+        'name': name,
+        'type': type,
+        'price': price,
+        'statusLabel': invLabel,
+        'enabled': enabled,
+      };
+    }).toList();
+
+    // Search
     final q = _search.text.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      decorated = decorated.where((p) {
+        return p['name'].toString().toLowerCase().contains(q) ||
+            p['sku'].toString().toLowerCase().contains(q) ||
+            p['id'].toString().toLowerCase().contains(q);
+      }).toList();
+    }
 
-    // First: by Enabled/Disabled
-    final filteredByToggle = products.where((p) {
+    // Enabled/Disabled filter
+    decorated = decorated.where((p) {
       final isEnabled = (p['enabled'] as bool?) ?? true;
       if (isEnabled && !_showEnabled) return false;
       if (!isEnabled && !_showDisabled) return false;
       return true;
-    });
-
-    // Second: by search
-    final filteredProducts = filteredByToggle.where((p) {
-      if (q.isEmpty) return true;
-      return p['name'].toString().toLowerCase().contains(q) ||
-          p['id'].toString().toLowerCase().contains(q);
     }).toList();
 
-    // Small helper: show an “active filters” chip
     Widget? activeFilterChip() {
       if (!_filtersActive) return null;
       String txt;
@@ -1079,11 +1206,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.filter_alt, size: 16),
-            const SizedBox(width: 6),
-            Text(txt, style: TextStyle(color: onSurface)),
-          ],
+          children: const [Icon(Icons.filter_alt, size: 16), SizedBox(width: 6),],
         ),
       );
     }
@@ -1101,8 +1224,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
                 runSpacing: 10,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text(widget.title,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: onSurface)),
+                  Text(widget.title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: onSurface)),
                   SizedBox(
                     width: narrow ? c.maxWidth : 260,
                     child: TextField(
@@ -1146,6 +1268,11 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
                     ),
                   ),
                   if (activeFilterChip() != null) activeFilterChip()!,
+                  IconButton(
+                    tooltip: 'Refresh',
+                    onPressed: _fetchProducts,
+                    icon: const Icon(Icons.refresh),
+                  ),
                 ],
               );
             },
@@ -1154,13 +1281,14 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
 
         // List
         Expanded(
-          child: filteredProducts.isEmpty
+          child: decorated.isEmpty
               ? EmptyModern(l10n: l10n)
               : ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: filteredProducts.length,
+            itemCount: decorated.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) => ProductCard(product: filteredProducts[index], l10n: l10n),
+            itemBuilder: (context, index) =>
+                ProductCard(product: decorated[index], l10n: l10n),
           ),
         ),
       ],
@@ -1168,7 +1296,6 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
   }
 }
 
-// Empty state
 class EmptyModern extends StatelessWidget {
   const EmptyModern({super.key, required this.l10n});
   final AppLocalizations l10n;
@@ -1197,23 +1324,6 @@ class EmptyModern extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
               ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () {/* TODO */},
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.btn_add_product),
-                  ),
-                  const SizedBox(width: 10),
-                  OutlinedButton.icon(
-                    onPressed: () {/* TODO */},
-                    icon: const Icon(Icons.filter_alt_outlined),
-                    label: Text(l10n.btn_browse_catalog),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
@@ -1222,9 +1332,8 @@ class EmptyModern extends StatelessWidget {
   }
 }
 
-// Card
 class ProductCard extends StatelessWidget {
-  final Map<String, dynamic> product;
+  final Map<String, dynamic> product; // expects: id, sku, name, type, price, statusLabel, enabled
   final AppLocalizations l10n;
   const ProductCard({super.key, required this.product, required this.l10n});
 
@@ -1287,10 +1396,11 @@ class ProductCard extends StatelessWidget {
                 Text(product['name'],
                     style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: onSurface)),
                 const SizedBox(height: 4),
-                Text(product['type'], style: theme.textTheme.bodyMedium?.copyWith(color: onSurfaceMuted)),
-                if (product['status'] != null) ...[
+                Text('${product['type']} — SKU ${product['sku']}',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: onSurfaceMuted)),
+                if (product['statusLabel'] != null) ...[
                   const SizedBox(height: 2),
-                  Text(l10n.inventory_with_value(product['status'].toString()),
+                  Text(l10n.inventory_with_value(product['statusLabel'].toString()),
                       style: theme.textTheme.bodySmall?.copyWith(color: onSurfaceMuted)),
                 ],
               ]),

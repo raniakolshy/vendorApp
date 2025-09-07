@@ -1,13 +1,174 @@
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import '../../services/api_client.dart';
 
-class PrintPdfScreen extends StatelessWidget {
-  const PrintPdfScreen({super.key});
+class PrintPdfScreen extends StatefulWidget {
+  const PrintPdfScreen({
+    super.key,
+    this.invoiceId, // now nullable to match how you call it elsewhere
+    this.adminToken = '87igct1wbbphdok6dk1roju4i83kyub9',
+  });
+
+  final int? invoiceId; // <-- nullable
+  final String adminToken;
+
+  @override
+  State<PrintPdfScreen> createState() => _PrintPdfScreenState();
+}
+
+class _PrintPdfScreenState extends State<PrintPdfScreen> {
+  final TextEditingController _infoController = TextEditingController();
+  bool _loading = true;
+  bool _saving = false;
+
+  Map<String, dynamic>? _invoice;
+  String? _lastComment;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInvoiceAndComments();
+  }
+
+  Future<void> _loadInvoiceAndComments() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    // If no invoiceId was provided, just stop here and show a tip.
+    if (widget.invoiceId == null) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.invoiceDetailsSubtitle), // reuse your copy
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final inv = await ApiClient().getInvoiceById(
+        invoiceId: widget.invoiceId!,
+      );
+
+      final comments = await ApiClient().getInvoiceComments(
+        invoiceId: widget.invoiceId!,
+      );
+
+      String? latest;
+      if (comments.isNotEmpty) {
+        comments.sort((a, b) {
+          final atA = DateTime.tryParse('${a['created_at'] ?? ''}') ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          final atB = DateTime.tryParse('${b['created_at'] ?? ''}') ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          return atB.compareTo(atA);
+        });
+        latest = comments.first['comment']?.toString();
+      }
+
+      setState(() {
+        _invoice = inv;
+        _lastComment = latest;
+        if (latest != null && latest.trim().isNotEmpty) {
+          _infoController.text = latest;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.failedToExport} $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _saveComment() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Require an invoice id to save
+    if (widget.invoiceId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.saveInfoEmpty),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final text = _infoController.text.trim();
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.saveInfoEmpty),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await ApiClient().addInvoiceComment(
+        invoiceId: widget.invoiceId!,
+        comment: text,
+        isVisibleOnFront: true,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.saveInfoSuccess),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
+        ),
+      );
+
+      await _loadInvoiceAndComments();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.failedToExport} $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations localizations = AppLocalizations.of(context)!;
-    final TextEditingController infoController = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -17,7 +178,7 @@ class PrintPdfScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              localizations.printPdfTitle,
+              l10n.printPdfTitle,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
@@ -25,6 +186,7 @@ class PrintPdfScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
+
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -44,7 +206,7 @@ class PrintPdfScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      localizations.invoiceDetailsTitle,
+                      l10n.invoiceDetailsTitle,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -53,13 +215,20 @@ class PrintPdfScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      localizations.invoiceDetailsSubtitle,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
+                      l10n.invoiceDetailsSubtitle,
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
+
+                    if (_invoice != null) ...[
+                      Text(
+                        'Invoice #${_invoice!['increment_id'] ?? _invoice!['entity_id']} • '
+                            'Order #${_invoice!['order_increment_id'] ?? ''}',
+                        style: const TextStyle(color: Colors.black54, fontSize: 13),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
                     Container(
                       decoration: BoxDecoration(
                         color: const Color(0xFFFAFAFA),
@@ -67,49 +236,28 @@ class PrintPdfScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: TextField(
-                        controller: infoController,
+                        controller: _infoController,
                         maxLines: 8,
                         keyboardType: TextInputType.multiline,
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.all(16),
-                          hintText: localizations.invoiceDetailsHint,
+                          hintText: l10n.invoiceDetailsHint,
                           hintStyle: const TextStyle(color: Colors.grey),
                         ),
                         style: const TextStyle(fontSize: 15),
+                        enabled: !_loading && !_saving && widget.invoiceId != null,
                       ),
                     ),
                     const SizedBox(height: 24),
+
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
-                          if (infoController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(localizations.saveInfoEmpty),
-                                backgroundColor: Colors.red,
-                                behavior: SnackBarBehavior.floating,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                                ),
-                              ),
-                            );
-                          } else {
-                            print('Information saved: ${infoController.text}');
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(localizations.saveInfoSuccess),
-                                backgroundColor: Colors.green,
-                                behavior: SnackBarBehavior.floating,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                                ),
-                              ),
-                            );
-                          }
-                        },
+                        onPressed: (_loading || _saving || widget.invoiceId == null)
+                            ? null
+                            : _saveComment,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFE31741),
                           shape: RoundedRectangleBorder(
@@ -117,8 +265,17 @@ class PrintPdfScreen extends StatelessWidget {
                           ),
                           elevation: 0,
                         ),
-                        child: Text(
-                          localizations.saveInfoButton,
+                        child: _saving
+                            ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                            : Text(
+                          l10n.saveInfoButton,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -131,11 +288,14 @@ class PrintPdfScreen extends StatelessWidget {
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Text(
-                localizations.invoiceDetailsFooter,
+                widget.invoiceId == null
+                    ? 'No invoice selected.'
+                    : l10n.invoiceDetailsFooter,
                 style: const TextStyle(
                   color: Colors.grey,
                   fontSize: 13,

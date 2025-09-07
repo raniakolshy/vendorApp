@@ -404,9 +404,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final customerInfo = await ApiClient().getCustomerInfo();
 
       if (customerInfo != null) {
-        final firstName = customerInfo['firstname'] ?? '';
-        final lastName = customerInfo['lastname'] ?? '';
-        final email = customerInfo['email'] ?? '';
+        final firstName = customerInfo['firstname']?.toString() ?? '';
+        final lastName  = customerInfo['lastname']?.toString() ?? '';
+        final email     = customerInfo['email']?.toString() ?? '';
 
         setState(() {
           _userName = '$firstName $lastName'.trim();
@@ -429,25 +429,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final apiClient = ApiClient();
 
       final stats = await apiClient.getDashboardStats();
-      print('Dashboard Stats: $stats');
-
       final salesHistory = await apiClient.getSalesHistory();
-      print('Sales History: $salesHistory');
-
       final customerBreakdown = await apiClient.getCustomerBreakdown();
-      print('Customer Breakdown: $customerBreakdown');
-
       final topProducts = await apiClient.getTopSellingProducts();
-      print('Top Products: $topProducts');
-
       final topCategories = await apiClient.getTopCategories();
-      print('Top Categories: $topCategories');
-
       final productRatings = await apiClient.getProductRatings();
-      print('Product Ratings: $productRatings');
-
       final latestReviews = await apiClient.getLatestReviews();
-      print('Latest Reviews: $latestReviews');
 
       setState(() {
         _dashboardStats = stats;
@@ -460,7 +447,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       });
     } catch (e) {
       if (mounted) {
-        print('Failed to load data: $e');
+        debugPrint('Failed to load data: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to load data: $e')),
         );
@@ -521,13 +508,20 @@ class _StatRow extends StatelessWidget {
   final Map<String, dynamic>? dashboardStats;
   const _StatRow({this.dashboardStats});
 
+  num _numOf(dynamic v) {
+    if (v is num) return v;
+    if (v is String) return num.tryParse(v) ?? 0;
+    return 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
 
-    final totalRevenue = (dashboardStats?['totalRevenue'] ?? 0.0) as double;
-    final orderCount   = (dashboardStats?['orderCount'] ?? 0) as int;
-    final customerCount= (dashboardStats?['customerCount'] ?? 0) as int;
+    // Support both snake_case and camelCase
+    final totalRevenue  = _numOf(dashboardStats?['total_revenue'] ?? dashboardStats?['totalRevenue']).toDouble();
+    final orderCount    = _numOf(dashboardStats?['total_orders']   ?? dashboardStats?['orderCount']).toInt();
+    final customerCount = _numOf(dashboardStats?['total_customers']?? dashboardStats?['customerCount']).toInt();
 
     return SizedBox(
       height: kStatCardHeight + 4,
@@ -609,7 +603,7 @@ class _MiniStatCard extends StatelessWidget {
             text: TextSpan(
               children: [
                 TextSpan(
-                  text: percent.isEmpty ? '' : '$percent ',
+                  text: percent.isNotEmpty ? '$percent ' : '',
                   style: TextStyle(color: deltaColor, fontSize: 12, fontWeight: FontWeight.w700),
                 ),
                 TextSpan(

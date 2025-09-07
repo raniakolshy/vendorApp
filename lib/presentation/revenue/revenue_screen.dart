@@ -2,12 +2,14 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-
+import '../../services/api_client.dart';
+enum _Period { day, month }
 class RevenueScreen extends StatefulWidget {
   const RevenueScreen({super.key});
 
@@ -16,101 +18,184 @@ class RevenueScreen extends StatefulWidget {
 }
 
 class _RevenueScreenState extends State<RevenueScreen> {
-  // Pagination for history
-  static const int _pageSize = 2;
-  int _shown = _pageSize;
-  bool _isLoading = false;
 
-  // History dummy data
-  final List<Map<String, String>> _historyData = [
-    {
-      'interval': 'From 15 / 11 to 01 / 25',
-      'orderId': '12345',
-      'totalAmount': '\$7,750.88',
-      'totalEarning': '\$7,750.88',
-      'discount': '20%',
-      'commission': '\$7,750.88',
-    },
-    {
-      'interval': 'From 15 / 11 to 01 / 25',
-      'orderId': '12346',
-      'totalAmount': '\$6,120.20',
-      'totalEarning': '\$6,120.20',
-      'discount': '10%',
-      'commission': '\$820.00',
-    },
-    {
-      'interval': 'From 15 / 11 to 01 / 25',
-      'orderId': '12347',
-      'totalAmount': '\$5,010.90',
-      'totalEarning': '\$5,010.90',
-      'discount': '0%',
-      'commission': '\$610.00',
-    },
-  ];
+  static const String _ADMIN_TOKEN = '87igct1wbbphdok6dk1roju4i83kyub9';
 
-  Future<void> _loadMore() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1)); // fake delay for loading
-    setState(() {
-      _shown = (_shown + _pageSize).clamp(0, _historyData.length);
-      _isLoading = false;
-    });
-  }
+  static const double _COMMISSION_RATE = 0.0;
 
-  // ----- FILTER + CHART DATA -----
+  static const int _pageSize = 10;
+  int _shown = 0;
+  bool _isLoadingMore = false;
+
   final List<String> _filters = ['allTime', 'last7Days', 'last30Days', 'thisYear'];
   late String _selectedFilter = _filters.first;
 
-  List<ChartData> _dataAllTime = const [
-    ChartData('Jan', 8.2, 50),
-    ChartData('Feb', 8.4, 70),
-    ChartData('Mar', 8.3, 60),
-    ChartData('Apr', 8.1, 40),
-    ChartData('May', 8.7, 120),
-    ChartData('Jun', 8.3, 55),
-  ];
+  List<ChartData> _chartData = const [];
+  final GlobalKey _chartKey = GlobalKey();
+  bool _isInitLoading = true;
+  String? _loadError;
 
-  List<ChartData> _getFilteredData() {
-    switch (_selectedFilter) {
-      case 'last7Days':
-        return const [
-          ChartData('Mon', 5.0, 20),
-          ChartData('Tue', 6.2, 30),
-          ChartData('Wed', 4.8, 25),
-          ChartData('Thu', 7.0, 40),
-          ChartData('Fri', 6.5, 35),
-          ChartData('Sat', 8.0, 45),
-          ChartData('Sun', 7.2, 38),
-        ];
-      case 'last30Days':
-        return List.generate(
-          30,
-              (i) => ChartData('D${i + 1}', (5 + (i % 4)).toDouble(), 20 + (i % 10)),
-        );
-      case 'thisYear':
-        return const [
-          ChartData('Jan', 8.2, 50),
-          ChartData('Feb', 8.4, 70),
-          ChartData('Mar', 8.3, 60),
-          ChartData('Apr', 8.1, 40),
-          ChartData('May', 8.7, 120),
-          ChartData('Jun', 8.3, 55),
-          ChartData('Jul', 8.9, 90),
-          ChartData('Aug', 7.9, 65),
-          ChartData('Sep', 8.6, 110),
-          ChartData('Oct', 8.4, 95),
-          ChartData('Nov', 8.2, 70),
-          ChartData('Dec', 8.8, 130),
-        ];
-      default:
-        return _dataAllTime;
+
+  double _totalRevenue = 0.0;
+  double _balance = 0.0;
+  double _totalSalesValue = 0.0;
+
+
+
+  final List<Map<String, String>> _historyData = [];
+
+  final Map<String, List<ChartData>> _chartCacheByFilter = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    setState(() {
+      _isInitLoading = true;
+      _loadError = null;
+      _historyData.clear();
+      _totalRevenue = 0.0;
+      _totalSalesValue = 0.0;
+      _balance = 0.0;
+      _chartData = const [];
+      _shown = 0;
+    });
+
+    try {
+      final orders = await ApiClient().getOrdersAdmin(
+        pageSize: 200,
+      );
+
+      double grandTotalSum = 0.0;
+      double discountSum = 0.0;
+
+      final dfDate = DateFormat('dd / MM / yyyy');
+      for (final o in orders) {
+        final createdAtStr = (o['created_at'] as String?) ?? '';
+        DateTime? createdAt;
+        try {
+          createdAt = DateTime.tryParse(createdAtStr)?.toLocal();
+        } catch (_) {
+          createdAt = null;
+        }
+
+        final intervalLabel =
+        createdAt != null ? 'From ${dfDate.format(createdAt)} to ${dfDate.format(createdAt)}' : '—';
+
+        final orderId = (o['increment_id']?.toString() ?? o['entity_id']?.toString() ?? '—');
+
+        final grandTotal = (o['grand_total'] as num?)?.toDouble() ?? 0.0;
+        final discountAmount = (o['discount_amount'] as num?)?.toDouble() ?? 0.0;
+
+        grandTotalSum += grandTotal;
+        discountSum += discountAmount;
+
+        final commission = grandTotal * _COMMISSION_RATE;
+
+        _historyData.add({
+          'interval': intervalLabel,
+          'orderId': orderId,
+          'totalAmount': _fmtCurrency(grandTotal),
+          'totalEarning': _fmtCurrency(grandTotal - commission),
+          'discount': _fmtPercentFromAbs(discountAmount, base: grandTotal),
+          'commission': _fmtCurrency(commission),
+        });
+      }
+
+      _totalRevenue = grandTotalSum;
+      _totalSalesValue = grandTotalSum;
+      _balance = _totalRevenue - (_totalRevenue * _COMMISSION_RATE);
+
+      _chartCacheByFilter['allTime'] = _buildChartFromOrders(orders, period: _Period.month);
+      _chartCacheByFilter['last7Days'] =
+          _buildChartFromOrders(await _fetchOrdersForLast(days: 7), period: _Period.day);
+      _chartCacheByFilter['last30Days'] =
+          _buildChartFromOrders(await _fetchOrdersForLast(days: 30), period: _Period.day);
+      _chartCacheByFilter['thisYear'] =
+          _buildChartFromOrders(await _fetchOrdersForThisYear(), period: _Period.month);
+
+      // Set the visible chart based on current filter
+      _chartData = _chartCacheByFilter[_selectedFilter] ?? const [];
+
+      // Initialize first page of history list
+      _shown = _historyData.isEmpty ? 0 : (_historyData.length >= _pageSize ? _pageSize : _historyData.length);
+    } on DioException catch (e) {
+      _loadError = ApiClient().parseMagentoError(e);
+    } catch (e) {
+      _loadError = e.toString();
+    } finally {
+      if (mounted) {
+        setState(() => _isInitLoading = false);
+      }
     }
   }
 
-  // ----- DOWNLOAD (no plugin) -----
-  final GlobalKey _chartKey = GlobalKey();
+  List<ChartData> _buildChartFromOrders(List<Map<String, dynamic>> orders, {required _Period period}) {
+    final Map<String, _Agg> buckets = {}; // key -> Agg
+    for (final o in orders) {
+      final createdAtStr = (o['created_at'] as String?) ?? '';
+      final created = DateTime.tryParse(createdAtStr)?.toLocal();
+      if (created == null) continue;
 
+      final key = period == _Period.day
+          ? DateFormat('MMM d').format(created)
+          : DateFormat('MMM').format(DateTime(created.year, created.month));
+
+      final grandTotal = (o['grand_total'] as num?)?.toDouble() ?? 0.0;
+      final discount = (o['discount_amount'] as num?)?.toDouble() ?? 0.0;
+
+      buckets.putIfAbsent(key, () => _Agg());
+      buckets[key]!.revenue += grandTotal;
+      buckets[key]!.cost += discount.abs();
+    }
+
+    // Stable sort by a synthetic date index (try parse month/day back)
+    final keys = buckets.keys.toList();
+    keys.sort((a, b) => _syntheticKeyOrder(a).compareTo(_syntheticKeyOrder(b)));
+
+    return keys
+        .map((k) => ChartData(k, buckets[k]!.revenue, buckets[k]!.cost))
+        .toList(growable: false);
+  }
+
+  // Fetch helper: orders for last N days
+  Future<List<Map<String, dynamic>>> _fetchOrdersForLast({required int days}) async {
+    final now = DateTime.now();
+    final from = now.subtract(Duration(days: days));
+    return ApiClient().getOrdersAdmin(
+      dateFrom: from,
+      dateTo: now,
+      pageSize: 200,
+    );
+  }
+
+  // Fetch helper: orders for current calendar year
+  Future<List<Map<String, dynamic>>> _fetchOrdersForThisYear() async {
+    final now = DateTime.now();
+    final from = DateTime(now.year, 1, 1);
+    final to = DateTime(now.year, 12, 31, 23, 59, 59);
+    return ApiClient().getOrdersAdmin(
+      dateFrom: from,
+      dateTo: to,
+      pageSize: 500,
+    );
+  }
+
+  // ----- LOAD MORE HISTORY -----
+  Future<void> _loadMore() async {
+    if (_isLoadingMore) return;
+    setState(() => _isLoadingMore = true);
+    await Future.delayed(const Duration(milliseconds: 300)); // smooth UX
+    setState(() {
+      _shown = (_shown + _pageSize).clamp(0, _historyData.length);
+      _isLoadingMore = false;
+    });
+  }
+
+  // ----- DOWNLOAD CHART (kept as-is) -----
   Future<void> _downloadChart() async {
     await Future.delayed(Duration.zero);
     final l10n = AppLocalizations.of(context)!;
@@ -123,8 +208,9 @@ class _RevenueScreenState extends State<RevenueScreen> {
         return;
       }
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      final Uint8List bytes = byteData!.buffer.asUint8List();
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final bytes = byteData!.buffer.asUint8List();
+
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/product_views_chart.png');
       await file.writeAsBytes(bytes);
@@ -149,9 +235,12 @@ class _RevenueScreenState extends State<RevenueScreen> {
     }
   }
 
+  // ----- UI (UNCHANGED LAYOUT) -----
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    // visible slice for "history"
     final visible = _historyData.take(_shown).toList();
     final canLoadMore = _shown < _historyData.length;
 
@@ -170,9 +259,30 @@ class _RevenueScreenState extends State<RevenueScreen> {
       }
     }
 
+    // react to filter change by swapping cached chart data
+    void _onFilterChanged(String v) {
+      setState(() {
+        _selectedFilter = v;
+        _chartData = _chartCacheByFilter[_selectedFilter] ?? const [];
+      });
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
-      body: SingleChildScrollView(
+      body: _isInitLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+          ? Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            _loadError!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      )
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,11 +303,11 @@ class _RevenueScreenState extends State<RevenueScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Metrics
+            // Metrics — values come from Magento
             _buildMetricCard(
               label: l10n.earning,
-              value: '\$128k',
-              change: l10n.positiveChangeThisWeek(37.8),
+              value: _fmtCurrency(_totalRevenue),
+              change: l10n.positiveChangeThisWeek(0), // if you want, compute WoW delta from orders
               isPositive: true,
               iconPath: 'assets/icons/trending_up.png',
               backgroundColor: const Color(0xFFD6F6E6),
@@ -205,17 +315,17 @@ class _RevenueScreenState extends State<RevenueScreen> {
             const SizedBox(height: 16),
             _buildMetricCard(
               label: l10n.balance,
-              value: '\$512.64',
-              change: l10n.negativeChangeThisWeek(37.8),
-              isPositive: false,
+              value: _fmtCurrency(_balance),
+              change: l10n.negativeChangeThisWeek(0),
+              isPositive: _balance >= 0,
               iconPath: 'assets/icons/balance.png',
               backgroundColor: const Color(0xFFFFE7D1),
             ),
             const SizedBox(height: 16),
             _buildMetricCard(
               label: l10n.totalValueOfSales,
-              value: '\$64k',
-              change: l10n.positiveChangeThisWeek(37.8),
+              value: _fmtCurrency(_totalSalesValue),
+              change: l10n.positiveChangeThisWeek(0),
               isPositive: true,
               iconPath: 'assets/icons/cart.png',
               backgroundColor: const Color(0xFFD0E0FF),
@@ -223,7 +333,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
 
             const SizedBox(height: 24),
 
-            // Product views card
+            // Product views card (chart fed by Magento orders)
             Container(
               decoration: _boxDecoration(),
               padding: const EdgeInsets.all(18),
@@ -241,21 +351,20 @@ class _RevenueScreenState extends State<RevenueScreen> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      // inside your Row with filter + download
                       Row(
                         children: [
                           Theme(
                             data: Theme.of(context).copyWith(
                               dropdownMenuTheme: DropdownMenuThemeData(
                                 menuStyle: MenuStyle(
-                                  backgroundColor: WidgetStateProperty.all(Colors.white), // white menu
-                                  elevation: WidgetStateProperty.all(8), // shadow
+                                  backgroundColor: WidgetStateProperty.all(Colors.white),
+                                  elevation: WidgetStateProperty.all(8),
                                   shape: WidgetStateProperty.all(
                                     RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12), // rounded
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  side: WidgetStateProperty.all(BorderSide.none), // no border
+                                  side: WidgetStateProperty.all(BorderSide.none),
                                 ),
                               ),
                             ),
@@ -269,7 +378,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
                                 child: DropdownButton<String>(
                                   value: _selectedFilter,
                                   borderRadius: BorderRadius.circular(12),
-                                  dropdownColor: Colors.white, // just in case
+                                  dropdownColor: Colors.white,
                                   items: _filters
                                       .map(
                                         (f) => DropdownMenuItem(
@@ -284,9 +393,9 @@ class _RevenueScreenState extends State<RevenueScreen> {
                                     ),
                                   )
                                       .toList(),
-                                  onChanged: (v) => setState(() {
-                                    _selectedFilter = v!;
-                                  }),
+                                  onChanged: (v) {
+                                    if (v != null) _onFilterChanged(v);
+                                  },
                                   icon: const Icon(Icons.expand_more),
                                 ),
                               ),
@@ -336,20 +445,20 @@ class _RevenueScreenState extends State<RevenueScreen> {
                         ),
                         series: <CartesianSeries<ChartData, String>>[
                           ColumnSeries<ChartData, String>(
-                            dataSource: _getFilteredData(),
+                            dataSource: _chartData,
                             xValueMapper: (ChartData d, _) => d.x,
                             yValueMapper: (ChartData d, _) => d.y1,
-                            name: l10n.lifetimeValue,
+                            name: l10n.lifetimeValue, // revenue
                             color: const Color(0xFF4285F4),
                             width: 0.6,
                             spacing: 0.1,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           ColumnSeries<ChartData, String>(
-                            dataSource: _getFilteredData(),
+                            dataSource: _chartData,
                             xValueMapper: (ChartData d, _) => d.x,
                             yValueMapper: (ChartData d, _) => d.y2,
-                            name: l10n.customerCost,
+                            name: l10n.customerCost, // discounts as "cost"
                             color: const Color(0xFFFBBC05),
                             width: 0.6,
                             spacing: 0.1,
@@ -371,7 +480,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
 
             const SizedBox(height: 24),
 
-            // Earning History Card
+            // Earning History Card (orders)
             Container(
               decoration: _boxDecoration(),
               padding: const EdgeInsets.all(18),
@@ -393,7 +502,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
                     Center(
                       child: _LoadMoreButton(
                         onPressed: _loadMore,
-                        isLoading: _isLoading,
+                        isLoading: _isLoadingMore,
                       ),
                     ),
                 ],
@@ -417,7 +526,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
     ],
   );
 
-  // ----- UI helpers -----
+  // ----- UI helpers (UNCHANGED) -----
   Widget _buildHistoryItem(Map<String, String> item, AppLocalizations l10n) {
     return Column(
       children: [
@@ -500,9 +609,37 @@ class _RevenueScreenState extends State<RevenueScreen> {
       ),
     );
   }
+
+  // ----- helpers -----
+  String _fmtCurrency(num v) => NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(v);
+
+  String _fmtPercentFromAbs(double discountAbs, {required double base}) {
+    if (base <= 0) return '0%';
+    final pct = (discountAbs.abs() / base) * 100.0;
+    return '${pct.toStringAsFixed(0)}%';
+  }
+
+  // stable sort key for chart axis labels
+  int _syntheticKeyOrder(String key) {
+    // Try "MMM d"
+    try {
+      final dt = DateFormat('MMM d').parse(key);
+      return dt.month * 100 + dt.day;
+    } catch (_) {}
+    // Try "MMM"
+    try {
+      final dt = DateFormat('MMM').parse(key);
+      return dt.month * 100;
+    } catch (_) {}
+    return key.hashCode;
+  }
 }
 
-// Custom Load More Button
+class _Agg {
+  double revenue = 0.0;
+  double cost = 0.0;
+}
+
 class _LoadMoreButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isLoading;
@@ -564,7 +701,7 @@ class _LoadMoreButton extends StatelessWidget {
 
 class ChartData {
   const ChartData(this.x, this.y1, this.y2);
-  final String x;
-  final double y1;
-  final double y2;
+  final String x;   // label (day/month)
+  final double y1;  // revenue (sum grand_total)
+  final double y2;  // cost (sum discount_amount abs)
 }

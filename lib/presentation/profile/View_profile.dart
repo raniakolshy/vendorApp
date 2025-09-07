@@ -1,5 +1,11 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:app_vendor/services/api_client.dart' as api;
+import '../../services/api_client.dart';
+import '../../services/api_client.dart';
 
 class VendorProfileScreen extends StatefulWidget {
   const VendorProfileScreen({super.key});
@@ -9,29 +15,33 @@ class VendorProfileScreen extends StatefulWidget {
 }
 
 class _VendorProfileScreenState extends State<VendorProfileScreen> {
-  // Mock data to simulate fetching from an API
-  final Map<String, dynamic> _vendorData = {
-    'companyName': 'Gadgets & Gear Co.',
-    'location': 'New York, USA',
-    'bio': 'We are a leading provider of high-quality electronics and adventure gear. Our mission is to bring you the best products to enhance your daily life and outdoor experiences.',
-    'logoUrl': 'assets/logo.jpg',
-    'bannerUrl': 'assets/welcome_background.jpeg',
-    'socialMedia': {
-      'twitter': 'gadgets_gear',
-      'instagram': 'gadgets_gear_official',
-      'youtube': 'GadgetsAndGear',
-    },
-    'products': [
-      {'name': 'Wireless Headphones', 'price': 'AED 129.99', 'category': 'Electronics', 'imageUrl': 'assets/img_square.jpg'},
-      {'name': 'Smartwatch', 'price': 'AED 249.00', 'category': 'Electronics', 'imageUrl': 'assets/img_square.jpg'},
-      {'name': 'Portable Power Bank', 'price': 'AED 45.50', 'category': 'Accessories', 'imageUrl': 'assets/img_square.jpg'},
-      {'name': 'Action Camera', 'price': 'AED 399.99', 'category': 'Electronics', 'imageUrl': 'assets/img_square.jpg'},
-      {'name': 'Bluetooth Speaker', 'price': 'AED 89.95', 'category': 'Electronics', 'imageUrl': 'assets/img_square.jpg'},
-      {'name': 'Drone', 'price': 'AED 550.00', 'category': 'Electronics', 'imageUrl': 'assets/img_square.jpg'},
-    ],
-  };
+  api.VendorProfile? _profile;
+  List<Map<String, dynamic>> _products = [];
+  bool _loading = true;
 
-  // Helper function to get the correct social media icon
+  @override
+  void initState() {
+    super.initState();
+    _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    setState(() => _loading = true);
+    try {
+      final p = await ApiClient().getVendorProfileMe();
+      if (p != null) {
+        _profile = p;
+        final items = await ApiClient().getProductsByVendor(vendorId: p.customerId, pageSize: 50);
+        _products = items;
+      }
+    } catch (e) {
+      // You can show a snackbar if you want
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  // Helper for social icon
   IconData _getSocialMediaIcon(String id) {
     switch (id) {
       case 'twitter':
@@ -78,12 +88,49 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
     );
   }
 
+  ImageProvider? _bannerProvider() {
+    if (_profile == null) return null;
+    if (_profile!.bannerUrl?.isNotEmpty == true) {
+      final rel = _profile!.bannerUrl!;
+      final full = rel.startsWith('http') ? rel : '${ApiClient().mediaBaseUrlForVendor}/${rel.startsWith('/') ? rel.substring(1) : rel}';
+      return NetworkImage(full);
+    }
+    if (_profile!.bannerBase64?.isNotEmpty == true) {
+      try {
+        final bytes = base64Decode(_profile!.bannerBase64!.split(',').last);
+        return MemoryImage(bytes);
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  ImageProvider? _logoProvider() {
+    if (_profile == null) return null;
+    if (_profile!.logoUrl?.isNotEmpty == true) {
+      final rel = _profile!.logoUrl!;
+      final full = rel.startsWith('http') ? rel : '${ApiClient().mediaBaseUrlForVendor}/${rel.startsWith('/') ? rel.substring(1) : rel}';
+      return NetworkImage(full);
+    }
+    if (_profile!.logoBase64?.isNotEmpty == true) {
+      try {
+        final bytes = base64Decode(_profile!.logoBase64!.split(',').last);
+        return MemoryImage(bytes);
+      } catch (_) {}
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final banner = _bannerProvider();
+    final logo = _logoProvider();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
       body: SafeArea(
-        child: Center(
+        child: _loading
+            ? const Center(child: Padding(padding: EdgeInsets.only(top: 60), child: CircularProgressIndicator()))
+            : Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 900),
             child: SingleChildScrollView(
@@ -91,16 +138,15 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Banner Image (Background Profile Picture)
+                  // Banner Image
                   Container(
                     height: 200,
                     decoration: BoxDecoration(
                       color: const Color(0xFFE5E5E5),
                       borderRadius: BorderRadius.circular(16),
-                      image: DecorationImage(
-                        image: AssetImage(_vendorData['bannerUrl']), // Using the new background image
-                        fit: BoxFit.cover,
-                      ),
+                      image: banner != null
+                          ? DecorationImage(image: banner, fit: BoxFit.cover)
+                          : null,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -109,7 +155,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Logo (Updated to use new logo)
+                      // Logo
                       Container(
                         width: 80,
                         height: 80,
@@ -117,11 +163,13 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                           shape: BoxShape.circle,
                           color: Colors.white,
                           border: Border.all(color: Colors.black.withOpacity(0.1)),
-                          image: DecorationImage(
-                            image: AssetImage(_vendorData['logoUrl']), // Using the new logo image
-                            fit: BoxFit.cover,
-                          ),
+                          image: logo != null
+                              ? DecorationImage(image: logo, fit: BoxFit.cover)
+                              : null,
                         ),
+                        child: logo == null
+                            ? const Icon(Icons.business, color: Colors.black38, size: 36)
+                            : null,
                       ),
                       const SizedBox(width: 16),
                       // Vendor Info
@@ -130,7 +178,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _vendorData['companyName'],
+                              _profile?.companyName?.isNotEmpty == true ? _profile!.companyName! : '—',
                               style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 4),
@@ -139,7 +187,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                                 const Icon(Icons.location_on, size: 16, color: Colors.grey),
                                 const SizedBox(width: 4),
                                 Text(
-                                  _vendorData['location'],
+                                  _profile?.country?.isNotEmpty == true ? _profile!.country! : '—',
                                   style: const TextStyle(fontSize: 16, color: Colors.grey),
                                 ),
                               ],
@@ -148,14 +196,14 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                             // Social Media Links
                             Wrap(
                               spacing: 8.0,
-                              children: _vendorData['socialMedia'].entries.map<Widget>((entry) {
-                                return IconButton(
-                                  onPressed: () {
-                                    // Handle social media link tap
-                                  },
-                                  icon: FaIcon(_getSocialMediaIcon(entry.key), color: Colors.black87),
-                                );
-                              }).toList(),
+                              children: [
+                                if ((_profile?.twitter?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.twitter, color: Colors.black87)),
+                                if ((_profile?.instagram?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.instagram, color: Colors.black87)),
+                                if ((_profile?.youtube?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.youtube, color: Colors.black87)),
+                                if ((_profile?.facebook?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.facebook, color: Colors.black87)),
+                                if ((_profile?.pinterest?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.pinterest, color: Colors.black87)),
+                                if ((_profile?.tiktok?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.tiktok, color: Colors.black87)),
+                              ],
                             ),
                           ],
                         ),
@@ -166,62 +214,66 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
 
                   // Bio Section
                   _sectionCard(title: 'About Us', children: [
-                    Text(_vendorData['bio']),
+                    Text(_profile?.bio?.isNotEmpty == true ? _profile!.bio! : '—'),
                   ]),
 
                   // Products Section
                   _sectionCard(title: 'Our Products', children: [
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 0.7,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
+                    if (_products.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Text('No products found.'),
+                      )
+                    else
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.7,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                        ),
+                        itemCount: _products.length,
+                        itemBuilder: (context, index) {
+                          final product = _products[index];
+                          final imageUrl = ApiClient().productImageUrl(product);
+                          final price = (product['price'] is num)
+                              ? (product['price'] as num).toDouble()
+                              : double.tryParse('${product['price']}');
+                          final name = (product['name'] ?? '').toString();
+                          final type = (product['type_id'] ?? '').toString();
+
+                          return _buildProductCard(
+                            name: name,
+                            price: price,
+                            category: type,
+                            imageUrl: imageUrl,
+                          );
+                        },
                       ),
-                      itemCount: _vendorData['products'].length,
-                      itemBuilder: (context, index) {
-                        final product = _vendorData['products'][index];
-                        return _buildProductCard(product);
-                      },
-                    ),
                   ]),
 
-                  // Back to Edit Profile Button (at the bottom)
+                  // Back to Edit Profile Button
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context); // Go back to the Edit Profile screen
-                      },
-                      icon: const Icon(
-                        Icons.edit,
-                        color: Colors.white,
-                        size: 20, // Make the icon smaller for better balance
-                      ),
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.edit, color: Colors.white, size: 20),
                       label: const Text(
                         'Edit Profile',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,  // Increase the font size slightly
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,  // Replaced 'primary' with 'backgroundColor'
-                        foregroundColor: Colors.white, // Replaced 'onPrimary' with 'foregroundColor'
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),  // More rounded corners
-                        ),
-                        elevation: 5, // Add shadow for depth
-                        shadowColor: Colors.black.withOpacity(0.2), // Light shadow color
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        elevation: 5,
+                        shadowColor: Colors.black.withOpacity(0.2),
                       ),
                     ),
-                  )
-
-
-
+                  ),
                 ],
               ),
             ),
@@ -231,7 +283,16 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
     );
   }
 
-  Widget _buildProductCard(Map<String, String> product) {
+  Widget _buildProductCard({
+    required String name,
+    required double? price,
+    required String category,
+    required String imageUrl,
+  }) {
+    final image = (imageUrl.isNotEmpty)
+        ? Image.network(imageUrl, height: 120, width: double.infinity, fit: BoxFit.cover)
+        : Image.asset('assets/img_square.jpg', height: 120, width: double.infinity, fit: BoxFit.cover);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -249,12 +310,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Image.asset(
-              product['imageUrl']!,
-              height: 120, // Reduced size to prevent overflow
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
+            child: image,
           ),
           Padding(
             padding: const EdgeInsets.all(8),
@@ -262,19 +318,19 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  product['name']!,
+                  name,
                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  product['category']!,
+                  category,
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  product['price']!,
+                  price == null ? '—' : 'AED ${price.toStringAsFixed(2)}',
                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Colors.black),
                 ),
               ],

@@ -10,15 +10,14 @@ import '../pdf/print_pdf_screen.dart';
 import '../profile/edit_profile_screen.dart';
 import 'nav_key.dart';
 
-
-/// ---- theme constants (delete if you already have these) ----
+/// ---- theme constants ----
 const kIconGray = Color(0xFF8E9196);
 const kTextGray = Color(0xFF2E2F32);
 const kDividerGray = Color(0xFFE7E8EA);
 const kDrawerActive = Color(0xFFF4F5F7);
 const kMutedOrange = Color(0xFFFF8A00);
 const kRedLogout = Color(0xFFE64949);
-/// -----------------------------------------------------------
+/// -------------------------
 
 class KolshyDrawer extends StatefulWidget {
   final NavKey selected;
@@ -37,6 +36,10 @@ class KolshyDrawer extends StatefulWidget {
 class _KolshyDrawerState extends State<KolshyDrawer> {
   bool _productOpen = false;
 
+  // vendor flag
+  bool _isVendor = false;
+  bool _loadingVendor = true;
+
   static const _iconBase = <NavKey, String>{
     NavKey.dashboard: 'dashboard',
     NavKey.orders: 'orders',
@@ -50,7 +53,64 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _productOpen = {
+      NavKey.productAdd,
+      NavKey.productList,
+      NavKey.productDrafts,
+    }.contains(widget.selected);
+    _loadVendorFlag();
+  }
+
+  Future<void> _loadVendorFlag() async {
+    try {
+      final me = await ApiClient().getCustomerInfo();
+      bool vendor = false;
+      if (me != null) {
+        // extension_attributes
+        final ext = (me['extension_attributes'] as Map?) ?? {};
+        vendor = (ext['is_vendor'] == true ||
+            ext['is_seller'] == true ||
+            (ext['seller_id'] ?? 0) != 0);
+
+        // custom_attributes fallback
+        if (!vendor && me['custom_attributes'] is List) {
+          for (final a in (me['custom_attributes'] as List)) {
+            if (a is Map) {
+              final code = (a['attribute_code'] ?? '').toString();
+              final val = (a['value'] ?? '').toString().toLowerCase();
+              if ((code == 'is_vendor' || code == 'is_seller') &&
+                  (val == '1' || val == 'true')) {
+                vendor = true;
+                break;
+              }
+              if (code == 'seller_id' && val.isNotEmpty && val != '0') {
+                vendor = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _isVendor = vendor;
+        _loadingVendor = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isVendor = false;
+        _loadingVendor = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+
     return Column(
       children: [
         Padding(
@@ -76,64 +136,104 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
             children: [
               _DrawerItem.asset(
                 base: _iconBase[NavKey.dashboard]!,
-                label: AppLocalizations.of(context)!.dashboard,
+                label: t?.dashboard ?? 'Dashboard',
                 active: widget.selected == NavKey.dashboard,
-                onTap: () => widget.onSelect(NavKey.dashboard),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  widget.onSelect(NavKey.dashboard);
+                },
               ),
-              _DrawerItem.asset(
-                base: _iconBase[NavKey.orders]!,
-                label: AppLocalizations.of(context)!.orders,
-                active: widget.selected == NavKey.orders,
-                onTap: () => widget.onSelect(NavKey.orders),
-              ),
-              _Expandable(
-                label: AppLocalizations.of(context)!.product,
-                base: 'product',
-                open: _productOpen,
-                onTap: () => setState(() => _productOpen = !_productOpen),
-                children: [
-                  _Child(
-                    label: AppLocalizations.of(context)!.addProduct,
-                    active: widget.selected == NavKey.productAdd,
-                    onTap: () => widget.onSelect(NavKey.productAdd),
-                  ),
-                  _Child(
-                    label: AppLocalizations.of(context)!.myProductList,
-                    active: widget.selected == NavKey.productList,
-                    onTap: () => widget.onSelect(NavKey.productList),
-                  ),
-                  _Child(
-                    label: AppLocalizations.of(context)!.draftProduct,
-                    active: widget.selected == NavKey.productDrafts,
-                    onTap: () => widget.onSelect(NavKey.productDrafts),
-                  ),
-                ],
-              ),
+
+              if (!_loadingVendor && _isVendor)
+                _DrawerItem.asset(
+                  base: _iconBase[NavKey.orders]!,
+                  label: t?.orders ?? 'Orders',
+                  active: widget.selected == NavKey.orders,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    widget.onSelect(NavKey.orders);
+                  },
+                ),
+
+              if (!_loadingVendor && _isVendor)
+                _Expandable(
+                  label: t?.product ?? 'Product',
+                  base: 'product',
+                  open: _productOpen,
+                  onTap: () => setState(() => _productOpen = !_productOpen),
+                  children: [
+                    _Child(
+                      label: t?.addProduct ?? 'Add Product',
+                      active: widget.selected == NavKey.productAdd,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        widget.onSelect(NavKey.productAdd);
+                      },
+                    ),
+                    _Child(
+                      label: t?.myProductList ?? 'My Products',
+                      active: widget.selected == NavKey.productList,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        widget.onSelect(NavKey.productList);
+                      },
+                    ),
+                    _Child(
+                      label: t?.draftProduct ?? 'Drafts',
+                      active: widget.selected == NavKey.productDrafts,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        widget.onSelect(NavKey.productDrafts);
+                      },
+                    ),
+                  ],
+                ),
+
+              // You can decide whether analytics is vendor-only. Keeping it visible to all:
               _DrawerItem.asset(
                 base: _iconBase[NavKey.analytics]!,
-                label: AppLocalizations.of(context)!.customerAnalytics,
+                label: t?.customerAnalytics ?? 'Customer Analytics',
                 active: widget.selected == NavKey.analytics,
-                onTap: () => widget.onSelect(NavKey.analytics),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  widget.onSelect(NavKey.analytics);
+                },
               ),
-              _DrawerItem.asset(
-                base: _iconBase[NavKey.transactions]!,
-                label: AppLocalizations.of(context)!.transactions,
-                active: widget.selected == NavKey.transactions,
-                onTap: () => widget.onSelect(NavKey.transactions),
-              ),
-              _DrawerItem.asset(
-                base: _iconBase[NavKey.revenue]!,
-                label: AppLocalizations.of(context)!.revenue,
-                trailing: const _RevenueBadge(6),
-                active: widget.selected == NavKey.revenue,
-                onTap: () => widget.onSelect(NavKey.revenue),
-              ),
-              _DrawerItem.asset(
-                base: _iconBase[NavKey.review]!,
-                label: AppLocalizations.of(context)!.review,
-                active: widget.selected == NavKey.review,
-                onTap: () => widget.onSelect(NavKey.review),
-              ),
+
+              if (!_loadingVendor && _isVendor)
+                _DrawerItem.asset(
+                  base: _iconBase[NavKey.transactions]!,
+                  label: t?.transactions ?? 'Transactions',
+                  active: widget.selected == NavKey.transactions,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    widget.onSelect(NavKey.transactions);
+                  },
+                ),
+
+              if (!_loadingVendor && _isVendor)
+                _DrawerItem.asset(
+                  base: _iconBase[NavKey.revenue]!,
+                  label: t?.revenue ?? 'Revenue',
+                  trailing: const _RevenueBadge(6),
+                  active: widget.selected == NavKey.revenue,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    widget.onSelect(NavKey.revenue);
+                  },
+                ),
+
+              if (!_loadingVendor && _isVendor)
+                _DrawerItem.asset(
+                  base: _iconBase[NavKey.review]!,
+                  label: t?.review ?? 'Review',
+                  active: widget.selected == NavKey.review,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    widget.onSelect(NavKey.review);
+                  },
+                ),
+
               const SizedBox(height: 12),
               const Divider(color: kDividerGray, height: 24),
 
@@ -144,7 +244,7 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
               InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {},
-                child: Padding(
+                child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                   child: Row(
                     children: [
@@ -153,10 +253,11 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          AppLocalizations.of(context)!.installmainapplication,
+                          'Install main application',
                           style: TextStyle(
-                              color: Colors.black45,
-                              fontWeight: FontWeight.w600),
+                            color: Colors.black45,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -243,7 +344,6 @@ class _DrawerItem extends StatelessWidget {
               ),
             ),
             if (trailing != null) trailing!,
-
           ],
         ),
       ),
@@ -292,10 +392,8 @@ class _Expandable extends StatelessWidget {
                 ),
                 AnimatedRotation(
                   turns: open ? .5 : 0,
-
                   duration: const Duration(milliseconds: 160),
-                  child:
-                  const Icon(Icons.expand_more_rounded, color: kIconGray),
+                  child: const Icon(Icons.expand_more_rounded, color: kIconGray),
                 ),
               ],
             ),
@@ -377,10 +475,56 @@ class _RevenueBadge extends StatelessWidget {
   );
 }
 
-class _ProfileButton extends StatelessWidget {
+class _ProfileButton extends StatefulWidget {
   final ValueChanged<NavKey> onSelect;
-
   const _ProfileButton({required this.onSelect});
+
+  @override
+  State<_ProfileButton> createState() => _ProfileButtonState();
+}
+
+class _ProfileButtonState extends State<_ProfileButton> {
+  String? _displayName;     // e.g. "Jane Doe"
+  String? _storeName;       // e.g. "Kolshy Store"
+  String? _avatarUrl;       // optional, if you store a URL in custom_attributes
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final me = await ApiClient().getCustomerInfo();
+      if (me != null) {
+        final first = (me['firstname'] ?? '').toString().trim();
+        final last  = (me['lastname']  ?? '').toString().trim();
+        final email = (me['email']     ?? '').toString().trim();
+        final full  = [first, last].where((s) => s.isNotEmpty).join(' ');
+        final display = full.isNotEmpty ? full : (email.isNotEmpty ? email : '—');
+
+        final attrs = (me['custom_attributes'] as List?) ?? const [];
+        String? businessName = _attr(attrs, 'business_name');
+        String? avatar = _attr(attrs, 'profile_picture');
+
+        if (!mounted) return;
+        setState(() {
+          _displayName = display;
+          _storeName   = (businessName?.trim().isNotEmpty ?? false) ? businessName : 'Vendor';
+          _avatarUrl   = (avatar?.trim().isNotEmpty ?? false) ? avatar : null;
+          _loading     = false;
+        });
+      } else {
+        if (!mounted) return;
+        setState(() => _loading = false);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -389,38 +533,78 @@ class _ProfileButton extends StatelessWidget {
       onTap: () => showDialog(
         context: context,
         barrierColor: Colors.black.withOpacity(.25),
-        builder: (_) => _ProfileMenuDialog(onSelect: onSelect),
+        builder: (_) => _ProfileMenuDialog(onSelect: widget.onSelect),
       ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         child: Row(
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundImage: AssetImage('assets/avatar_placeholder.jpg'),
-              backgroundColor: Color(0xFFEDEDED),
+              backgroundImage: _avatarUrl != null
+                  ? NetworkImage(_avatarUrl!)
+                  : const AssetImage('assets/avatar_placeholder.jpg') as ImageProvider,
+              backgroundColor: const Color(0xFFEDEDED),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
-              child: Column(
+              child: _loading
+                  ? const _NameSkeleton()
+                  : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Annette Black',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w700, color: kTextGray)),
-                  SizedBox(height: 2),
-                  Text('Kolshy Store',
-                      style: TextStyle(
-                          color: Colors.black54,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12)),
+                  Text(
+                    _displayName ?? '—',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: kTextGray,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _storeName ?? 'Vendor',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ),
-            Icon(Icons.keyboard_arrow_down_rounded, color: kIconGray),
+            const Icon(Icons.keyboard_arrow_down_rounded, color: kIconGray),
           ],
         ),
       ),
+    );
+  }
+
+  String? _attr(List attrs, String code) {
+    for (final a in attrs) {
+      if (a is Map && a['attribute_code'] == code) {
+        final v = a['value'];
+        return v == null ? null : v.toString();
+      }
+    }
+    return null;
+  }
+}
+
+class _NameSkeleton extends StatelessWidget {
+  const _NameSkeleton();
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(height: 12, width: 120, color: Color(0xFFEDEDED)),
+        const SizedBox(height: 6),
+        Container(height: 10, width: 90, color: Color(0xFFF1F1F1)),
+      ],
     );
   }
 }
@@ -432,6 +616,8 @@ class _ProfileMenuDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+
     return Dialog(
       elevation: 20,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
@@ -448,9 +634,9 @@ class _ProfileMenuDialog extends StatelessWidget {
             children: [
               _MenuRow(
                 icon: Icons.person_outline,
-                label: AppLocalizations.of(context)!.profileSettings,
+                label: t?.profileSettings ?? 'Profile Settings',
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(context); // close dialog
                   onSelect(NavKey.profileSettings);
                 },
               ),
@@ -459,7 +645,7 @@ class _ProfileMenuDialog extends StatelessWidget {
 
               _MenuRow(
                 icon: Icons.picture_as_pdf_outlined,
-                label: AppLocalizations.of(context)!.printPDF,
+                label: t?.printPDF ?? 'Print PDF',
                 onTap: () {
                   Navigator.pop(context);
                   onSelect(NavKey.printPdf);
@@ -467,7 +653,7 @@ class _ProfileMenuDialog extends StatelessWidget {
               ),
               _MenuRow(
                 icon: Icons.article_outlined,
-                label: AppLocalizations.of(context)!.adminNews,
+                label: t?.adminNews ?? 'Admin News',
                 onTap: () {
                   Navigator.pop(context);
                   onSelect(NavKey.adminNews);
@@ -475,7 +661,7 @@ class _ProfileMenuDialog extends StatelessWidget {
               ),
               _MenuRow(
                 icon: Icons.translate_outlined,
-                label: AppLocalizations.of(context)!.language,
+                label: t?.language ?? 'Language',
                 onTap: () {
                   Navigator.pop(context);
                   onSelect(NavKey.language);
@@ -485,7 +671,7 @@ class _ProfileMenuDialog extends StatelessWidget {
               const _DividerLine(),
               _MenuRow(
                 icon: Icons.support_agent_outlined,
-                label: AppLocalizations.of(context)!.askForSupport,
+                label: t?.askForSupport ?? 'Ask for Support',
                 onTap: () {
                   Navigator.pop(context);
                   onSelect(NavKey.askadmin);
@@ -493,24 +679,22 @@ class _ProfileMenuDialog extends StatelessWidget {
               ),
 
               // Destructive action
-              // In your drawer file, update the logout section:
               InkWell(
                 onTap: () async {
-                  // Show confirmation dialog
                   final bool? confirm = await showDialog<bool>(
                     context: context,
-                    builder: (BuildContext context) {
+                    builder: (BuildContext context2) {
                       return AlertDialog(
-                        title: Text(AppLocalizations.of(context)!.logout),
-                        content: Text(AppLocalizations.of(context)!.confirmLogout),
+                        title: Text(t?.logout ?? 'Logout'),
+                        content: Text(t?.confirmLogout ?? 'Are you sure you want to log out?'),
                         actions: <Widget>[
                           TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: Text(AppLocalizations.of(context)!.cancel),
+                            onPressed: () => Navigator.of(context2).pop(false),
+                            child: Text(t?.cancel ?? 'Cancel'),
                           ),
                           TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: Text(AppLocalizations.of(context)!.logout),
+                            onPressed: () => Navigator.of(context2).pop(true),
+                            child: Text(t?.logout ?? 'Logout'),
                           ),
                         ],
                       );
@@ -519,28 +703,32 @@ class _ProfileMenuDialog extends StatelessWidget {
 
                   if (confirm == true) {
                     try {
-                      // Call the logout API
+                      // Close the profile dialog first
+                      Navigator.of(context).pop();
+
                       await ApiClient().logout();
 
-                      // Navigate to welcome screen and clear the stack
+                      // Navigate to welcome, clearing stack
+                      // (if drawer was open, parent will be replaced anyway)
+                      // ignore: use_build_context_synchronously
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                             (route) => false,
                       );
 
-                      // Show success message
+                      // ignore: use_build_context_synchronously
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(AppLocalizations.of(context)!.logoutSuccessful),
+                          content: Text(t?.logoutSuccessful ?? 'Logged out successfully'),
                           backgroundColor: Colors.green,
                         ),
                       );
                     } catch (e) {
-                      // Show error message
+                      // ignore: use_build_context_synchronously
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('${AppLocalizations.of(context)!.logoutFailed}: $e'),
+                          content: Text('${t?.logoutFailed ?? 'Logout failed'}: $e'),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -549,10 +737,10 @@ class _ProfileMenuDialog extends StatelessWidget {
                 },
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
                   child: Text(
-                    AppLocalizations.of(context)!.logout,
-                    style: TextStyle(
+                    t?.logout ?? 'Logout',
+                    style: const TextStyle(
                       color: kRedLogout,
                       fontWeight: FontWeight.w700,
                       fontSize: 16,

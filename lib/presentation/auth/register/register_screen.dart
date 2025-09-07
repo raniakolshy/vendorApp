@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:app_vendor/main.dart';
 import '../../../services/api_client.dart';
-import '../../../services/magento_api.dart';
 import '../login/login_screen.dart';
 
 const Color primaryPink = Color(0xFFE51742);
@@ -69,8 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       print('Creating vendor account: ${_email.text.trim()}');
 
-      // 1. Create vendor account directly
-      final vendorResponse = await _api.createVendorAccount(
+      final vendorResponse = await _api.createVendorAccountAdmin(
         firstname: _first.text.trim(),
         lastname: _last.text.trim(),
         email: _email.text.trim(),
@@ -81,8 +79,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       print('Vendor creation response: $vendorResponse');
 
-      // 2. Login automatically
-      final token = await _api.loginCustomer(_email.text.trim(), _pass.text.trim());
+      await _api.loginVendor(
+        email: _email.text.trim(),
+        password: _pass.text.trim(),
+      );
       print('Login successful, token received');
 
       _toast('Vendor account created & logged in!', err: false);

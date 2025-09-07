@@ -3,6 +3,8 @@ import 'package:app_vendor/presentation/auth/forgot_password/verification_code_s
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../services/api_client.dart';
+
 const Color primaryPink = Color(0xFFE51742);
 const Color inputFill = Color(0xFFF4F4F4);
 const Color lightBorder = Color(0xFFDDDDDD);
@@ -21,29 +23,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   bool _isChecked = false;
 
-  void _submit() {
+  void _submit() async {
     final email = _emailController.text.trim();
 
     if (!_isChecked) {
       _showSnackbar(AppLocalizations.of(context)?.checkBoxMsg ?? 'Please check the box to proceed.');
       return;
     }
-
     if (email.isEmpty || !emailRegex.hasMatch(email)) {
       _showSnackbar(AppLocalizations.of(context)?.invalidEmail ?? 'Invalid email format');
       return;
     }
 
-    _showSnackbar(AppLocalizations.of(context)?.mailSent ?? 'Mail sent', isError: false);
+    try {
+      await ApiClient().requestPasswordReset(email: email);
+      _showSnackbar(AppLocalizations.of(context)?.mailSent ?? 'Reset email sent', isError: false);
 
-    Future.delayed(const Duration(seconds: 1), () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const VerificationCodeScreen(),
-        ),
-      );
-    });
+    } catch (e) {
+      _showSnackbar(e.toString().replaceFirst('Exception: ', ''), isError: true);
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VerificationCodeScreen(email: _emailController.text.trim()),
+      ),
+    );
+
   }
 
   void _showSnackbar(String msg, {bool isError = true}) {
