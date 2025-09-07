@@ -59,16 +59,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // In your RegisterScreen's _onRegister method:
   Future<void> _onRegister() async {
     if (_loading) return;
-    if (!_isChecked) { _toast('You must accept the public offer'); return; }
-    if (_pass.text != _confirm.text) { _toast('Passwords do not match'); return; }
+    if (!_isChecked) {
+      _toast('You must accept the terms and conditions');
+      return;
+    }
+    if (_pass.text != _confirm.text) {
+      _toast('Passwords do not match');
+      return;
+    }
 
     setState(() => _loading = true);
-    try {
-      print('Creating vendor account: ${_email.text.trim()}');
 
-      final vendorResponse = await _api.createVendorAccountAdmin(
+    try {
+      final token = await _api.registerVendorAndLogin(
         firstname: _first.text.trim(),
         lastname: _last.text.trim(),
         email: _email.text.trim(),
@@ -77,21 +83,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         businessName: _businessNameController.text.trim(),
       );
 
-      print('Vendor creation response: $vendorResponse');
-
-      await _api.loginVendor(
-        email: _email.text.trim(),
-        password: _pass.text.trim(),
-      );
-      print('Login successful, token received');
-
-      _toast('Vendor account created & logged in!', err: false);
+      print('Registration successful! Token: $token');
+      _toast('Vendor account created successfully!', err: false);
 
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+
     } catch (e) {
       print('Registration error: $e');
-      _toast('Registration failed: ${e.toString()}');
+      _toast('Registration failed: ${e.toString().replaceFirst("Exception: ", "")}');
     } finally {
       if (mounted) setState(() => _loading = false);
     }

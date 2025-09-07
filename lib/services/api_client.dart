@@ -2,17 +2,14 @@
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../presentation/auth/login/welcome_screen.dart';
 import 'order_model.dart'; // Must define MagentoOrder in here
 
-/// Make sure your MaterialApp uses this navigatorKey:
-/// MaterialApp(navigatorKey: navigatorKey, ...)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-// =================== PUBLIC MODELS (keep top-level) ===================
+// =================== PUBLIC MODELS ===================
 
 class ReviewPage {
   ReviewPage({required this.items, required this.totalCount});
@@ -39,7 +36,7 @@ class MagentoReview {
   final String? nickname;
   final int? productId;
   final String? productSku;
-  final int? status; // 1 Approved, 2 Pending, 3 Not Approved
+  final int? status;
   final String? createdAt;
   final List<dynamic>? ratings;
 
@@ -76,7 +73,6 @@ class ProductLite {
   final String image;
 }
 
-/// Data carrier for vendor profile (must be top-level in Dart)
 class VendorProfile {
   VendorProfile({
     required this.customerId,
@@ -113,7 +109,6 @@ class VendorProfile {
   });
 
   final int customerId;
-
   String? companyName;
   String? bio;
   String? country;
@@ -121,12 +116,10 @@ class VendorProfile {
   String? lowStockQty;
   String? vatNumber;
   String? paymentDetails;
-
   String? logoUrl;
   String? bannerUrl;
   String? logoBase64;
   String? bannerBase64;
-
   String? twitter;
   String? facebook;
   String? instagram;
@@ -135,15 +128,12 @@ class VendorProfile {
   String? pinterest;
   String? moleskine;
   String? tiktok;
-
   String? returnPolicy;
   String? shippingPolicy;
   String? privacyPolicy;
-
   String? metaKeywords;
   String? metaDescription;
   String? googleAnalyticsId;
-
   String? profilePathReq;
   String? collectionPathReq;
   String? reviewPathReq;
@@ -154,8 +144,8 @@ class VendorProfile {
 // =================== API CLIENT ===================
 
 class ApiClient {
-  // ---------------- Singleton ----------------
   static final ApiClient _instance = ApiClient._internal();
+
   factory ApiClient() => _instance;
 
   ApiClient._internal();
@@ -165,7 +155,6 @@ class ApiClient {
   static const String _base = "https://kolshy.ae/rest/V1/";
   static const Duration _timeout = Duration(seconds: 30);
 
-  /// Dio always carries the ADMIN token by default.
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: _base,
@@ -179,147 +168,126 @@ class ApiClient {
     ),
   );
 
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-
   Dio get dio => _dio;
 
   // ---------------- Storage Keys ----------------
   static const _kAuthToken = 'authToken';
   static const _kIsGuest = 'is_guest';
 
-  // Small helper for auth header
-  Options _auth(String token) => Options(headers: {"Authorization": "Bearer $token"});
-
-  // ---------------- Auth helpers (token persistence) ----------------
-
-  Future<void> _saveTokenInternal(String token, {bool isGuest = false}) async {
-    await _secureStorage.write(key: _kAuthToken, value: token);
+  // ---------------- Token Management ----------------
+  Future<void> saveToken(String token, {bool isGuest = false}) async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kAuthToken, token);
     await prefs.setBool(_kIsGuest, isGuest);
   }
 
-  Future<String?> getAuthToken() => _secureStorage.read(key: _kAuthToken);
-
-  Future<void> clearAuthToken() async {
-    await _secureStorage.delete(key: _kAuthToken);
+  Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_kAuthToken);
+  }
+
+  Future<bool> isGuest() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kIsGuest) ?? false;
+  }
+
+  Future<void> clearToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kAuthToken);
     await prefs.remove(_kIsGuest);
   }
 
   Future<bool> isLoggedIn() async {
-    final token = await getAuthToken();
+    final token = await getToken();
     return token != null && token.isNotEmpty;
   }
 
-  // ---------------- Login (Vendor-first) ----------------
+  // Helper for auth header
+  Options _authOptions(String token) =>
+      Options(headers: {"Authorization": "Bearer $token"});
 
+  // ---------------- Auth Methods ----------------
   Future<String> loginVendor({
     required String email,
     required String password,
   }) async {
-    final token = await _loginCustomerRaw(email: email, password: password);
-    final vendor = await _isVendor(token);
-    if (!vendor) {
-      throw Exception('This account is not a vendor. Please use a vendor account.');
-    }
-    await _saveTokenInternal(token, isGuest: false);
-    return token;
-  }
-
-  Future<String> _loginCustomerRaw({
-    required String email,
-    required String password,
-  }) async {
     try {
-      final res = await _dio.post(
+      // Get customer token
+      final response = await _dio.post(
         "integration/customer/token",
         data: {"username": email, "password": password},
-        // Remove admin header for this call (Magento expects no bearer here)
-        options: Options(headers: {
-          "Authorization": null,
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        }),
+        options: Options(headers: {"Authorization": null}),
       );
 
-      final token = (res.data is String) ? (res.data as String) : '${res.data ?? ''}';
+      final token = response.data is String ? response.data as String : response
+          .data.toString();
+
       if (token.isEmpty) {
-        throw Exception("Empty token returned from Magento.");
+        throw Exception("Empty token returned");
       }
+
+      // Verify vendor status
+      final isVendor = await _checkVendorStatus(token);
+      if (!isVendor) {
+        await clearToken();
+        throw Exception("This account is not registered as a vendor");
+      }
+
+      // Save token
+      await saveToken(token, isGuest: false);
       return token;
     } on DioException catch (e) {
-      throw Exception(parseMagentoError(e));
+      if (e.response?.statusCode == 401) {
+        throw Exception("Invalid email or password");
+      }
+      throw Exception("Login failed: ${_parseError(e)}");
     }
   }
 
-  Future<bool> _isVendor(String token) async {
+  Future<bool> _checkVendorStatus(String token) async {
     try {
-      final res = await _dio.get('customers/me', options: _auth(token));
+      final response = await _dio.get(
+        "customers/me",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
 
-      final data = (res.data is Map)
-          ? (res.data as Map<String, dynamic>)
-          : const <String, dynamic>{};
+      final customerData = response.data as Map<String, dynamic>;
 
-      // extension_attributes checks
-      final ext = (data['extension_attributes'] ?? {}) as Map<String, dynamic>;
-      final hasExtVendor = ext['is_vendor'] == true ||
-          ext['is_seller'] == true ||
-          (ext['seller_id'] != null && ext['seller_id'] != 0) ||
-          (ext['vendor_id'] != null && ext['vendor_id'] != 0);
-      if (hasExtVendor) return true;
+      // Check custom attributes
+      final customAttributes = customerData['custom_attributes'] as List?;
+      if (customAttributes != null) {
+        for (final attr in customAttributes) {
+          if (attr is Map) {
+            final code = attr['attribute_code']?.toString();
+            final value = attr['value']?.toString();
 
-      // custom_attributes checks
-      if (data['custom_attributes'] is List) {
-        for (final ca in (data['custom_attributes'] as List)) {
-          if (ca is Map) {
-            final code = (ca['attribute_code'] ?? '').toString();
-            final val = (ca['value'] ?? '').toString().trim().toLowerCase();
-            if ((code == 'is_vendor' || code == 'is_seller') && (val == '1' || val == 'true')) {
+            if (code == 'is_vendor' && (value == '1' || value == 'true')) {
               return true;
             }
-            if ((code == 'seller_id' || code == 'vendor_id') && val.isNotEmpty && val != '0') {
+            if (code == 'vendor_status' && value == '1') {
               return true;
             }
           }
         }
       }
+
+      // Check extension attributes
+      final extensionAttributes = customerData['extension_attributes'] as Map<
+          String,
+          dynamic>?;
+      if (extensionAttributes != null) {
+        if (extensionAttributes['is_vendor'] == true ||
+            extensionAttributes['is_seller'] == true ||
+            extensionAttributes['vendor_id'] != null) {
+          return true;
+        }
+      }
+
       return false;
-    } catch (_) {
+    } catch (e) {
+      print("Vendor check error: $e");
       return false;
     }
-  }
-
-  // ---------------- Vendor Registration (Auto Vendor + Auto Login) ----------------
-
-  Future<Map<String, dynamic>> registerVendorAndLogin({
-    required String firstname,
-    required String lastname,
-    required String email,
-    required String password,
-    String? phone,
-    String? businessName,
-  }) async {
-    final created = await createVendorAccountAdmin(
-      firstname: firstname,
-      lastname: lastname,
-      email: email,
-      password: password,
-      phone: phone,
-      businessName: businessName,
-    );
-
-    final token = await _loginCustomerRaw(email: email, password: password);
-    await _saveTokenInternal(token, isGuest: false);
-
-    final isVendorAccount = await _isVendor(token);
-    if (!isVendorAccount) {
-      throw Exception(
-        'Account created but not flagged as vendor by backend. '
-            'Please verify your marketplace module accepts vendor attributes.',
-      );
-    }
-
-    return created;
   }
 
   Future<Map<String, dynamic>> createVendorAccount({
@@ -329,18 +297,37 @@ class ApiClient {
     required String password,
     String? phone,
     String? businessName,
-  }) {
-    return registerVendorAndLogin(
-      firstname: firstname,
-      lastname: lastname,
-      email: email,
-      password: password,
-      phone: phone,
-      businessName: businessName,
-    );
+  }) async {
+    try {
+      final customAttributes = [
+        {"attribute_code": "is_vendor", "value": "1"},
+        {"attribute_code": "vendor_status", "value": "1"},
+        if (phone != null && phone.isNotEmpty)
+          {"attribute_code": "vendor_phone", "value": phone},
+        if (businessName != null && businessName.isNotEmpty)
+          {"attribute_code": "business_name", "value": businessName},
+      ];
+
+      final response = await _dio.post(
+        "customers",
+        data: {
+          "customer": {
+            "email": email,
+            "firstname": firstname,
+            "lastname": lastname,
+            "custom_attributes": customAttributes,
+          },
+          "password": password,
+        },
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw Exception("Registration failed: ${_parseError(e)}");
+    }
   }
 
-  Future<Map<String, dynamic>> createVendorAccountAdmin({
+  Future<String> registerVendorAndLogin({
     required String firstname,
     required String lastname,
     required String email,
@@ -349,32 +336,24 @@ class ApiClient {
     String? businessName,
   }) async {
     try {
-      final payload = {
-        "customer": {
-          "email": email,
-          "firstname": firstname,
-          "lastname": lastname,
-          "custom_attributes": [
-            {"attribute_code": "is_vendor", "value": "1"},
-            {"attribute_code": "vendor_status", "value": "1"},
-            if (phone != null && phone.trim().isNotEmpty)
-              {"attribute_code": "vendor_phone", "value": phone.trim()},
-            if (businessName != null && businessName.trim().isNotEmpty)
-              {"attribute_code": "business_name", "value": businessName.trim()},
-          ]
-        },
-        "password": password,
-      };
+      // Create vendor account
+      await createVendorAccount(
+        firstname: firstname,
+        lastname: lastname,
+        email: email,
+        password: password,
+        phone: phone,
+        businessName: businessName,
+      );
 
-      final res = await _dio.post("customers", data: payload);
-      return Map<String, dynamic>.from(res.data ?? {});
-    } on DioException catch (e) {
-      throw Exception(parseMagentoError(e));
+      // Auto-login
+      return await loginVendor(email: email, password: password);
+    } catch (e) {
+      throw Exception("Vendor registration failed: ${e.toString()}");
     }
   }
 
-  // ---------------- Password / Account Recovery ----------------
-
+  // ---------------- Password Recovery ----------------
   Future<bool> requestPasswordReset({
     required String email,
     int websiteId = 1,
@@ -392,7 +371,7 @@ class ApiClient {
       );
       return true;
     } on DioException catch (e) {
-      throw Exception("Failed to request password reset: ${parseMagentoError(e)}");
+      throw Exception("Failed to request password reset: ${_parseError(e)}");
     }
   }
 
@@ -413,23 +392,22 @@ class ApiClient {
       );
       return true;
     } on DioException catch (e) {
-      throw Exception("Failed to reset password: ${parseMagentoError(e)}");
+      throw Exception("Failed to reset password: ${_parseError(e)}");
     }
   }
 
   Future<bool> changePasswordAuthenticated({
     required String currentPassword,
     required String newPassword,
-    String? overrideToken,
   }) async {
-    final token = overrideToken ?? (await getAuthToken());
-    if (token == null || token.isEmpty) {
+    final token = await getToken();
+    if (token == null) {
       throw Exception("Not logged in.");
     }
     try {
       await _dio.put(
         "customers/me/password",
-        options: _auth(token),
+        options: _authOptions(token),
         data: {
           "currentPassword": currentPassword,
           "newPassword": newPassword,
@@ -437,30 +415,30 @@ class ApiClient {
       );
       return true;
     } on DioException catch (e) {
-      throw Exception("Failed to change password: ${parseMagentoError(e)}");
+      throw Exception("Failed to change password: ${_parseError(e)}");
     }
   }
 
-  // ---------------- Customers ----------------
+  // ---------------- Customer Methods ----------------
+  Future<Map<String, dynamic>> getCustomerMe() async {
+    final token = await getToken();
+    if (token == null) throw Exception("Not logged in");
 
-  Future<Map<String, dynamic>?> getCustomerMe() async {
     try {
-      final token = await getAuthToken();
-      if (token == null || token.isEmpty) return null;
-      final res = await _dio.get('customers/me', options: _auth(token));
+      final res = await _dio.get('customers/me', options: _authOptions(token));
       return Map<String, dynamic>.from(res.data);
-    } on DioException {
-      return null;
+    } on DioException catch (e) {
+      throw Exception("Failed to fetch customer info: ${_parseError(e)}");
     }
   }
 
   Future<Map<String, dynamic>?> getCustomerInfo() async {
-    final token = await getAuthToken();
-    if (token == null || token.isEmpty) {
+    final token = await getToken();
+    if (token == null) {
       return null;
     }
     try {
-      final res = await _dio.get("customers/me", options: _auth(token));
+      final res = await _dio.get("customers/me", options: _authOptions(token));
       if (res.statusCode == 200) {
         return Map<String, dynamic>.from(res.data as Map);
       }
@@ -470,13 +448,25 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> getCustomerProfile() async {
+    final token = await getToken();
+    if (token == null) throw Exception("Not logged in");
+
+    try {
+      final response = await _dio.get(
+        "customers/me",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw Exception("Failed to fetch customer info: $e");
+    }
+  }
+
   // ---------------- Logout ----------------
   Future<void> logout() async {
     try {
-      await clearAuthToken();
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-      await _secureStorage.deleteAll();
+      await clearToken();
     } catch (_) {
       // ignore
     } finally {
@@ -496,32 +486,23 @@ class ApiClient {
     });
   }
 
-  // ---------------- Dashboard-ish helpers ----------------
-
-  Future<List<dynamic>> getProducts({int pageSize = 1000}) async {
-    try {
-      final response = await _dio.get('products', queryParameters: {
-        'searchCriteria[pageSize]': pageSize,
-      });
-      return response.data['items'] ?? [];
-    } on DioException catch (e) {
-      throw Exception('Failed to load products: ${parseMagentoError(e)}');
-    }
-  }
-
+  // ---------------- Dashboard Methods ----------------
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
       final me = await getCustomerMe();
-      if (me == null) throw Exception("Customer information not available");
-
-      final token = await getAuthToken();
+      final token = await getToken();
       if (token == null) throw Exception("Not authenticated");
-      final vendor = await _isVendor(token);
-      if (!vendor) throw Exception("User is not a vendor");
 
-      final ordersRes = await _dio.get("orders", queryParameters: {'searchCriteria[pageSize]': 1000});
-      final productsRes = await _dio.get("products", queryParameters: {'searchCriteria[pageSize]': 1000});
-      final customersRes = await _dio.get("customers/search", queryParameters: {'searchCriteria[pageSize]': 1000});
+      // Verify vendor status
+      final isVendor = await _checkVendorStatus(token);
+      if (!isVendor) throw Exception("User is not a vendor");
+
+      final ordersRes = await _dio.get(
+          "orders", queryParameters: {'searchCriteria[pageSize]': 1000});
+      final productsRes = await _dio.get(
+          "products", queryParameters: {'searchCriteria[pageSize]': 1000});
+      final customersRes = await _dio.get("customers/search",
+          queryParameters: {'searchCriteria[pageSize]': 1000});
 
       final orders = (ordersRes.data['items'] ?? []) as List<dynamic>;
       final products = (productsRes.data['items'] ?? []) as List<dynamic>;
@@ -540,14 +521,25 @@ class ApiClient {
         'vendor_id': me['id'] ?? 'N/A',
       };
     } on DioException catch (e) {
-      throw Exception(parseMagentoError(e));
+      throw Exception(_parseError(e));
+    }
+  }
+
+  Future<List<dynamic>> getProducts({int pageSize = 1000}) async {
+    try {
+      final response = await _dio.get('products', queryParameters: {
+        'searchCriteria[pageSize]': pageSize,
+      });
+      return response.data['items'] ?? [];
+    } on DioException catch (e) {
+      throw Exception('Failed to load products: ${_parseError(e)}');
     }
   }
 
   Future<Map<String, double>> getSalesHistory() async {
     try {
-      final response =
-      await _dio.get("orders", queryParameters: {'searchCriteria[pageSize]': 1000});
+      final response = await _dio.get(
+          "orders", queryParameters: {'searchCriteria[pageSize]': 1000});
       final List<dynamic> orders = response.data['items'] ?? [];
       final Map<String, double> salesByDate = {};
 
@@ -560,7 +552,7 @@ class ApiClient {
       }
       return salesByDate;
     } on DioException catch (e) {
-      throw Exception(parseMagentoError(e));
+      throw Exception(_parseError(e));
     }
   }
 
@@ -570,13 +562,18 @@ class ApiClient {
           queryParameters: {'searchCriteria[pageSize]': 1000});
       final List<dynamic> customers = response.data['items'] ?? [];
 
-      int newer = 0, returning = 0, old = 0;
+      int newer = 0,
+          returning = 0,
+          old = 0;
       for (final c in customers) {
         final createdAt = c['created_at'] as String?;
         if (createdAt != null) {
           final created = DateTime.tryParse(createdAt);
           if (created != null) {
-            final days = DateTime.now().difference(created).inDays;
+            final days = DateTime
+                .now()
+                .difference(created)
+                .inDays;
             if (days < 30) {
               newer++;
             } else if (days < 90) {
@@ -595,7 +592,7 @@ class ApiClient {
         'total': customers.length,
       };
     } on DioException catch (e) {
-      throw Exception(parseMagentoError(e));
+      throw Exception(_parseError(e));
     }
   }
 
@@ -608,7 +605,7 @@ class ApiClient {
       });
       return res.data['items'] ?? [];
     } on DioException catch (e) {
-      throw Exception(parseMagentoError(e));
+      throw Exception(_parseError(e));
     }
   }
 
@@ -622,7 +619,7 @@ class ApiClient {
       });
       return res.data['items'] ?? [];
     } on DioException catch (e) {
-      throw Exception('Failed to load categories: ${parseMagentoError(e)}');
+      throw Exception('Failed to load categories: ${_parseError(e)}');
     }
   }
 
@@ -635,14 +632,14 @@ class ApiClient {
       });
       return res.data['items'] ?? [];
     } on DioException catch (e) {
-      throw Exception(parseMagentoError(e));
+      throw Exception(_parseError(e));
     }
   }
 
   Future<Map<String, Map<int, double>>> getProductRatings() async {
     try {
-      final res =
-      await _dio.get("reviews/search", queryParameters: {"searchCriteria[pageSize]": 1000});
+      final res = await _dio.get("reviews/search",
+          queryParameters: {"searchCriteria[pageSize]": 1000});
       final List<dynamic> reviews = res.data['items'] ?? [];
       final Map<int, double> price = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
       final Map<int, double> value = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
@@ -660,7 +657,11 @@ class ApiClient {
       if (total > 0) {
         Map<int, double> pct(Map<int, double> m) =>
             m.map((k, v) => MapEntry(k, (v / total) * 100));
-        return {'price': pct(price), 'value': pct(value), 'quality': pct(quality)};
+        return {
+          'price': pct(price),
+          'value': pct(value),
+          'quality': pct(quality)
+        };
       }
 
       return {
@@ -669,17 +670,15 @@ class ApiClient {
         'quality': {5: 0, 4: 0, 3: 0, 2: 0, 1: 0},
       };
     } on DioException catch (e) {
-      throw Exception(parseMagentoError(e));
+      throw Exception(_parseError(e));
     }
   }
 
   // ---------------- Products CRUD ----------------
-
   Future<List<Map<String, dynamic>>> getDraftProducts() async {
-    final token = await getAuthToken();
-    if (token == null || !await _isVendor(token)) {
-      throw Exception("User is not a vendor");
-    }
+    final token = await getToken();
+    if (token == null) throw Exception("Not authenticated");
+
     try {
       final res = await _dio.get("products", queryParameters: {
         "searchCriteria[filter_groups][0][filters][0][field]": "status",
@@ -689,47 +688,47 @@ class ApiClient {
       });
       return List<Map<String, dynamic>>.from(res.data['items'] ?? []);
     } on DioException catch (e) {
-      throw Exception("Failed to load drafts: ${parseMagentoError(e)}");
+      throw Exception("Failed to load drafts: ${_parseError(e)}");
     }
   }
 
-  Future<Map<String, dynamic>> createProductAsAdmin(Map<String, dynamic> productData) async {
+  Future<Map<String, dynamic>> createProductAsAdmin(
+      Map<String, dynamic> productData) async {
     try {
       final res = await _dio.post("products", data: productData);
       return Map<String, dynamic>.from(res.data ?? {});
     } on DioException catch (e) {
-      throw Exception("Failed to create product (admin): ${parseMagentoError(e)}");
+      throw Exception("Failed to create product: ${_parseError(e)}");
     }
   }
 
-  Future<Map<String, dynamic>> updateProduct(String sku, Map<String, dynamic> productData) async {
-    final token = await getAuthToken();
-    if (token == null || !await _isVendor(token)) {
-      throw Exception("User is not a vendor");
-    }
+  Future<Map<String, dynamic>> updateProduct(String sku,
+      Map<String, dynamic> productData) async {
+    final token = await getToken();
+    if (token == null) throw Exception("Not authenticated");
+
     try {
-      final res = await _dio.put("products/${Uri.encodeComponent(sku)}", data: productData);
+      final res = await _dio.put(
+          "products/${Uri.encodeComponent(sku)}", data: productData);
       return Map<String, dynamic>.from(res.data);
     } on DioException catch (e) {
-      throw Exception("Failed to update product: ${parseMagentoError(e)}");
+      throw Exception("Failed to update product: ${_parseError(e)}");
     }
   }
 
   Future<bool> deleteProduct(String sku) async {
-    final token = await getAuthToken();
-    if (token == null || !await _isVendor(token)) {
-      throw Exception("User is not a vendor");
-    }
+    final token = await getToken();
+    if (token == null) throw Exception("Not authenticated");
+
     try {
       await _dio.delete("products/${Uri.encodeComponent(sku)}");
       return true;
     } on DioException catch (e) {
-      throw Exception("Failed to delete product: ${parseMagentoError(e)}");
+      throw Exception("Failed to delete product: ${_parseError(e)}");
     }
   }
 
   // ---------------- Categories ----------------
-
   Future<List<Map<String, dynamic>>> getAllCategoriesFlat() async {
     try {
       final res = await _dio.get("categories/list", queryParameters: {
@@ -750,24 +749,22 @@ class ApiClient {
       });
       return items;
     } on DioException catch (e) {
-      throw Exception('Failed to load categories: ${parseMagentoError(e)}');
+      throw Exception('Failed to load categories: ${_parseError(e)}');
     }
   }
 
   // ---------------- Vendor Orders ----------------
-
   Future<List<MagentoOrder>> getVendorOrders({
     int pageSize = 50,
     int currentPage = 1,
   }) async {
-    final token = await getAuthToken();
-    if (token == null || !await _isVendor(token)) {
-      throw Exception("User is not a vendor");
-    }
+    final token = await getToken();
+    if (token == null) throw Exception("Not authenticated");
 
     try {
       final me = await getCustomerMe();
-      final vendorId = me?['id']?.toString();
+      final vendorId = me['id']?.toString();
+
       final res = await _dio.get("orders", queryParameters: {
         "searchCriteria[filter_groups][0][filters][0][field]": "vendor_id",
         "searchCriteria[filter_groups][0][filters][0][value]": vendorId,
@@ -781,19 +778,18 @@ class ApiClient {
       final items = List<Map<String, dynamic>>.from(res.data['items'] ?? []);
       return items.map((m) => MagentoOrder.fromJson(m)).toList();
     } on DioException catch (e) {
-      throw Exception("Failed to load orders: ${parseMagentoError(e)}");
+      throw Exception("Failed to load orders: ${_parseError(e)}");
     }
   }
 
-  Future<List<MagentoOrder>> searchVendorOrders(String query, {String? status}) async {
-    final token = await getAuthToken();
-    if (token == null || !await _isVendor(token)) {
-      throw Exception("User is not a vendor");
-    }
+  Future<List<MagentoOrder>> searchVendorOrders(String query,
+      {String? status}) async {
+    final token = await getToken();
+    if (token == null) throw Exception("Not authenticated");
 
     try {
       final me = await getCustomerMe();
-      final vendorId = me?['id']?.toString();
+      final vendorId = me['id']?.toString();
 
       final params = <String, dynamic>{
         "searchCriteria[filter_groups][0][filters][0][field]": "vendor_id",
@@ -803,22 +799,27 @@ class ApiClient {
       };
 
       if (query.isNotEmpty) {
-        params["searchCriteria[filter_groups][1][filters][0][field]"] = "increment_id";
-        params["searchCriteria[filter_groups][1][filters][0][value]"] = "%$query%";
-        params["searchCriteria[filter_groups][1][filters][0][condition_type]"] = "like";
+        params["searchCriteria[filter_groups][1][filters][0][field]"] =
+        "increment_id";
+        params["searchCriteria[filter_groups][1][filters][0][value]"] =
+        "%$query%";
+        params["searchCriteria[filter_groups][1][filters][0][condition_type]"] =
+        "like";
       }
 
       if (status != null && status != 'all') {
-        params["searchCriteria[filter_groups][2][filters][0][field]"] = "status";
+        params["searchCriteria[filter_groups][2][filters][0][field]"] =
+        "status";
         params["searchCriteria[filter_groups][2][filters][0][value]"] = status;
-        params["searchCriteria[filter_groups][2][filters][0][condition_type]"] = "eq";
+        params["searchCriteria[filter_groups][2][filters][0][condition_type]"] =
+        "eq";
       }
 
       final res = await _dio.get("orders", queryParameters: params);
       final items = List<Map<String, dynamic>>.from(res.data['items'] ?? []);
       return items.map((m) => MagentoOrder.fromJson(m)).toList();
     } on DioException catch (e) {
-      throw Exception("Failed to search orders: ${parseMagentoError(e)}");
+      throw Exception("Failed to search orders: ${_parseError(e)}");
     }
   }
 
@@ -827,19 +828,19 @@ class ApiClient {
       final res = await _dio.get("orders/$orderId");
       return MagentoOrder.fromJson(res.data);
     } on DioException catch (e) {
-      throw Exception("Failed to load order details: ${parseMagentoError(e)}");
+      throw Exception("Failed to load order details: ${_parseError(e)}");
     }
   }
 
-  // ---------------- Admin: Products / Orders / Customers ----------------
-
-  Future<List<Map<String, dynamic>>> getProductsAdmin({int pageSize = 1000}) async {
+  // ---------------- Admin Methods ----------------
+  Future<List<Map<String, dynamic>>> getProductsAdmin(
+      {int pageSize = 1000}) async {
     try {
-      final res =
-      await _dio.get("products", queryParameters: {"searchCriteria[pageSize]": pageSize});
+      final res = await _dio.get(
+          "products", queryParameters: {"searchCriteria[pageSize]": pageSize});
       return List<Map<String, dynamic>>.from(res.data?['items'] ?? const []);
     } on DioException catch (e) {
-      throw Exception('Failed to load products: ${parseMagentoError(e)}');
+      throw Exception('Failed to load products: ${_parseError(e)}');
     }
   }
 
@@ -857,24 +858,28 @@ class ApiClient {
 
       int gid = 0;
       if (dateFrom != null) {
-        qp['searchCriteria[filter_groups][$gid][filters][0][field]'] = 'created_at';
+        qp['searchCriteria[filter_groups][$gid][filters][0][field]'] =
+        'created_at';
         qp['searchCriteria[filter_groups][$gid][filters][0][value]'] =
             dateFrom.toUtc().toIso8601String();
-        qp['searchCriteria[filter_groups][$gid][filters][0][condition_type]'] = 'gteq';
+        qp['searchCriteria[filter_groups][$gid][filters][0][condition_type]'] =
+        'gteq';
         gid++;
       }
       if (dateTo != null) {
-        qp['searchCriteria[filter_groups][$gid][filters][0][field]'] = 'created_at';
+        qp['searchCriteria[filter_groups][$gid][filters][0][field]'] =
+        'created_at';
         qp['searchCriteria[filter_groups][$gid][filters][0][value]'] =
             dateTo.toUtc().toIso8601String();
-        qp['searchCriteria[filter_groups][$gid][filters][0][condition_type]'] = 'lteq';
+        qp['searchCriteria[filter_groups][$gid][filters][0][condition_type]'] =
+        'lteq';
         gid++;
       }
 
       final res = await _dio.get('orders', queryParameters: qp);
       return List<Map<String, dynamic>>.from(res.data?['items'] ?? const []);
     } on DioException catch (e) {
-      throw Exception('Failed to load orders: ${parseMagentoError(e)}');
+      throw Exception('Failed to load orders: ${_parseError(e)}');
     }
   }
 
@@ -912,10 +917,14 @@ class ApiClient {
     };
 
     int fg = 0;
-    if (searchEmailLike != null && searchEmailLike.trim().isNotEmpty) {
+    if (searchEmailLike != null && searchEmailLike
+        .trim()
+        .isNotEmpty) {
       qp['searchCriteria[filter_groups][$fg][filters][0][field]'] = 'email';
-      qp['searchCriteria[filter_groups][$fg][filters][0][value]'] = '%$searchEmailLike%';
-      qp['searchCriteria[filter_groups][$fg][filters][0][condition_type]'] = 'like';
+      qp['searchCriteria[filter_groups][$fg][filters][0][value]'] =
+      '%$searchEmailLike%';
+      qp['searchCriteria[filter_groups][$fg][filters][0][condition_type]'] =
+      'like';
       fg++;
     }
 
@@ -923,27 +932,27 @@ class ApiClient {
       final resp = await _dio.get('customers/search', queryParameters: qp);
       return List<Map<String, dynamic>>.from(resp.data?['items'] ?? const []);
     } on DioException catch (e) {
-      throw Exception('Failed to load customers: ${parseMagentoError(e)}');
+      throw Exception('Failed to load customers: ${_parseError(e)}');
     }
   }
 
-  // ---------------- Invoices (Admin) ----------------
-
+  // ---------------- Invoices ----------------
   Future<Map<String, dynamic>> getInvoiceById({required int invoiceId}) async {
     try {
       final resp = await _dio.get('invoices/$invoiceId');
       return Map<String, dynamic>.from(resp.data ?? const {});
     } on DioException catch (e) {
-      throw Exception('Failed to load invoice: ${parseMagentoError(e)}');
+      throw Exception('Failed to load invoice: ${_parseError(e)}');
     }
   }
 
-  Future<List<Map<String, dynamic>>> getInvoiceComments({required int invoiceId}) async {
+  Future<List<Map<String, dynamic>>> getInvoiceComments(
+      {required int invoiceId}) async {
     try {
       final resp = await _dio.get('invoices/$invoiceId/comments');
       return List<Map<String, dynamic>>.from(resp.data ?? const []);
     } on DioException catch (e) {
-      throw Exception('Failed to load invoice comments: ${parseMagentoError(e)}');
+      throw Exception('Failed to load invoice comments: ${_parseError(e)}');
     }
   }
 
@@ -963,12 +972,11 @@ class ApiClient {
         },
       );
     } on DioException catch (e) {
-      throw Exception('Failed to add invoice comment: ${parseMagentoError(e)}');
+      throw Exception('Failed to add invoice comment: ${_parseError(e)}');
     }
   }
 
   // ---------------- Reviews ----------------
-
   Future<ReviewPage> getProductReviewsAdmin({
     required int page,
     required int pageSize,
@@ -981,62 +989,68 @@ class ApiClient {
 
     if (statusEq != null) {
       params['searchCriteria[filterGroups][99][filters][0][field]'] = 'status';
-      params['searchCriteria[filterGroups][99][filters][0][value]'] = statusEq.toString();
-      params['searchCriteria[filterGroups][99][filters][0][condition_type]'] = 'eq';
+      params['searchCriteria[filterGroups][99][filters][0][value]'] =
+          statusEq.toString();
+      params['searchCriteria[filterGroups][99][filters][0][condition_type]'] =
+      'eq';
     }
 
     try {
       final resp = await _dio.get('reviews', queryParameters: params);
       final data = resp.data is Map ? resp.data as Map : const {};
-      final itemsRaw = (data['items'] is List) ? (data['items'] as List) : const [];
+      final itemsRaw = (data['items'] is List)
+          ? (data['items'] as List)
+          : const [];
       final total = (data['total_count'] is int)
           ? data['total_count'] as int
-          : (data['total_count'] is String ? int.tryParse('${data['total_count']}') ?? 0 : 0);
+          : (data['total_count'] is String ? int.tryParse(
+          '${data['total_count']}') ?? 0 : 0);
 
-      final items =
-      itemsRaw.map<MagentoReview>((e) => MagentoReview.fromJson(e as Map)).toList();
+      final items = itemsRaw.map<MagentoReview>((e) =>
+          MagentoReview.fromJson(e as Map)).toList();
       return ReviewPage(items: items, totalCount: total);
     } on DioException catch (e) {
-      throw Exception('Failed to load reviews: ${parseMagentoError(e)}');
+      throw Exception('Failed to load reviews: ${_parseError(e)}');
     }
   }
 
-  /// Lightweight product fetch used by Reviews screen.
-  /// Returns the raw product (id, sku, name, type_id, price, custom_attributes, media_gallery_entries).
-  Future<Map<String, dynamic>> getProductLiteBySku({required String sku}) async {
-    try {
-      // Attempt with `fields` to reduce payload (some Magento setups may ignore it).
-      final res = await _dio.get(
-        'products/${Uri.encodeComponent(sku)}',
-        queryParameters: {
-          'fields':
-          'id,sku,name,type_id,price,custom_attributes,media_gallery_entries[file]',
-        },
-      );
-      return Map<String, dynamic>.from(res.data ?? const {});
-    } on DioException catch (e) {
-      // Fallback without fields if store disallows it
-      if (e.response?.statusCode == 400 || e.response?.statusCode == 422) {
-        final res = await _dio.get('products/${Uri.encodeComponent(sku)}');
-        return Map<String, dynamic>.from(res.data ?? const {});
+  // Add these methods to your ApiClient class
+
+// ---------------- Error Handling ----------------
+  String parseMagentoError(Object error,
+      {String fallback = 'An unknown error occurred'}) {
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map && data['message'] is String) {
+        return data['message'] as String;
       }
-      throw Exception('Failed to fetch product $sku: ${parseMagentoError(e)}');
+      if (data is Map && data['parameters'] is List &&
+          (data['parameters'] as List).isNotEmpty) {
+        return '${data['message']} (${(data['parameters'] as List).join(
+            ", ")})';
+      }
+      if (data is String && data.isNotEmpty) return data;
+      return error.message ?? fallback;
     }
+    return error.toString();
   }
 
+// ---------------- Media URL Getters ----------------
   String get mediaBaseUrlForCatalog {
     final b = _dio.options.baseUrl; // .../rest/V1/
-    final root = b.replaceFirst(RegExp(r'/rest/.*$'), '').replaceFirst(RegExp(r'/$'), '');
+    final root = b.replaceFirst(RegExp(r'/rest/.*$'), '').replaceFirst(
+        RegExp(r'/$'), '');
     return '$root/pub/media/catalog/product';
   }
 
-  /// Media base for vendor images (adjust if your instance differs)
   String get mediaBaseUrlForVendor {
     final b = _dio.options.baseUrl; // .../rest/V1/
-    final root = b.replaceFirst(RegExp(r'/rest/.*$'), '').replaceFirst(RegExp(r'/$'), '');
+    final root = b.replaceFirst(RegExp(r'/rest/.*$'), '').replaceFirst(
+        RegExp(r'/$'), '');
     return '$root/pub/media';
   }
 
+// ---------------- MIME Type Helper ----------------
   String guessMimeFromName(String filename) {
     final lower = filename.trim().toLowerCase();
 
@@ -1090,9 +1104,9 @@ class ApiClient {
     }
   }
 
-  // ---------- VENDOR PROFILE (CUSTOMER) ----------
+// ---------------- Vendor Profile Methods ----------------
 
-  // Attribute codes to persist the vendor profile (edit to match your backend)
+// Attribute codes for vendor profile
   static const _attrCompanyName = 'vendor_company_name';
   static const _attrBio = 'vendor_bio';
   static const _attrCountry = 'vendor_country';
@@ -1124,7 +1138,7 @@ class ApiClient {
   static const _attrLocationReq = 'vendor_location_request_path';
   static const _attrPrivacyReq = 'vendor_privacy_request_path';
 
-  // Image handling
+// Image handling
   static const _attrLogoUrl = 'vendor_logo';
   static const _attrBannerUrl = 'vendor_banner';
   static const _attrLogoBase64 = 'vendor_logo_base64';
@@ -1146,19 +1160,21 @@ class ApiClient {
   /// Helper to write/replace a custom attribute in the payload
   void _putCA(List list, String code, String? value) {
     if (value == null) return;
-    list.removeWhere((e) => e is Map && (e['attribute_code']?.toString() ?? '') == code);
+    list.removeWhere((e) =>
+    e is Map && (e['attribute_code']?.toString() ?? '') == code);
     list.add({'attribute_code': code, 'value': value});
   }
 
   /// Load current logged-in vendor profile from customers/me
   Future<VendorProfile?> getVendorProfileMe() async {
-    final token = await getAuthToken();
+    final token = await getToken();
     if (token == null || token.isEmpty) return null;
 
     try {
-      final res = await _dio.get('customers/me', options: _auth(token));
+      final res = await _dio.get('customers/me', options: _authOptions(token));
       final m = (res.data as Map);
-      final id = (m['id'] is int) ? m['id'] as int : int.tryParse('${m['id'] ?? ''}') ?? 0;
+      final id = (m['id'] is int) ? m['id'] as int : int.tryParse(
+          '${m['id'] ?? ''}') ?? 0;
 
       final p = VendorProfile(
         customerId: id,
@@ -1195,13 +1211,13 @@ class ApiClient {
       );
       return p;
     } on DioException catch (e) {
-      throw Exception('Failed to load vendor profile: ${parseMagentoError(e)}');
+      throw Exception('Failed to load vendor profile: ${_parseError(e)}');
     }
   }
 
   /// Update current logged-in vendor profile (customers/me)
   Future<void> updateVendorProfileMe(VendorProfile profile) async {
-    final token = await getAuthToken();
+    final token = await getToken();
     if (token == null || token.isEmpty) {
       throw Exception('Not authenticated');
     }
@@ -1252,9 +1268,10 @@ class ApiClient {
     };
 
     try {
-      await _dio.put('customers/me', data: payload, options: _auth(token));
+      await _dio.put(
+          'customers/me', data: payload, options: _authOptions(token));
     } on DioException catch (e) {
-      throw Exception('Failed to update vendor profile: ${parseMagentoError(e)}');
+      throw Exception('Failed to update vendor profile: ${_parseError(e)}');
     }
   }
 
@@ -1270,23 +1287,26 @@ class ApiClient {
       'searchCriteria[sortOrders][0][field]': 'created_at',
       'searchCriteria[sortOrders][0][direction]': 'DESC',
       'searchCriteria[filter_groups][0][filters][0][field]': 'vendor_id',
-      'searchCriteria[filter_groups][0][filters][0][value]': vendorId.toString(),
+      'searchCriteria[filter_groups][0][filters][0][value]': vendorId
+          .toString(),
       'searchCriteria[filter_groups][0][filters][0][condition_type]': 'eq',
     };
 
     try {
       final res = await _dio.get('products', queryParameters: qp);
-      final items = List<Map<String, dynamic>>.from(res.data?['items'] ?? const []);
+      final items = List<Map<String, dynamic>>.from(
+          res.data?['items'] ?? const []);
       return items;
     } on DioException catch (e) {
-      throw Exception('Failed to load vendor products: ${parseMagentoError(e)}');
+      throw Exception('Failed to load vendor products: ${_parseError(e)}');
     }
   }
 
   /// Extract product image URL from Magento product map.
   String productImageUrl(Map<String, dynamic> p) {
     String? rel;
-    if (p['media_gallery_entries'] is List && (p['media_gallery_entries'] as List).isNotEmpty) {
+    if (p['media_gallery_entries'] is List &&
+        (p['media_gallery_entries'] as List).isNotEmpty) {
       final first = (p['media_gallery_entries'] as List).first;
       if (first is Map && first['file'] is String) {
         rel = first['file'] as String;
@@ -1294,34 +1314,52 @@ class ApiClient {
     }
     if (rel == null && p['custom_attributes'] is List) {
       for (final a in (p['custom_attributes'] as List)) {
-        if (a is Map && a['attribute_code'] == 'image' && a['value'] is String) {
+        if (a is Map && a['attribute_code'] == 'image' &&
+            a['value'] is String) {
           rel = a['value'] as String;
           break;
         }
       }
     }
     if (rel == null || rel.isEmpty) return '';
-    final root = mediaBaseUrlForCatalog; // .../pub/media/catalog/product
+    final root = mediaBaseUrlForCatalog;
     if (rel.startsWith('/')) rel = rel.substring(1);
     return '$root/$rel';
   }
 
-  // ---------------- Errors ----------------
-  String parseMagentoError(
-      Object error, {
-        String fallback = 'An unknown error occurred',
-      }) {
-    if (error is DioException) {
-      final data = error.response?.data;
-      if (data is Map && data['message'] is String) {
-        return data['message'] as String;
+// ---------------- Complete getProductLiteBySku method ----------------
+  Future<Map<String, dynamic>> getProductLiteBySku(
+      {required String sku}) async {
+    try {
+      // Attempt with `fields` to reduce payload
+      final res = await _dio.get(
+        'products/${Uri.encodeComponent(sku)}',
+        queryParameters: {
+          'fields': 'id,sku,name,type_id,price,custom_attributes,media_gallery_entries[file]',
+        },
+      );
+      return Map<String, dynamic>.from(res.data ?? const {});
+    } on DioException catch (e) {
+      // Fallback without fields if store disallows it
+      if (e.response?.statusCode == 400 || e.response?.statusCode == 422) {
+        final res = await _dio.get('products/${Uri.encodeComponent(sku)}');
+        return Map<String, dynamic>.from(res.data ?? const {});
       }
-      if (data is Map && data['parameters'] is List && (data['parameters'] as List).isNotEmpty) {
-        return '${data['message']} (${(data['parameters'] as List).join(", ")})';
-      }
-      if (data is String && data.isNotEmpty) return data;
-      return error.message ?? fallback;
+      throw Exception('Failed to fetch product $sku: ${_parseError(e)}');
     }
-    return error.toString();
+  }
+
+  String _parseError(DioException e) {
+    final responseData = e.response?.data;
+    if (responseData is Map && responseData['message'] != null) {
+      return responseData['message'].toString();
+    }
+    if (responseData is Map && responseData['parameters'] is List &&
+        (responseData['parameters'] as List).isNotEmpty) {
+      return '${responseData['message']} (${(responseData['parameters'] as List)
+          .join(", ")})';
+    }
+    if (responseData is String && responseData.isNotEmpty) return responseData;
+    return e.message ?? "An unknown error occurred";
   }
 }

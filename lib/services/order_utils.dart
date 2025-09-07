@@ -57,7 +57,6 @@ class OrderUtils {
         }
       }
     }
-    
     return 'assets/img_square.jpg';
   }
 }
