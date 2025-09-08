@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+
 import '../../services/api_client.dart';
 
 void main() => runApp(const CustomerAnalyticsApp());
@@ -53,7 +54,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
   bool _loading = true;
   bool _loadingAgg = true;
   String? _currency; // from orders
-  List<_CustomerDto> _customers = [];           // raw customers
+  List<Map<String, dynamic>> _allVendorOrders = []; // raw orders for the vendor
   Map<String, _Agg> _aggByEmail = {};           // aggregated orders by email for current period
   Map<String, _Agg> _prevAggByEmail = {};       // aggregated orders for previous period (for % change)
 
@@ -88,16 +89,13 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
       _loadingAgg = true;
     });
     try {
-      final customers = await ApiClient().getCustomersAdmin(
-        currentPage: 1,
-        pageSize: _pageSize,
-      );
-      _customers = customers.map((m) => _CustomerDto.fromMagento(m)).toList();
+      final orders = await VendorApiClient().getVendorOrders();
+      _allVendorOrders = List<Map<String, dynamic>>.from(orders);
       await _reloadAggregates();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch customers: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Failed to fetch vendor data: $e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -136,28 +134,18 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
     }
 
     try {
-      final orders = await ApiClient().getOrdersAdmin(
-        dateFrom: from,
-        dateTo: to,
-        currentPage: 1,
-        pageSize: 500,
-      );
-      final prevOrders = await ApiClient().getOrdersAdmin(
-        dateFrom: prevFrom,
-        dateTo: prevTo,
-        currentPage: 1,
-        pageSize: 500,
-      );
+      final filteredOrders = _filterOrdersByDate(_allVendorOrders, from, to);
+      final prevFilteredOrders = _filterOrdersByDate(_allVendorOrders, prevFrom, prevTo);
 
-      _currency = (orders.isNotEmpty
-          ? orders.first['base_currency_code']
-          : prevOrders.isNotEmpty
-          ? prevOrders.first['base_currency_code']
+      _currency = (filteredOrders.isNotEmpty
+          ? filteredOrders.first['base_currency_code']
+          : prevFilteredOrders.isNotEmpty
+          ? prevFilteredOrders.first['base_currency_code']
           : null)
           ?.toString();
 
-      _aggByEmail = _aggregateByCustomerEmail(orders);
-      _prevAggByEmail = _aggregateByCustomerEmail(prevOrders);
+      _aggByEmail = _aggregateByCustomerEmail(filteredOrders);
+      _prevAggByEmail = _aggregateByCustomerEmail(prevFilteredOrders);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -166,6 +154,19 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
     } finally {
       if (mounted) setState(() => _loadingAgg = false);
     }
+  }
+
+  List<Map<String, dynamic>> _filterOrdersByDate(List<Map<String, dynamic>> orders, DateTime? from, DateTime? to) {
+    if (from == null && to == null) {
+      return orders;
+    }
+    return orders.where((o) {
+      final date = o['created_at'] != null ? DateTime.tryParse(o['created_at'].toString()) : null;
+      if (date == null) return false;
+      bool afterFrom = from == null || date.isAfter(from);
+      bool beforeTo = to == null || date.isBefore(to);
+      return afterFrom && beforeTo;
+    }).toList();
   }
 
   Map<String, _Agg> _aggregateByCustomerEmail(List<Map<String, dynamic>> orders) {
@@ -186,16 +187,20 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
     return map;
   }
 
-  List<_CustomerDto> get _filteredCustomers {
+  List<_CustomerSummaryDto> get _filteredCustomers {
     final q = _searchCtrl.text.trim().toLowerCase();
-    List<_CustomerDto> base = _customers;
+    final customersFromOrders = _aggByEmail.keys.map((email) {
+      // Find a corresponding order to get other customer details
+      final order = _allVendorOrders.firstWhere((o) => o['customer_email'] == email, orElse: () => {});
+      return _CustomerSummaryDto.fromOrder(order, email);
+    }).toList();
 
     if (q.isNotEmpty) {
-      base = base.where((c) {
+      return customersFromOrders.where((c) {
         return c.name.toLowerCase().contains(q) || c.email.toLowerCase().contains(q);
       }).toList();
     }
-    return base;
+    return customersFromOrders;
   }
 
   Future<void> _loadMore() async {
@@ -217,18 +222,8 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
     await _reloadAggregates();
   }
 
-  int get _customersCount {
-    final emailsWithOrders = _aggByEmail.keys.toSet();
-    if (emailsWithOrders.isEmpty) return _filteredCustomers.length;
-    return _filteredCustomers.where((c) => emailsWithOrders.contains(c.email)).length;
-  }
-
-  int get _customersPrevCount {
-    final emailsWithOrders = _prevAggByEmail.keys.toSet();
-    if (emailsWithOrders.isEmpty) return _filteredCustomers.length;
-    return _filteredCustomers.where((c) => emailsWithOrders.contains(c.email)).length;
-  }
-
+  int get _customersCount => _aggByEmail.keys.length;
+  int get _customersPrevCount => _prevAggByEmail.keys.length;
   double get _incomeSum => _aggByEmail.values.fold(0.0, (p, a) => p + a.total);
   double get _incomePrevSum => _prevAggByEmail.values.fold(0.0, (p, a) => p + a.total);
 
@@ -547,16 +542,14 @@ class _Agg {
   _Agg add(double t, int c) => _Agg(currency, total + t, count + c);
 }
 
-class _CustomerDto {
-  final int id;
+class _CustomerSummaryDto {
   final String email;
   final String name;
   final int? gender;
   final String? telephone;
   final String? prettyAddress;
 
-  _CustomerDto({
-    required this.id,
+  _CustomerSummaryDto({
     required this.email,
     required this.name,
     this.gender,
@@ -564,39 +557,20 @@ class _CustomerDto {
     this.prettyAddress,
   });
 
-  factory _CustomerDto.fromMagento(Map<String, dynamic> m) {
-    final first = (m['firstname'] ?? '').toString();
-    final last  = (m['lastname'] ?? '').toString();
-    final genderAttr = m['gender'];
-    int? g;
-    if (genderAttr is int) g = genderAttr;
-    if (genderAttr is String) g = int.tryParse(genderAttr);
-
-    String? tel;
-    String? pretty;
-    if (m['addresses'] is List) {
-      final addrs = (m['addresses'] as List).whereType<Map>().cast<Map<String, dynamic>>().toList();
-      if (addrs.isNotEmpty) {
-        final a = addrs.first;
-        tel = a['telephone']?.toString();
-        final street = (a['street'] is List)
-            ? (a['street'] as List).join(' ')
-            : (a['street']?.toString() ?? '');
-        final city = (a['city'] ?? '').toString();
-        final region = (a['region'] is Map ? (a['region']['region'] ?? '') : (a['region'] ?? '')).toString();
-        final country = (a['country_id'] ?? '').toString();
-        pretty = [street, city, region, country].where((e) => e.trim().isNotEmpty).join(', ');
-      }
-    }
+  factory _CustomerSummaryDto.fromOrder(Map<String, dynamic> o, String email) {
+    // This is a simplified way to get customer details from an order.
+    // In a real app, you might fetch full customer details separately.
+    final first = (o['customer_firstname'] ?? '').toString();
+    final last = (o['customer_lastname'] ?? '').toString();
 
     final nameCombined = ([first, last]..removeWhere((e) => e.trim().isEmpty)).join(' ');
-    return _CustomerDto(
-      id: (m['id'] as num).toInt(),
-      email: (m['email'] ?? '').toString(),
-      name: nameCombined.isEmpty ? (m['email'] ?? '').toString() : nameCombined,
-      gender: g,
-      telephone: tel,
-      prettyAddress: pretty,
+
+    return _CustomerSummaryDto(
+      email: email,
+      name: nameCombined.isEmpty ? email : nameCombined,
+      gender: null, // Gender is not available in vendor orders
+      telephone: null, // Telephone is not available in vendor orders
+      prettyAddress: null, // Address is not available in vendor orders
     );
   }
 }

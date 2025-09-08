@@ -65,7 +65,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
     });
 
     try {
-      final orders = await ApiClient().getOrdersAdmin(
+      final orders = await VendorApiClient().getOrdersAdmin(
         pageSize: 200,
       );
 
@@ -123,7 +123,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
       // Initialize first page of history list
       _shown = _historyData.isEmpty ? 0 : (_historyData.length >= _pageSize ? _pageSize : _historyData.length);
     } on DioException catch (e) {
-      _loadError = ApiClient().parseMagentoError(e);
+      _loadError = VendorApiClient().parseMagentoError(e);
     } catch (e) {
       _loadError = e.toString();
     } finally {
@@ -165,7 +165,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   Future<List<Map<String, dynamic>>> _fetchOrdersForLast({required int days}) async {
     final now = DateTime.now();
     final from = now.subtract(Duration(days: days));
-    return ApiClient().getOrdersAdmin(
+    return VendorApiClient().getOrdersAdmin(
       dateFrom: from,
       dateTo: now,
       pageSize: 200,
@@ -177,7 +177,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
     final now = DateTime.now();
     final from = DateTime(now.year, 1, 1);
     final to = DateTime(now.year, 12, 31, 23, 59, 59);
-    return ApiClient().getOrdersAdmin(
+    return VendorApiClient().getOrdersAdmin(
       dateFrom: from,
       dateTo: to,
       pageSize: 500,

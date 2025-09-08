@@ -13,7 +13,7 @@ import 'presentation/pdf/print_pdf_screen.dart';
 import 'presentation/profile/edit_profile_screen.dart';
 import 'presentation/analytics/customer_analytics_screen.dart';
 import 'presentation/dashboard/dashboard_screen.dart' hide AppLocalizations, ApiClient;
-import 'presentation/orders/orders_list_screen.dart';
+import 'presentation/orders/orders_list_screen.dart' hide VendorApiClient;
 import 'presentation/products/add_product_screen.dart';
 import 'presentation/products/drafts_list_screen.dart';
 import 'presentation/products/products_list_screen.dart';
@@ -90,7 +90,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _checkAuthStatus() async {
-    final isLoggedIn = await ApiClient().isLoggedIn();
+    final isLoggedIn = VendorApiClient().hasToken;
     setState(() {
       _isLoggedIn = isLoggedIn;
       _isLoading = false;
@@ -132,7 +132,7 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _checkAuthentication() async {
-    final isLoggedIn = await ApiClient().isLoggedIn();
+    final isLoggedIn = VendorApiClient().hasToken;
 
     if (!isLoggedIn) {
       Navigator.pushAndRemoveUntil(

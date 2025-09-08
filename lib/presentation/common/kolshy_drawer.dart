@@ -1,5 +1,6 @@
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+
 import '../../services/api_client.dart';
 import '../Translation/Language.dart';
 import '../admin/admin_news_screen.dart';
@@ -65,33 +66,15 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
 
   Future<void> _loadVendorFlag() async {
     try {
-      final me = await ApiClient().getCustomerInfo();
+      final VendorProfile? me = await VendorApiClient().getVendorInfo();
       bool vendor = false;
       if (me != null) {
-        // extension_attributes
-        final ext = (me['extension_attributes'] as Map?) ?? {};
-        vendor = (ext['is_vendor'] == true ||
-            ext['is_seller'] == true ||
-            (ext['seller_id'] ?? 0) != 0);
-
-        // custom_attributes fallback
-        if (!vendor && me['custom_attributes'] is List) {
-          for (final a in (me['custom_attributes'] as List)) {
-            if (a is Map) {
-              final code = (a['attribute_code'] ?? '').toString();
-              final val = (a['value'] ?? '').toString().toLowerCase();
-              if ((code == 'is_vendor' || code == 'is_seller') &&
-                  (val == '1' || val == 'true')) {
-                vendor = true;
-                break;
-              }
-              if (code == 'seller_id' && val.isNotEmpty && val != '0') {
-                vendor = true;
-                break;
-              }
-            }
-          }
-        }
+        // Check vendor status using the typed properties
+        // You might need to add these properties to your VendorProfile model
+        // or use a different approach to determine vendor status
+        vendor = me.customerId != null && me.customerId! > 0;
+        // If you have specific vendor flags in your model, use them instead:
+        // vendor = me.isVendor == true || me.isSeller == true || (me.sellerId ?? 0) != 0;
       }
       if (!mounted) return;
       setState(() {
@@ -189,7 +172,6 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
                   ],
                 ),
 
-              // You can decide whether analytics is vendor-only. Keeping it visible to all:
               _DrawerItem.asset(
                 base: _iconBase[NavKey.analytics]!,
                 label: t?.customerAnalytics ?? 'Customer Analytics',
@@ -250,7 +232,7 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
                     children: [
                       Icon(Icons.download_for_offline_outlined,
                           color: Colors.black45),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Install main application',
@@ -497,24 +479,23 @@ class _ProfileButtonState extends State<_ProfileButton> {
 
   Future<void> _loadProfile() async {
     try {
-      final me = await ApiClient().getCustomerInfo();
+      final VendorProfile? me = await VendorApiClient().getVendorInfo();
       if (me != null) {
-        final first = (me['firstname'] ?? '').toString().trim();
-        final last  = (me['lastname']  ?? '').toString().trim();
-        final email = (me['email']     ?? '').toString().trim();
-        final full  = [first, last].where((s) => s.isNotEmpty).join(' ');
-        final display = full.isNotEmpty ? full : (email.isNotEmpty ? email : '—');
+        // Use typed properties instead of map access
+        final first = ''; // You'll need to add firstname/lastname to VendorProfile
+        final last = '';  // or create a separate method to get user info
+        final email = ''; // For now, using empty strings as placeholders
 
-        final attrs = (me['custom_attributes'] as List?) ?? const [];
-        String? businessName = _attr(attrs, 'business_name');
-        String? avatar = _attr(attrs, 'profile_picture');
+        // For now, using company name as display name
+        final display = me.companyName ?? 'Vendor';
+        final storeName = me.companyName ?? 'Vendor Store';
 
         if (!mounted) return;
         setState(() {
           _displayName = display;
-          _storeName   = (businessName?.trim().isNotEmpty ?? false) ? businessName : 'Vendor';
-          _avatarUrl   = (avatar?.trim().isNotEmpty ?? false) ? avatar : null;
-          _loading     = false;
+          _storeName = storeName;
+          _avatarUrl = null; // Set this if you have avatar URL in VendorProfile
+          _loading = false;
         });
       } else {
         if (!mounted) return;
@@ -582,16 +563,6 @@ class _ProfileButtonState extends State<_ProfileButton> {
       ),
     );
   }
-
-  String? _attr(List attrs, String code) {
-    for (final a in attrs) {
-      if (a is Map && a['attribute_code'] == code) {
-        final v = a['value'];
-        return v == null ? null : v.toString();
-      }
-    }
-    return null;
-  }
 }
 
 class _NameSkeleton extends StatelessWidget {
@@ -619,129 +590,129 @@ class _ProfileMenuDialog extends StatelessWidget {
     final t = AppLocalizations.of(context);
 
     return Dialog(
-      elevation: 20,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-      backgroundColor: Colors.white,
-      shadowColor: Colors.black.withOpacity(.25),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _MenuRow(
-                icon: Icons.person_outline,
-                label: t?.profileSettings ?? 'Profile Settings',
-                onTap: () {
-                  Navigator.pop(context); // close dialog
-                  onSelect(NavKey.profileSettings);
-                },
-              ),
+        elevation: 20,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        backgroundColor: Colors.white,
+        shadowColor: Colors.black.withOpacity(.25),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _MenuRow(
+                  icon: Icons.person_outline,
+                  label: t?.profileSettings ?? 'Profile Settings',
+                  onTap: () {
+                    Navigator.pop(context); // close dialog
+                    onSelect(NavKey.profileSettings);
+                  },
+                ),
 
-              const _DividerLine(),
+                const _DividerLine(),
 
-              _MenuRow(
-                icon: Icons.picture_as_pdf_outlined,
-                label: t?.printPDF ?? 'Print PDF',
-                onTap: () {
-                  Navigator.pop(context);
-                  onSelect(NavKey.printPdf);
-                },
-              ),
-              _MenuRow(
-                icon: Icons.article_outlined,
-                label: t?.adminNews ?? 'Admin News',
-                onTap: () {
-                  Navigator.pop(context);
-                  onSelect(NavKey.adminNews);
-                },
-              ),
-              _MenuRow(
-                icon: Icons.translate_outlined,
-                label: t?.language ?? 'Language',
-                onTap: () {
-                  Navigator.pop(context);
-                  onSelect(NavKey.language);
-                },
-              ),
+                _MenuRow(
+                  icon: Icons.picture_as_pdf_outlined,
+                  label: t?.printPDF ?? 'Print PDF',
+                  onTap: () {
+                    Navigator.pop(context);
+                    onSelect(NavKey.printPdf);
+                  },
+                ),
+                _MenuRow(
+                  icon: Icons.article_outlined,
+                  label: t?.adminNews ?? 'Admin News',
+                  onTap: () {
+                    Navigator.pop(context);
+                    onSelect(NavKey.adminNews);
+                  },
+                ),
+                _MenuRow(
+                  icon: Icons.translate_outlined,
+                  label: t?.language ?? 'Language',
+                  onTap: () {
+                    Navigator.pop(context);
+                    onSelect(NavKey.language);
+                  },
+                ),
 
-              const _DividerLine(),
-              _MenuRow(
-                icon: Icons.support_agent_outlined,
-                label: t?.askForSupport ?? 'Ask for Support',
-                onTap: () {
-                  Navigator.pop(context);
-                  onSelect(NavKey.askadmin);
-                },
-              ),
-              InkWell(
-                onTap: () async {
-                  final bool? confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (BuildContext context2) {
-                      return AlertDialog(
-                        title: Text(t?.logout ?? 'Logout'),
-                        content: Text(t?.confirmLogout ?? 'Are you sure you want to log out?'),
-                        actions: <Widget>[
-                          TextButton(
-                            onPressed: () => Navigator.of(context2).pop(false),
-                            child: Text(t?.cancel ?? 'Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context2).pop(true),
-                            child: Text(t?.logout ?? 'Logout'),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                  if (confirm == true) {
-                    try {
-                      await ApiClient().logout();
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                              (route) => false,
+                const _DividerLine(),
+                _MenuRow(
+                  icon: Icons.support_agent_outlined,
+                  label: t?.askForSupport ?? 'Ask for Support',
+                  onTap: () {
+                    Navigator.pop(context);
+                    onSelect(NavKey.askadmin);
+                  },
+                ),
+                InkWell(
+                  onTap: () async {
+                    final bool? confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (BuildContext context2) {
+                        return AlertDialog(
+                          title: Text(t?.logout ?? 'Logout'),
+                          content: Text(t?.confirmLogout ?? 'Are you sure you want to log out?'),
+                          actions: <Widget>[
+                            TextButton(
+                              onPressed: () => Navigator.of(context2).pop(false),
+                              child: Text(t?.cancel ?? 'Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context2).pop(true),
+                              child: Text(t?.logout ?? 'Logout'),
+                            ),
+                          ],
                         );
+                      },
+                    );
+                    if (confirm == true) {
+                      try {
+                        await VendorApiClient().logout();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                                (route) => false,
+                          );
 
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(t?.logoutSuccessful ?? 'Logged out successfully'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        });
+                      } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(t?.logoutSuccessful ?? 'Logged out successfully'),
-                            backgroundColor: Colors.green,
+                            content: Text('${t?.logoutFailed ?? 'Logout failed'}: $e'),
+                            backgroundColor: Colors.red,
                           ),
                         );
-                      });
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${t?.logoutFailed ?? 'Logout failed'}: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                      }
                     }
-                  }
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-                  child: Text(
-                    t?.logout ?? 'Logout',
-                    style: const TextStyle(
-                      color: kRedLogout,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+                    child: Text(
+                      t?.logout ?? 'Logout',
+                      style: const TextStyle(
+                        color: kRedLogout,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
     );
   }
 }

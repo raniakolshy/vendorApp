@@ -159,8 +159,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Future<void> _loadMagentoCategories() async {
     try {
-      final items = await ApiClient().getAllCategoriesFlat();
-      // pick first non-root category by default
+      final items = await VendorApiClient().getAllCategories();
       String? firstSelectableId;
       for (final c in items) {
         final level = (c['level'] as num?)?.toInt() ?? 0;
@@ -213,11 +212,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     try {
       final payload = _buildMagentoPayload(isDraft: isDraft);
-      await ApiClient().createProductAsAdmin(payload);
+      await VendorApiClient().createProductAsAdmin(payload);
 
       _snack(isDraft ? l10n.toast_draft_saved : l10n.toast_product_published);
     } on DioException catch (e) {
-      _snack(ApiClient().parseMagentoError(e), error: true);
+      _snack(VendorApiClient().parseMagentoError(e), error: true);
     } catch (e) {
       _snack(e.toString(), error: true);
     } finally {
@@ -227,7 +226,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   void _delete() {
     final l10n = AppLocalizations.of(context)!;
-    // If you add delete, use admin token via ApiClient as well.
+    // If you add delete, use admin token via VendorApiClient as well.
     _snack(l10n.toast_product_deleted);
   }
 
@@ -264,7 +263,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final bytes = _images[i];
       final name = _imageNames.elementAt(i);
       final b64 = base64Encode(bytes);
-      final mime = ApiClient().guessMimeFromName(name);
+      final mime = VendorApiClient().guessMimeFromName(name);
       mediaEntries.add({
         "id": i + 1,
         "position": i + 1,
@@ -1003,7 +1002,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
       _error = null;
     });
     try {
-      final items = await ApiClient().getProductsAdmin(pageSize: 1000);
+      final items = await VendorApiClient().getProductsAdmin(pageSize: 1000);
       setState(() {
         _allProducts = items;
       });

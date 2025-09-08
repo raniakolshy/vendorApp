@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -9,7 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dropzone/flutter_dropzone.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-
 import '../../services/api_client.dart';
 import '../common/description_markdown_field.dart';
 import 'View_profile.dart';
@@ -55,7 +53,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // State
   Uint8List? _logoBytes;
   Uint8List? _bannerBytes;
-  String? _logoUrl;   // if your backend returns a media path/url
+  String? _logoUrl;
   String? _bannerUrl;
 
   DropzoneViewController? _dzCtrl;
@@ -122,7 +120,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadFromMagento() async {
     setState(() => _loading = true);
     try {
-      final vp = await ApiClient().getVendorProfileMe();
+      final vp = await VendorApiClient().getVendorProfileMe();
       if (vp != null) {
         _customerId = vp.customerId;
         _companyName.text = vp.companyName ?? '';
@@ -271,7 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         bannerBase64: _bannerBytes != null ? 'data:image/*;base64,${base64Encode(_bannerBytes!)}' : null,
       );
 
-      await ApiClient().updateVendorProfileMe(vp);
+      await VendorApiClient().updateVendorProfileMe(vp as Map<String, dynamic>);
       _snack(AppLocalizations.of(context)!.toast_profile_saved);
     } catch (e) {
       _snack('Failed to save profile: $e', error: true);
@@ -645,7 +643,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       img = MemoryImage(_logoBytes!);
     } else if (_logoUrl != null && _logoUrl!.isNotEmpty) {
       final src = _logoUrl!;
-      final full = src.startsWith('http') ? src : '${ApiClient().mediaBaseUrlForVendor}/${src.startsWith('/') ? src.substring(1) : src}';
+      final full = src.startsWith('http') ? src : '${VendorApiClient().mediaBaseUrlForVendor}/${src.startsWith('/') ? src.substring(1) : src}';
       img = NetworkImage(full);
     }
 
@@ -719,7 +717,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       img = MemoryImage(_bannerBytes!);
     } else if (_bannerUrl != null && _bannerUrl!.isNotEmpty) {
       final src = _bannerUrl!;
-      final full = src.startsWith('http') ? src : '${ApiClient().mediaBaseUrlForVendor}/${src.startsWith('/') ? src.substring(1) : src}';
+      final full = src.startsWith('http') ? src : '${VendorApiClient().mediaBaseUrlForVendor}/${src.startsWith('/') ? src.substring(1) : src}';
       img = NetworkImage(full);
     }
 

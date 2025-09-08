@@ -101,7 +101,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
   bool _loadingMore = false;
   bool _isLoading = true;
   List<_Draft> _all = [];
-  final ApiClient _apiClient = ApiClient();
+  final VendorApiClient _VendorApiClient = VendorApiClient();
 
   @override
   void initState() {
@@ -130,7 +130,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
     setState(() => _isLoading = true);
     try {
       // Corrected call to not pass a page parameter
-      final products = await _apiClient.getDraftProducts();
+      final products = await _VendorApiClient.getDraftProducts();
       _all = products.map((product) => _Draft.fromMagentoProduct(product)).toList();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

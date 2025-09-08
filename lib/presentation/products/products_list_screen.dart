@@ -167,7 +167,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   int _shown = _pageSize;
   bool _loadingMore = false;
   bool _isLoading = true;
-  final ApiClient _apiClient = ApiClient();
+  final VendorApiClient _VendorApiClient = VendorApiClient();
   List<Product> _allProducts = [];
 
   @override
@@ -196,7 +196,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   Future<void> _loadProducts() async {
     setState(() => _isLoading = true);
     try {
-      final productsData = await _apiClient.getProducts();
+      final productsData = await _VendorApiClient.getProducts();
       _allProducts = productsData.map((p) => Product.fromMagentoProduct(p)).toList();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

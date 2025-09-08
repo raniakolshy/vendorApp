@@ -1,11 +1,8 @@
 import 'dart:async';
-
 import 'package:app_vendor/l10n/app_localizations.dart';
-import 'package:app_vendor/l10n/app_localizations_ar.dart';
-import 'package:app_vendor/l10n/app_localizations_en.dart';
 import 'package:flutter/material.dart';
-
 import '../../services/api_client.dart';
+import 'package:dio/dio.dart';
 
 class AdminNewsScreen extends StatefulWidget {
   const AdminNewsScreen({super.key});
@@ -30,27 +27,32 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
     final List<Map<String, dynamic>> aggregated = [];
 
     try {
-      final latestOrders = await ApiClient().getOrdersAdmin(
+      final List<Map<String, dynamic>> latestOrders = await VendorApiClient().getOrdersAdmin(
         pageSize: 5,
         currentPage: 1,
       );
       for (final o in latestOrders) {
         final id = (o['increment_id'] ?? o['entity_id'] ?? '').toString();
-        final total = (o['grand_total'] ?? o['base_grand_total'] ?? 0).toString();
+        final total = (o['grand_total'] ?? o['base_grand_total'] ?? 0).toStringAsFixed(2);
         final created = (o['created_at'] ?? '').toString();
         aggregated.add({
           'title': 'Order #$id',
-          'content': 'New order placed • Total: $total',
+          'content': 'New order placed • Total: AED $total',
           'time': _friendlyTime(created),
           'type': 'delivery',
         });
       }
+    } on DioException catch (e) {
+      _toastError(context, 'Orders: ${e.response?.data['message'] ?? e.message}');
     } catch (e) {
       _toastError(context, 'Orders: $e');
     }
 
     try {
-      final latestProducts = await ApiClient().getProductsAdmin(pageSize: 5);
+      final List<Map<String, dynamic>> latestProducts = await VendorApiClient().getProductsAdmin(
+        pageSize: 5,
+        currentPage: 1,
+      );
       for (final p in latestProducts) {
         final sku = (p['sku'] ?? '').toString();
         final name = (p['name'] ?? '').toString();
@@ -62,19 +64,23 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
           'type': 'feature',
         });
       }
+    } on DioException catch (e) {
+      _toastError(context, 'Products: ${e.response?.data['message'] ?? e.message}');
     } catch (e) {
       _toastError(context, 'Products: $e');
     }
 
     try {
-      final rp = await ApiClient().getProductReviewsAdmin(page: 1, pageSize: 5);
-      for (final r in rp.items) {
-        final title = (r.title ?? '').toString();
-        final created = (r.createdAt ?? '').toString();
-        final status = r.status;
+      final ReviewPage reviewPage = await VendorApiClient().getProductReviewsAdmin(
+        pageSize: 5,
+      );
+      for (final r in reviewPage.items) {
+        final title = r.title ?? '';
+        final created = ''; // created_at is not available in MagentoReview model
+        final status = r.status?.toString() ?? '';
         String statusTxt = 'Pending';
-        if (status == 1) statusTxt = 'Approved';
-        if (status == 3) statusTxt = 'Rejected';
+        if (status == '1') statusTxt = 'Approved';
+        if (status == '3') statusTxt = 'Rejected';
 
         aggregated.add({
           'title': title.isNotEmpty ? title : 'Product review',
@@ -83,6 +89,8 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
           'type': 'fix',
         });
       }
+    } on DioException catch (e) {
+      _toastError(context, 'Reviews: ${e.response?.data['message'] ?? e.message}');
     } catch (e) {
       _toastError(context, 'Reviews: $e');
     }
@@ -105,7 +113,6 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
-    // (your l10n keys still work; we feed plain strings that render as-is)
   }
 
   void _refreshNews() async {
@@ -276,9 +283,6 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                           itemCount: _newsItems.length,
                           itemBuilder: (context, index) {
                             final newsItem = _newsItems[index];
-                            // NOTE: We now pass plain strings already suitable for display.
-                            // The old loc.getString() helper will simply return the same text
-                            // if there is no matching key, preserving the UI.
                             return Dismissible(
                               key: Key('news_${newsItem['title']}_$index'),
                               direction: DismissDirection.endToStart,
@@ -376,68 +380,5 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
         ],
       ),
     );
-  }
-}
-
-extension LocalizationExtension on AppLocalizations {
-  String getString(String key) {
-    switch (key) {
-      case 'issueFixed':
-        return issueFixed;
-      case 'issueFixedContent':
-        return issueFixedContent;
-      case 'newFeature':
-        return newFeature;
-      case 'newFeatureContent':
-        return newFeatureContent;
-      case 'serverMaintenance':
-        return serverMaintenance;
-      case 'serverMaintenanceContent':
-        return serverMaintenanceContent;
-      case 'deliveryIssues':
-        return deliveryIssues;
-      case 'deliveryIssuesContent':
-        return deliveryIssuesContent;
-      case 'paymentUpdate':
-        return paymentUpdate;
-      case 'paymentUpdateContent':
-        return paymentUpdateContent;
-      case 'securityAlert':
-        return securityAlert;
-      case 'securityAlertContent':
-        return securityAlertContent;
-      case 'refreshed1':
-        return refreshed1;
-      case 'refreshed1Content':
-        return refreshed1Content;
-      case 'deliveryImproved':
-        return deliveryImproved;
-      case 'deliveryImprovedContent':
-        return deliveryImprovedContent;
-      case 'paymentGatewayUpdated':
-        return paymentGatewayUpdated;
-      case 'paymentGatewayUpdatedContent':
-        return paymentGatewayUpdatedContent;
-      case 'bugFixes':
-        return bugFixes;
-      case 'bugFixesContent':
-        return bugFixesContent;
-      case 'time2mAgo':
-        return time2mAgo;
-      case 'time10mAgo':
-        return time10mAgo;
-      case 'time1hAgo':
-        return time1hAgo;
-      case 'time3hAgo':
-        return time3hAgo;
-      case 'time5hAgo':
-        return time5hAgo;
-      case 'time1dAgo':
-        return time1dAgo;
-      case 'timeJustNow':
-        return timeJustNow;
-      default:
-        return key;
-    }
   }
 }

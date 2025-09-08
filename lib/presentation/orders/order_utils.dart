@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'order_model.dart';
+import 'package:intl/intl.dart';
 
 /// Keep this enum OUT of UI files to avoid circular imports.
 enum OrderStatus { delivered, processing, cancelled, onHold, closed, pending }
@@ -30,14 +32,12 @@ class OrderUtils {
   static String formatOrderDate(String dateString) {
     try {
       final date = DateTime.parse(dateString);
-      return '${date.day.toString().padLeft(2, '0')} / ${date.month.toString().padLeft(2, '0')} / ${date.year}';
+      return DateFormat('dd / MM / yyyy').format(date);
     } catch (_) {
       return dateString;
     }
   }
 
-  /// In case in future you load product payloads, this returns a thumbnail URL from the product map.
-  /// If you pass a String SKU by mistake, we just return the placeholder.
   static String getProductImageUrl(dynamic productData) {
     if (productData is Map<String, dynamic>) {
       final mediaGallery = productData['media_gallery_entries'] as List<dynamic>?;

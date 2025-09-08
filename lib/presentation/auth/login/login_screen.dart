@@ -82,17 +82,11 @@ class _LoginFormState extends State<LoginForm> {
       _showMessage("Please fix the errors and try again.", isError: true);
       return;
     }
-
-    if (!await checkConnectivity()) {
-      _showMessage("No internet connection.", isError: true);
-      return;
-    }
-
     setState(() => _isLoading = true);
     try {
-      await ApiClient().loginVendor(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+      await VendorApiClient().loginVendor(
+        _emailController.text.trim(),
+        _passwordController.text,
       );
 
       _showMessage("Login successful!");

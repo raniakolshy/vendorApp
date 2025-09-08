@@ -36,19 +36,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     try {
-      await ApiClient().requestPasswordReset(email: email);
+      // Use the singleton instance of VendorApiClient and the forgotPassword method.
+      await VendorApiClient().forgotPassword(email);
       _showSnackbar(AppLocalizations.of(context)?.mailSent ?? 'Reset email sent', isError: false);
-
     } catch (e) {
       _showSnackbar(e.toString().replaceFirst('Exception: ', ''), isError: true);
     }
+    // This navigation is outside the try-catch block, so it will always execute.
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => VerificationCodeScreen(email: _emailController.text.trim()),
       ),
     );
-
   }
 
   void _showSnackbar(String msg, {bool isError = true}) {

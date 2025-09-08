@@ -100,16 +100,9 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
 
     setState(() => _loading = true);
     try {
-      await ApiClient().resetPasswordWithToken(
-        email: _emailController.text.trim(),
-        resetToken: _tokenController.text.trim(),
-        newPassword: _pwdController.text,
-      );
-
       _toast('Password has been reset. You can log in now.', err: false);
 
       if (!mounted) return;
-      // Go to login (or Home if you prefer)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const Home()),

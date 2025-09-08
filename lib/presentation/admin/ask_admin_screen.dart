@@ -1,66 +1,86 @@
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-
 import '../../services/api_client.dart';
 import 'package:dio/dio.dart';
 
-class AskAdminScreen extends StatelessWidget {
+class AskAdminScreen extends StatefulWidget {
   const AskAdminScreen({super.key});
 
-  Future<void> _submitToMagento(BuildContext context, {
-    required String subject,
-    required String message,
-  }) async {
-    try {
-      final me = await ApiClient().getCustomerMe();
-      final name = '${(me?['firstname'] ?? '').toString()} ${(me?['lastname'] ?? '').toString()}'.trim();
-      final email = (me?['email'] ?? '').toString();
-      final Map<String, dynamic> body = {
-        'name': name.isNotEmpty ? name : 'App User',
-        'email': email.isNotEmpty ? email : 'no-reply@kolshy.ae',
-        'telephone': '',
-        'comment': '[${subject.trim()}]\n\n${message.trim()}',
-      };
+  @override
+  State<AskAdminScreen> createState() => _AskAdminScreenState();
+}
 
-      await ApiClient().dio.post(
-        'contact',
-        data: body,
-        options: Options(headers: {'Authorization': null}),
+class _AskAdminScreenState extends State<AskAdminScreen> {
+  final TextEditingController _subjectController = TextEditingController();
+  final TextEditingController _queryController = TextEditingController();
+  bool _isSending = false;
+
+  Future<void> _submitToMagento() async {
+    if (_subjectController.text.trim().isEmpty) {
+      _showSnackBar(AppLocalizations.of(context)!.enterSubject, Colors.red);
+      return;
+    }
+    if (_queryController.text.trim().isEmpty) {
+      _showSnackBar(AppLocalizations.of(context)!.enterQuery, Colors.red);
+      return;
+    }
+
+    setState(() {
+      _isSending = true;
+    });
+
+    try {
+      final VendorProfile me = await VendorApiClient().getVendorProfile();
+      // Use typed properties instead of map access
+      final name = '${me.companyName ?? ''}'.trim(); // Using company name since firstname/lastname aren't in VendorProfile
+      final email = ''; // Email is not available in VendorProfile model
+      final messageBody = '[${_subjectController.text.trim()}]\n\n${_queryController.text.trim()}';
+
+      await VendorApiClient().sendContactMessage(
+        name: name.isNotEmpty ? name : 'App User',
+        email: email.isNotEmpty ? email : 'no-reply@kolshy.ae',
+        telephone: '',
+        comment: messageBody,
       );
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.requestSent),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      _showSnackBar(AppLocalizations.of(context)!.requestSent, Colors.green);
+      _subjectController.clear();
+      _queryController.clear();
     } on DioException catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send: ${ApiClient().parseMagentoError(e)}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showSnackBar('Failed to send: ${e.response?.data['message'] ?? e.message}', Colors.red);
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showSnackBar('Failed to send: $e', Colors.red);
+    } finally {
+      setState(() {
+        _isSending = false;
+      });
     }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _subjectController.dispose();
+    _queryController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController subjectController = TextEditingController();
-    final TextEditingController queryController = TextEditingController();
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: Colors.grey[200],
@@ -76,7 +96,7 @@ class AskAdminScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              AppLocalizations.of(context)!.askQuestionTitle,
+              loc.askQuestionTitle,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -95,12 +115,12 @@ class AskAdminScreen extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        AppLocalizations.of(context)!.subject,
+                        loc.subject,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(width: 5),
                       Tooltip(
-                        message: AppLocalizations.of(context)!.subjectTooltip,
+                        message: loc.subjectTooltip,
                         child: Icon(
                           Icons.info_outline,
                           size: 16,
@@ -117,9 +137,9 @@ class AskAdminScreen extends StatelessWidget {
                       border: Border.all(color: Colors.grey),
                     ),
                     child: TextField(
-                      controller: subjectController,
+                      controller: _subjectController,
                       decoration: InputDecoration(
-                        hintText: AppLocalizations.of(context)!.inputHint,
+                        hintText: loc.inputHint,
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                       ),
@@ -127,7 +147,7 @@ class AskAdminScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    AppLocalizations.of(context)!.yourQuery,
+                    loc.yourQuery,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
@@ -138,12 +158,12 @@ class AskAdminScreen extends StatelessWidget {
                       border: Border.all(color: const Color(0xFFE5E5E5)),
                     ),
                     child: TextField(
-                      controller: queryController,
+                      controller: _queryController,
                       minLines: 10,
                       maxLines: null,
                       keyboardType: TextInputType.multiline,
                       decoration: InputDecoration(
-                        hintText: AppLocalizations.of(context)!.inputHint,
+                        hintText: loc.inputHint,
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.all(16),
                       ),
@@ -154,40 +174,19 @@ class AskAdminScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: () async {
-                        if (subjectController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(AppLocalizations.of(context)!.enterSubject),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-                        if (queryController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(AppLocalizations.of(context)!.enterQuery),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        await _submitToMagento(
-                          context,
-                          subject: subjectController.text,
-                          message: queryController.text,
-                        );
-                      },
+                      onPressed: _isSending ? null : _submitToMagento,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFDD1E1E),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: Text(
-                        AppLocalizations.of(context)!.send,
+                      child: _isSending
+                          ? const CircularProgressIndicator(
+                        color: Colors.white,
+                      )
+                          : Text(
+                        loc.send,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,

@@ -3,9 +3,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
+// Use ONE import; keep it namespaced so there are no clashes.
 import 'package:app_vendor/services/api_client.dart' as api;
-import '../../services/api_client.dart';
-import '../../services/api_client.dart';
 
 class VendorProfileScreen extends StatefulWidget {
   const VendorProfileScreen({super.key});
@@ -28,71 +28,40 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
   Future<void> _loadAll() async {
     setState(() => _loading = true);
     try {
-      final p = await ApiClient().getVendorProfileMe();
-      if (p != null) {
-        _profile = p;
-        final items = await ApiClient().getProductsByVendor(vendorId: p.customerId, pageSize: 50);
+      final p = await api.VendorApiClient().getVendorProfileMe(); // returns VendorProfile
+      _profile = p;
+
+      // customerId is int? — only load products if it’s non-null
+      if (p.customerId != null) {
+        final raw = await api.VendorApiClient()
+            .getProductsByVendor(vendorId: p.customerId!, pageSize: 50); // <-- non-null now
+
+        // Convert List<dynamic> -> List<Map<String, dynamic>>
+        final items = raw
+            .whereType<Map>() // drop non-maps safely
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+
         _products = items;
+      } else {
+        _products = [];
       }
     } catch (e) {
-      // You can show a snackbar if you want
+      // optionally show a snackbar
+      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  // Helper for social icon
-  IconData _getSocialMediaIcon(String id) {
-    switch (id) {
-      case 'twitter':
-        return FontAwesomeIcons.twitter;
-      case 'facebook':
-        return FontAwesomeIcons.facebook;
-      case 'instagram':
-        return FontAwesomeIcons.instagram;
-      case 'youtube':
-        return FontAwesomeIcons.youtube;
-      case 'pinterest':
-        return FontAwesomeIcons.pinterest;
-      case 'tiktok':
-        return FontAwesomeIcons.tiktok;
-      default:
-        return Icons.link;
-    }
-  }
-
-  // ---------- Section Card ----------
-  Widget _sectionCard({required String title, required List<Widget> children}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 20),
-          ...children,
-        ],
-      ),
-    );
-  }
-
+  // ---------- UI helpers ----------
   ImageProvider? _bannerProvider() {
     if (_profile == null) return null;
     if (_profile!.bannerUrl?.isNotEmpty == true) {
       final rel = _profile!.bannerUrl!;
-      final full = rel.startsWith('http') ? rel : '${ApiClient().mediaBaseUrlForVendor}/${rel.startsWith('/') ? rel.substring(1) : rel}';
+      final full = rel.startsWith('http')
+          ? rel
+          : '${api.VendorApiClient().mediaBaseUrlForVendor}/${rel.startsWith('/') ? rel.substring(1) : rel}';
       return NetworkImage(full);
     }
     if (_profile!.bannerBase64?.isNotEmpty == true) {
@@ -108,7 +77,9 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
     if (_profile == null) return null;
     if (_profile!.logoUrl?.isNotEmpty == true) {
       final rel = _profile!.logoUrl!;
-      final full = rel.startsWith('http') ? rel : '${ApiClient().mediaBaseUrlForVendor}/${rel.startsWith('/') ? rel.substring(1) : rel}';
+      final full = rel.startsWith('http')
+          ? rel
+          : '${api.VendorApiClient().mediaBaseUrlForVendor}/${rel.startsWith('/') ? rel.substring(1) : rel}';
       return NetworkImage(full);
     }
     if (_profile!.logoBase64?.isNotEmpty == true) {
@@ -120,6 +91,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
     return null;
   }
 
+  // ---------- Build ----------
   @override
   Widget build(BuildContext context) {
     final banner = _bannerProvider();
@@ -129,7 +101,12 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
       backgroundColor: const Color(0xFFF7F7F7),
       body: SafeArea(
         child: _loading
-            ? const Center(child: Padding(padding: EdgeInsets.only(top: 60), child: CircularProgressIndicator()))
+            ? const Center(
+          child: Padding(
+            padding: EdgeInsets.only(top: 60),
+            child: CircularProgressIndicator(),
+          ),
+        )
             : Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 900),
@@ -138,7 +115,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Banner Image
+                  // Banner
                   Container(
                     height: 200,
                     decoration: BoxDecoration(
@@ -151,7 +128,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Profile Header
+                  // Header
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -172,7 +149,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                             : null,
                       ),
                       const SizedBox(width: 16),
-                      // Vendor Info
+                      // Vendor info
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,16 +170,22 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            // Social Media Links
+                            // Socials
                             Wrap(
                               spacing: 8.0,
                               children: [
-                                if ((_profile?.twitter?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.twitter, color: Colors.black87)),
-                                if ((_profile?.instagram?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.instagram, color: Colors.black87)),
-                                if ((_profile?.youtube?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.youtube, color: Colors.black87)),
-                                if ((_profile?.facebook?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.facebook, color: Colors.black87)),
-                                if ((_profile?.pinterest?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.pinterest, color: Colors.black87)),
-                                if ((_profile?.tiktok?.isNotEmpty ?? false)) IconButton(onPressed: () {}, icon: const Icon(FontAwesomeIcons.tiktok, color: Colors.black87)),
+                                if ((_profile?.twitter?.isNotEmpty ?? false))
+                                  const Icon(FontAwesomeIcons.twitter, color: Colors.black87),
+                                if ((_profile?.instagram?.isNotEmpty ?? false))
+                                  const Icon(FontAwesomeIcons.instagram, color: Colors.black87),
+                                if ((_profile?.youtube?.isNotEmpty ?? false))
+                                  const Icon(FontAwesomeIcons.youtube, color: Colors.black87),
+                                if ((_profile?.facebook?.isNotEmpty ?? false))
+                                  const Icon(FontAwesomeIcons.facebook, color: Colors.black87),
+                                if ((_profile?.pinterest?.isNotEmpty ?? false))
+                                  const Icon(FontAwesomeIcons.pinterest, color: Colors.black87),
+                                if ((_profile?.tiktok?.isNotEmpty ?? false))
+                                  const Icon(FontAwesomeIcons.tiktok, color: Colors.black87),
                               ],
                             ),
                           ],
@@ -212,12 +195,12 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Bio Section
+                  // Bio
                   _sectionCard(title: 'About Us', children: [
                     Text(_profile?.bio?.isNotEmpty == true ? _profile!.bio! : '—'),
                   ]),
 
-                  // Products Section
+                  // Products
                   _sectionCard(title: 'Our Products', children: [
                     if (_products.isEmpty)
                       const Padding(
@@ -237,7 +220,20 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                         itemCount: _products.length,
                         itemBuilder: (context, index) {
                           final product = _products[index];
-                          final imageUrl = ApiClient().productImageUrl(product as String?);
+
+                          // Try to extract an image path from media_gallery_entries or image attr
+                          String imagePath = '';
+                          final mg = product['media_gallery_entries'];
+                          if (mg is List && mg.isNotEmpty) {
+                            final first = mg.first;
+                            if (first is Map && first['file'] != null) {
+                              imagePath = first['file'].toString();
+                            }
+                          } else if (product['image'] != null) {
+                            imagePath = product['image'].toString();
+                          }
+
+                          final imageUrl = api.VendorApiClient().productImageUrl(imagePath);
                           final price = (product['price'] is num)
                               ? (product['price'] as num).toDouble()
                               : double.tryParse('${product['price']}');
@@ -254,7 +250,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                       ),
                   ]),
 
-                  // Back to Edit Profile Button
+                  // Back
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     child: ElevatedButton.icon(
@@ -279,6 +275,33 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ---------- UI helpers ----------
+  Widget _sectionCard({required String title, required List<Widget> children}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 20),
+          ...children,
+        ],
       ),
     );
   }

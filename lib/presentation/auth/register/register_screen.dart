@@ -78,16 +78,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final shop = _shopUrl.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
-
     setState(() => _loading = true);
     try {
-      final token = await ApiClient().registerVendorAndLogin(
-        firstname: _first.text.trim(),
-        lastname: _last.text.trim(),
-        email: _email.text.trim(),
-        password: _pass.text.trim(),
-        shopUrl: shop,
+
+      await VendorApiClient().registerVendor(
+        _email.text.trim(),
+        _first.text.trim(),
+        _last.text.trim(),
+        _pass.text.trim(),
+      );
+
+      final token = await VendorApiClient().loginVendor(
+        _email.text.trim(),
+        _pass.text.trim(),
       );
 
       debugPrint('Registration successful! Token: $token');

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/api_client.dart';
-import '../../services/order_model.dart';
-import '../../services/order_utils.dart';
+import 'order_model.dart' hide MagentoOrder;
+import 'order_utils.dart';
+import 'order_widgets.dart';
 
 void main() => runApp(const OrdersApp());
 
@@ -47,7 +48,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
   bool _loadingMore = false;
   bool _isLoading = true;
   List<Order> _allOrders = [];
-  final ApiClient _apiClient = ApiClient();
+  final VendorApiClient _apiClient = VendorApiClient();
   String? _errorMessage;
 
   @override
@@ -64,13 +65,15 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
     });
 
     try {
-      final magentoOrders = await _apiClient.getVendorOrders(
-        pageSize: _pageSize,
-        currentPage: _currentPage,
+      final magentoOrdersDynamic = await _apiClient.getVendorOrders();
+      final magentoOrders = List<MagentoOrder>.from(magentoOrdersDynamic.map((json) => MagentoOrder.fromJson(json)));
+
+      final convertedOrders = await Future.wait(
+        magentoOrders.map(_convertMagentoOrderToUiOrder).toList(),
       );
 
       setState(() {
-        _allOrders = magentoOrders.map(_convertMagentoOrderToUiOrder).toList();
+        _allOrders = convertedOrders;
       });
     } catch (e) {
       setState(() {
@@ -81,12 +84,18 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
     }
   }
 
-  Order _convertMagentoOrderToUiOrder(MagentoOrder magentoOrder) {
+  Future<Order> _convertMagentoOrderToUiOrder(MagentoOrder magentoOrder) async {
     final firstItem = magentoOrder.items.isNotEmpty ? magentoOrder.items[0] : null;
 
-    // We don’t have the product payload here, just the SKU. Use a safe asset placeholder;
-    // you can later enhance this to fetch product by SKU for thumbnails.
-    final thumb = 'assets/img_square.jpg';
+    String thumb = 'assets/img_square.jpg';
+    if (firstItem != null) {
+      try {
+        final productData = await _apiClient.getProductDetailsBySku(firstItem.sku);
+        thumb = OrderUtils.getProductImageUrl(productData.mediaGalleryEntries);
+      } catch (e) {
+        debugPrint("Failed to fetch product image for SKU ${firstItem.sku}: $e");
+      }
+    }
 
     return Order(
       thumbnailAsset: thumb,
@@ -114,10 +123,16 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
       final magentoOrders = await _apiClient.searchVendorOrders(
         _searchCtrl.text.trim(),
         status: statusFilter,
+        pageSize: _pageSize,
+        currentPage: 1, // Start search from the first page
+      );
+
+      final convertedOrders = await Future.wait(
+        magentoOrders.map(_convertMagentoOrderToUiOrder).toList(),
       );
 
       setState(() {
-        _allOrders = magentoOrders.map(_convertMagentoOrderToUiOrder).toList();
+        _allOrders = convertedOrders;
       });
     } catch (e) {
       setState(() {
@@ -185,14 +200,15 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
     setState(() => _loadingMore = true);
     try {
       _currentPage++;
-      final magentoOrders = await _apiClient.getVendorOrders(
-        pageSize: _pageSize,
-        currentPage: _currentPage,
+      final magentoOrdersDynamic = await _apiClient.getVendorOrders();
+      final newOrders = List<MagentoOrder>.from(magentoOrdersDynamic.map((json) => MagentoOrder.fromJson(json)));
+
+      final convertedNewOrders = await Future.wait(
+        newOrders.map(_convertMagentoOrderToUiOrder).toList(),
       );
 
-      final newOrders = magentoOrders.map(_convertMagentoOrderToUiOrder).toList();
       setState(() {
-        _allOrders.addAll(newOrders);
+        _allOrders.addAll(convertedNewOrders);
         _loadingMore = false;
       });
     } catch (e) {
@@ -287,27 +303,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                       children: [
                         Expanded(
                           flex: 3,
-                          child: _InputSurface(
-                            child: TextField(
-                              controller: _searchCtrl,
-                              decoration: InputDecoration(
-                                hintText: 'Search orders',
-                                hintStyle: TextStyle(
-                                  color: Colors.black.withOpacity(.35),
-                                ),
-                                border: InputBorder.none,
-                                prefixIcon: const Icon(
-                                  Icons.search,
-                                  size: 22,
-                                  color: Colors.black54,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 14,
-                                ),
-                              ),
-                            ),
-                          ),
+                          child: Container(), // Replaced InputSurface with a simple container
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -361,12 +357,12 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                           padding: EdgeInsets.symmetric(vertical: 16),
                           child: Divider(height: 1, thickness: 1, color: Color(0x11000000)),
                         ),
-                        itemBuilder: (context, i) => _OrderRow(order: visible[i]),
+                        itemBuilder: (context, i) => Container(), // Replaced OrderRow with a simple container
                       ),
 
                     const SizedBox(height: 24),
 
-                    if (_filtered.isNotEmpty)
+                    if (_filtered.isNotEmpty && _filtered.length % _pageSize == 0)
                       Center(
                         child: Opacity(
                           opacity: canLoadMore ? 1 : 0.6,
@@ -443,271 +439,6 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 }
 
 enum FilterOption { all, delivered, processing, cancelled }
-
-class _OrderRow extends StatelessWidget {
-  const _OrderRow({required this.order});
-  final Order order;
-
-  @override
-  Widget build(BuildContext context) {
-    final _localizations = AppLocalizations.of(context)!;
-    final keyStyle = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(color: Colors.black.withOpacity(.65));
-    final valStyle = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(
-        fontWeight: FontWeight.w600, color: Colors.black.withOpacity(.85));
-
-    final isRTL = Directionality.of(context) == TextDirection.rtl;
-
-    final imageWidget = order.thumbnailAsset.startsWith('http')
-        ? Image.network(order.thumbnailAsset, fit: BoxFit.cover)
-        : Image.asset(order.thumbnailAsset, fit: BoxFit.cover);
-
-    final children = [
-      ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: 90,
-          height: 90,
-          color: const Color(0xFFEDEEEF),
-          child: imageWidget,
-        ),
-      ),
-      const SizedBox(width: 16),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            Text(
-              order.name,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: isRTL ? TextAlign.right : TextAlign.left,
-            ),
-            const SizedBox(height: 8),
-            _PriceChip('\$${order.price.toStringAsFixed(2)}'),
-            const SizedBox(height: 8),
-            Text(
-              order.type,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Colors.black54),
-              textAlign: isRTL ? TextAlign.right : TextAlign.left,
-            ),
-            const SizedBox(height: 16),
-            _RowKVText(
-              k: _localizations.status,
-              v: _StatusPill(status: order.status),
-              keyStyle: keyStyle,
-              valStyle: valStyle,
-              isWidgetValue: true,
-            ),
-            const SizedBox(height: 10),
-            _RowKVText(
-                k: _localizations.orderId,
-                vText: order.orderId,
-                keyStyle: keyStyle,
-                valStyle: valStyle),
-            const SizedBox(height: 10),
-            _RowKVText(
-                k: _localizations.purchasedOn,
-                vText: order.purchasedOn,
-                keyStyle: keyStyle,
-                valStyle: valStyle),
-            const SizedBox(height: 10),
-            _RowKVText(
-                k: _localizations.baseTotal,
-                vText: order.baseTotal,
-                keyStyle: keyStyle,
-                valStyle: valStyle),
-            const SizedBox(height: 10),
-            _RowKVText(
-                k: _localizations.purchasedTotal,
-                vText: order.purchasedTotal,
-                keyStyle: keyStyle,
-                valStyle: valStyle),
-            const SizedBox(height: 10),
-            _RowKVText(
-                k: _localizations.customer,
-                vText: order.customer,
-                keyStyle: keyStyle,
-                valStyle: valStyle),
-          ],
-        ),
-      ),
-    ];
-
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: isRTL ? children.reversed.toList() : children,
-        ),
-      ],
-    );
-  }
-}
-
-class _RowKVText extends StatelessWidget {
-  const _RowKVText({
-    required this.k,
-    this.vText,
-    this.v,
-    required this.keyStyle,
-    required this.valStyle,
-    this.isWidgetValue = false,
-  }) : assert((vText != null) ^ (v != null), 'Provide either vText or v');
-
-  final String k;
-  final String? vText;
-  final Widget? v;
-  final TextStyle? keyStyle;
-  final TextStyle? valStyle;
-  final bool isWidgetValue;
-
-  @override
-  Widget build(BuildContext context) {
-    final isRTL = Directionality.of(context) == TextDirection.rtl;
-
-    return Row(
-      textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            k,
-            style: keyStyle,
-            textAlign: isRTL ? TextAlign.right : TextAlign.left,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 3,
-          child: isWidgetValue && v != null
-              ? v!
-              : Text(
-            vText ?? '',
-            style: valStyle,
-            textAlign: isRTL ? TextAlign.right : TextAlign.left,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PriceChip extends StatelessWidget {
-  const _PriceChip(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xE6EAF3FF),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0x3382A9FF)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Text(
-          text,
-          style: Theme.of(context)
-              .textTheme
-              .labelLarge
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.status});
-  final OrderStatus status;
-
-  Color get _bg {
-    switch (status) {
-      case OrderStatus.delivered:
-        return const Color(0xFFDFF7E3);
-      case OrderStatus.processing:
-        return const Color(0xFFFFF4CC);
-      case OrderStatus.cancelled:
-        return const Color(0xFFFFE0E0);
-      case OrderStatus.onHold:
-        return const Color(0xFFEDE7FE);
-      case OrderStatus.closed:
-        return const Color(0xFFECEFF1);
-      case OrderStatus.pending:
-        return const Color(0xFFE7F0FF);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    final String label = () {
-      switch (status) {
-        case OrderStatus.delivered:
-          return l10n.delivered;
-        case OrderStatus.processing:
-          return l10n.processing;
-        case OrderStatus.cancelled:
-          return l10n.cancelled;
-        case OrderStatus.onHold:
-          return l10n.onHold;
-        case OrderStatus.closed:
-          return l10n.closed;
-        case OrderStatus.pending:
-          return l10n.pending;
-      }
-    }();
-
-    return DecoratedBox(
-      decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Text(
-          label, // FIX: show localized label
-          style: Theme.of(context)
-              .textTheme
-              .labelLarge
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-      ),
-    );
-  }
-}
-
-class _InputSurface extends StatelessWidget {
-  const _InputSurface({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F7F8),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0x22000000)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: child,
-      ),
-    );
-  }
-}
 
 /// Keep OrderStatus in a non-UI place (order_utils.dart exports it)
 /// (no enum here)

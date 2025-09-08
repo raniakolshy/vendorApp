@@ -1,9 +1,6 @@
 // lib/presentation/reviews/reviews_screen.dart
-
-import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-
-import '../../services/api_client.dart';
+import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:app_vendor/services/api_client.dart' as api;
 
 class ReviewsScreen extends StatefulWidget {
@@ -14,7 +11,6 @@ class ReviewsScreen extends StatefulWidget {
   });
 
   final String adminToken;
-
   final int pageSize;
 
   @override
@@ -34,11 +30,9 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   bool _loading = false;
 
   final List<Review> _allReviews = [];
-
   final Map<String, _ProductLite> _productCache = {};
 
-  String get _mediaBase =>
-      ApiClient().mediaBaseUrlForCatalog;
+  String get _mediaBase => api.VendorApiClient().mediaBaseUrlForCatalog;
 
   @override
   void initState() {
@@ -62,7 +56,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
 
   Future<void> _refreshFromServer() async {
     setState(() {
-      _loading = true;
+      _loading = false; // allow fetchNextPage() to run
       _page = 1;
       _totalCount = 0;
       _allReviews.clear();
@@ -78,21 +72,23 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
       final l10n = AppLocalizations.of(context)!;
       final int? statusEq = _statusToMagento(_filter, l10n);
 
-      final ReviewPage pageData = await ApiClient().getProductReviewsAdmin(
+      final api.ReviewPage pageData =
+      await api.VendorApiClient().getProductReviewsAdmin(
         page: _page,
         pageSize: widget.pageSize,
-        statusEq: statusEq, // null => all
+        statusEq: statusEq,
       );
 
       _totalCount = pageData.totalCount;
-      final List<MagentoReview> items = pageData.items;
+      final List<api.MagentoReview> items = pageData.items;
 
       for (final r in items) {
         final String sku = _extractSkuFromReview(r) ?? '';
 
         _ProductLite? p = _productCache[sku];
         if (p == null && sku.isNotEmpty) {
-          final Map<String, dynamic> pj = await api.ApiClient().getProductLiteBySku(sku: sku);
+          final Map<String, dynamic> pj =
+          await api.VendorApiClient().getProductLiteBySku(sku: sku);
           p = _ProductLite.fromJson(pj);
           _productCache[sku] = p;
         }
@@ -101,23 +97,26 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
       }
       _page += 1;
 
-      _shown = _shown.clamp(0, _filtered.length);
+      _shown = (_shown.clamp(0, _filtered.length)) as int;
       if (_shown == 0 && _filtered.isNotEmpty) {
         _shown = _pageSizeClient;
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${AppLocalizations.of(context)!.failedToExport} $e'),
-        backgroundColor: Colors.red,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+          Text('${AppLocalizations.of(context)!.failedToExport} $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   String? _extractSkuFromReview(dynamic r) {
-    if (r is MagentoReview) {
+    if (r is api.MagentoReview) {
       if ((r.productSku ?? '').isNotEmpty) return r.productSku!;
     }
     try {
@@ -132,7 +131,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
 
   Review _mapMagentoToReview(dynamic r, _ProductLite? p) {
     int? statusCode;
-    if (r is MagentoReview) {
+    if (r is api.MagentoReview) {
       statusCode = r.status;
     } else if (r is Map && r['status_id'] is num) {
       statusCode = (r['status_id'] as num).toInt();
@@ -142,7 +141,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
     int votesCount = 0;
 
     List ratingsList = const [];
-    if (r is MagentoReview) {
+    if (r is api.MagentoReview) {
       ratingsList = r.ratings ?? const [];
     } else if (r is Map<String, dynamic>) {
       if (r['ratings'] is List) {
@@ -159,10 +158,14 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
             : (v is Map && v['rating_code'] != null)
             ? v['rating_code'].toString().toLowerCase()
             : '';
-        final percent =
-        (v is Map && v['percent'] is num) ? (v['percent'] as num).toDouble() : null;
-        final val = (v is Map && v['value'] is num) ? (v['value'] as num).toDouble() : null;
-        final double? stars = percent != null ? (percent / 20.0) : (val != null ? val : null);
+        final percent = (v is Map && v['percent'] is num)
+            ? (v['percent'] as num).toDouble()
+            : null;
+        final val = (v is Map && v['value'] is num)
+            ? (v['value'] as num).toDouble()
+            : null;
+        final double? stars =
+        percent != null ? (percent / 20.0) : (val != null ? val : null);
         if (name.contains('price')) price = stars;
         if (name.contains('value')) value = stars;
         if (name.contains('quality')) quality = stars;
@@ -173,7 +176,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
         if (value != null) value!,
         if (quality != null) quality!,
       ];
-      final avg = all.isNotEmpty ? (all.reduce((a, b) => a + b) / all.length) : 0.0;
+      final avg =
+      all.isNotEmpty ? (all.reduce((a, b) => a + b) / all.length) : 0.0;
       price ??= avg;
       value ??= avg;
       quality ??= avg;
@@ -181,7 +185,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
 
     String title = '';
     String detail = '';
-    if (r is MagentoReview) {
+    if (r is api.MagentoReview) {
       title = (r.title ?? '').toString();
       detail = (r.detail ?? '').toString();
     } else if (r is Map<String, dynamic>) {
@@ -189,16 +193,15 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
       detail = (r['detail'] ?? '').toString();
     }
 
-    // status mapping
     final st = _statusFromMagento(statusCode);
 
-    // image url
     String productImagePath = p?.image ?? '';
     if (productImagePath.startsWith('/')) {
       productImagePath = productImagePath.substring(1);
     }
-    final imageUrl =
-    (_mediaBase.isNotEmpty && productImagePath.isNotEmpty) ? '$_mediaBase/$productImagePath' : '';
+    final imageUrl = (_mediaBase.isNotEmpty && productImagePath.isNotEmpty)
+        ? '$_mediaBase/$productImagePath'
+        : '';
 
     return Review(
       productImage: imageUrl.isEmpty ? 'assets/img_square.jpg' : imageUrl,
@@ -214,10 +217,11 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
     );
   }
 
-  // ------ filters/search (client side) ------
+  // client-side filter
   List<Review> get _filtered {
     final q = _searchCtrl.text.trim().toLowerCase();
-    final all = _allReviews.where((r) => r.productName.toLowerCase().contains(q));
+    final all =
+    _allReviews.where((r) => r.productName.toLowerCase().contains(q));
     return all.toList();
   }
 
@@ -235,7 +239,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   }
 
   void _loadMoreClient() {
-    setState(() => _shown = (_shown + _pageSizeClient).clamp(0, _filtered.length));
+    _shown = (_shown + _pageSizeClient).clamp(0, _filtered.length) as int;
+    setState(() {});
   }
 
   Future<void> _loadMoreServer() async {
@@ -246,7 +251,6 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
     }
   }
 
-  // ------- helpers for status mapping -------
   ReviewStatus _statusFromMagento(int? code) {
     switch (code) {
       case 1:
@@ -271,7 +275,6 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final visible = _filtered.take(_shown).toList();
-    final canLoadMoreClient = _shown < _filtered.length;
     final canLoadMoreServer = _allReviews.length < _totalCount;
 
     return Scaffold(
@@ -304,51 +307,54 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                           ?.copyWith(fontWeight: FontWeight.w800, fontSize: 22),
                     ),
                     const SizedBox(height: 16),
-
                     _InputSurface(
                       child: TextField(
                         controller: _searchCtrl,
                         decoration: InputDecoration(
                           hintText: l10n.searchReviews,
-                          hintStyle: TextStyle(color: Colors.black.withOpacity(.35)),
+                          hintStyle:
+                          TextStyle(color: Colors.black.withOpacity(.35)),
                           border: InputBorder.none,
-                          prefixIcon: const Icon(Icons.search, size: 22, color: Colors.black54),
-                          contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+                          prefixIcon: const Icon(Icons.search,
+                              size: 22, color: Colors.black54),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 14),
                         ),
                       ),
                     ),
                     const SizedBox(height: 12),
-
                     DropdownButtonFormField<String>(
                       value: _filter,
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Colors.white,
-                        contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black54),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                          color: Colors.black54),
                       dropdownColor: Colors.white,
                       elevation: 8,
                       borderRadius: BorderRadius.circular(12),
                       isExpanded: true,
-                      style: const TextStyle(color: Colors.black, fontSize: 16),
+                      style:
+                      const TextStyle(color: Colors.black, fontSize: 16),
                       items: [
                         l10n.allReviews,
                         l10n.approved,
                         l10n.pending,
                         l10n.rejected,
-                      ].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+                      ]
+                          .map((v) =>
+                          DropdownMenuItem(value: v, child: Text(v)))
+                          .toList(),
                       onChanged: _onFilterChanged,
                     ),
-
                     const SizedBox(height: 18),
-
                     if (_loading && _allReviews.isEmpty)
                       const Center(
                         child: Padding(
@@ -361,15 +367,14 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                         physics: const NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
                         itemCount: visible.length,
-                        itemBuilder: (context, i) => _ReviewRow(review: visible[i]),
+                        itemBuilder: (context, i) =>
+                            _ReviewRow(review: visible[i]),
                       ),
-
                     const SizedBox(height: 22),
-
                     if (_filtered.isNotEmpty)
                       Center(
                         child: Opacity(
-                          opacity: (canLoadMoreClient || canLoadMoreServer || _loading) ? 1 : 0.6,
+                          opacity: (canLoadMoreServer || _loading) ? 1 : .6,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(28),
                             onTap: _loading ? null : _loadMoreServer,
@@ -377,7 +382,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(28),
-                                border: Border.all(color: const Color(0x22000000)),
+                                border:
+                                Border.all(color: const Color(0x22000000)),
                                 boxShadow: const [
                                   BoxShadow(
                                     color: Color(0x0C000000),
@@ -387,7 +393,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                 ],
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 18, vertical: 12),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -395,7 +402,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                       const SizedBox(
                                         width: 18,
                                         height: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
                                       )
                                     else
                                       Image.asset('assets/icons/loading.png',
@@ -404,7 +412,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                     Text(
                                       l10n.loadMore,
                                       style: const TextStyle(
-                                          fontSize: 16, fontWeight: FontWeight.w600),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600),
                                     ),
                                   ],
                                 ),
@@ -413,7 +422,6 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                           ),
                         ),
                       ),
-
                     if (!_loading && _filtered.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
@@ -435,8 +443,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   }
 }
 
-// UI widgets below are unchanged
-
+// --- small UI pieces ---
 class _ReviewRow extends StatelessWidget {
   const _ReviewRow({required this.review});
   final Review review;
@@ -445,8 +452,10 @@ class _ReviewRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final image = review.productImage.startsWith('http')
-        ? Image.network(review.productImage, width: 86, height: 86, fit: BoxFit.cover)
-        : Image.asset(review.productImage, width: 86, height: 86, fit: BoxFit.cover);
+        ? Image.network(review.productImage,
+        width: 86, height: 86, fit: BoxFit.cover)
+        : Image.asset(review.productImage,
+        width: 86, height: 86, fit: BoxFit.cover);
 
     return Column(
       children: [
@@ -461,31 +470,40 @@ class _ReviewRow extends StatelessWidget {
                 children: [
                   Text(
                     review.productName,
-                    style:
-                    Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     review.productType,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: Colors.black54),
                   ),
                   const SizedBox(height: 16),
-
                   Row(
                     children: [
-                      Expanded(child: _RatingItem(l10n.priceRating, review.priceRating, review.reviewCount)),
-                      Expanded(child: _RatingItem(l10n.valueRating, review.valueRating, review.reviewCount)),
+                      Expanded(
+                          child: _RatingItem(l10n.priceRating,
+                              review.priceRating, review.reviewCount)),
+                      Expanded(
+                          child: _RatingItem(l10n.valueRating,
+                              review.valueRating, review.reviewCount)),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Expanded(child: _RatingItem(l10n.qualityRating, review.qualityRating, review.reviewCount)),
+                      Expanded(
+                          child: _RatingItem(l10n.qualityRating,
+                              review.qualityRating, review.reviewCount)),
                       const Expanded(child: SizedBox()),
                     ],
                   ),
                   const SizedBox(height: 16),
-
                   _ReviewSection(l10n.feedSummary, review.feedSummary),
                   const SizedBox(height: 12),
                   _ReviewSection(l10n.feedReview, review.feedReview),
@@ -518,16 +536,26 @@ class _RatingItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(fontSize: 12, color: Colors.black.withOpacity(0.65))),
-      const SizedBox(height: 4),
-      Row(children: [
-        const Icon(Icons.star, color: Color(0xFFFFC107), size: 16),
-        const SizedBox(width: 4),
-        Text('${rating.toStringAsFixed(1)} ($count)',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-      ]),
-    ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style:
+            TextStyle(fontSize: 12, color: Colors.black.withOpacity(.65))),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            const Icon(Icons.star, color: Color(0xFFFFC107), size: 16),
+            const SizedBox(width: 4),
+            Text(
+              '${rating.toStringAsFixed(1)} ($count)',
+              style:
+              const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 
@@ -537,7 +565,8 @@ class _ReviewSection extends StatelessWidget {
   final bool isStatus;
   final ReviewStatus? status;
 
-  const _ReviewSection(this.label, this.text, {this.isStatus = false, this.status});
+  const _ReviewSection(this.label, this.text,
+      {this.isStatus = false, this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -565,11 +594,14 @@ class _ReviewSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.black.withOpacity(0.65))),
+        Text(label,
+            style:
+            TextStyle(fontSize: 12, color: Colors.black.withOpacity(.65))),
         const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(20)),
+          decoration: BoxDecoration(
+              color: bgColor, borderRadius: BorderRadius.circular(20)),
           child: Text(
             text,
             style: TextStyle(
@@ -646,7 +678,9 @@ class _ProductLite {
     String? image;
     if (j['custom_attributes'] is List) {
       for (final ca in (j['custom_attributes'] as List)) {
-        if (ca is Map && ca['attribute_code'] == 'image' && ca['value'] is String) {
+        if (ca is Map &&
+            ca['attribute_code'] == 'image' &&
+            ca['value'] is String) {
           image = ca['value'] as String;
           break;
         }

@@ -1,15 +1,16 @@
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../../services/api_client.dart';
+import 'package:dio/dio.dart';
 
 class PrintPdfScreen extends StatefulWidget {
   const PrintPdfScreen({
     super.key,
-    this.invoiceId, // now nullable to match how you call it elsewhere
+    this.invoiceId,
     this.adminToken = '87igct1wbbphdok6dk1roju4i83kyub9',
   });
 
-  final int? invoiceId; // <-- nullable
+  final int? invoiceId;
   final String adminToken;
 
   @override
@@ -33,12 +34,11 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
   Future<void> _loadInvoiceAndComments() async {
     final l10n = AppLocalizations.of(context)!;
 
-    // If no invoiceId was provided, just stop here and show a tip.
     if (widget.invoiceId == null) {
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.invoiceDetailsSubtitle), // reuse your copy
+          content: Text(l10n.invoiceDetailsSubtitle),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
           shape: const RoundedRectangleBorder(
@@ -51,11 +51,11 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
 
     setState(() => _loading = true);
     try {
-      final inv = await ApiClient().getInvoiceById(
+      final inv = await VendorApiClient().getInvoiceById(
         invoiceId: widget.invoiceId!,
       );
 
-      final comments = await ApiClient().getInvoiceComments(
+      final comments = await VendorApiClient().getInvoiceComments(
         invoiceId: widget.invoiceId!,
       );
 
@@ -71,6 +71,7 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
         latest = comments.first['comment']?.toString();
       }
 
+      if (!mounted) return;
       setState(() {
         _invoice = inv;
         _lastComment = latest;
@@ -78,6 +79,18 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
           _infoController.text = latest;
         }
       });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.failedToExport} ${e.response?.data['message'] ?? e.message}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -98,7 +111,6 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
   Future<void> _saveComment() async {
     final l10n = AppLocalizations.of(context)!;
 
-    // Require an invoice id to save
     if (widget.invoiceId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -130,7 +142,7 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
 
     setState(() => _saving = true);
     try {
-      await ApiClient().addInvoiceComment(
+      await VendorApiClient().addInvoiceComment(
         invoiceId: widget.invoiceId!,
         comment: text,
         isVisibleOnFront: true,
@@ -149,6 +161,18 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
       );
 
       await _loadInvoiceAndComments();
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.failedToExport} ${e.response?.data['message'] ?? e.message}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -186,7 +210,6 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -219,7 +242,6 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
                       style: const TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     const SizedBox(height: 12),
-
                     if (_invoice != null) ...[
                       Text(
                         'Invoice #${_invoice!['increment_id'] ?? _invoice!['entity_id']} • '
@@ -228,7 +250,6 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
                       ),
                       const SizedBox(height: 8),
                     ],
-
                     Container(
                       decoration: BoxDecoration(
                         color: const Color(0xFFFAFAFA),
@@ -250,7 +271,6 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -288,7 +308,6 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
