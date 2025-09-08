@@ -678,9 +678,12 @@ class _ProfileMenuDialog extends StatelessWidget {
                 },
               ),
 
-              // Destructive action
+              // You should define 't' somewhere, likely a localization helper object.
+// final t = AppLocalizations.of(context);
+
               InkWell(
                 onTap: () async {
+                  // Show a confirmation dialog
                   final bool? confirm = await showDialog<bool>(
                     context: context,
                     builder: (BuildContext context2) {
@@ -700,32 +703,24 @@ class _ProfileMenuDialog extends StatelessWidget {
                       );
                     },
                   );
-
                   if (confirm == true) {
                     try {
-                      // Close the profile dialog first
-                      Navigator.of(context).pop();
-
                       await ApiClient().logout();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                              (route) => false,
+                        );
 
-                      // Navigate to welcome, clearing stack
-                      // (if drawer was open, parent will be replaced anyway)
-                      // ignore: use_build_context_synchronously
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                            (route) => false,
-                      );
-
-                      // ignore: use_build_context_synchronously
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(t?.logoutSuccessful ?? 'Logged out successfully'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(t?.logoutSuccessful ?? 'Logged out successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      });
                     } catch (e) {
-                      // ignore: use_build_context_synchronously
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('${t?.logoutFailed ?? 'Logout failed'}: $e'),

@@ -97,7 +97,12 @@ class _LoginFormState extends State<LoginForm> {
 
       _showMessage("Login successful!");
       if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+      // Use pushAndRemoveUntil to prevent going back to the login screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const Home()),
+            (Route<dynamic> route) => false,
+      );
     } catch (e) {
       _showMessage("Login failed: ${_cleanError(e)}", isError: true);
     } finally {

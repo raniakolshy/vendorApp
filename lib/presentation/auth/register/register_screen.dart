@@ -64,6 +64,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _onRegister() async {
     if (_loading) return;
+    FocusScope.of(context).unfocus();
 
     if (!_isChecked) {
       _toast('You must accept the terms and conditions');
@@ -78,12 +79,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // sanitize shop url: lowercase, remove spaces
+    // Sanitize shop URL: lowercase, remove spaces, and convert to a valid URL segment
     final shop = _shopUrl.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
 
     setState(() => _loading = true);
     try {
-      final token = await _api.registerVendorAndLogin(
+      final token = await ApiClient().registerVendorAndLogin(
         firstname: _first.text.trim(),
         lastname: _last.text.trim(),
         email: _email.text.trim(),
@@ -95,7 +96,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _toast('Vendor account created successfully!', err: false);
 
       if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()));
+      // Use pushAndRemoveUntil to prevent going back to the registration screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const Home()),
+            (Route<dynamic> route) => false,
+      );
     } catch (e) {
       _toast('Registration failed: ${e.toString().replaceFirst("Exception: ", "")}');
     } finally {

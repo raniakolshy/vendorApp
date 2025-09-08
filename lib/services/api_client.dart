@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../presentation/auth/login/welcome_screen.dart';
-import 'order_model.dart'; // Must define MagentoOrder in here
+import 'order_model.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -156,7 +156,6 @@ class ApiClient {
     BaseOptions(
       baseUrl: _base,
       headers: {
-        // default is admin bearer (used for admin-only GETs/POSTs)
         "Authorization": "Bearer $_adminToken",
         "Content-Type": "application/json",
         "Accept": "application/json",
@@ -173,10 +172,10 @@ class ApiClient {
   static const _kIsGuest = 'is_guest';
 
   // ---------------- Token Management ----------------
-  Future<void> saveToken(String token, {bool isGuest = false}) async {
+  Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kAuthToken, token);
-    await prefs.setBool(_kIsGuest, isGuest);
+    await prefs.setBool(_kIsGuest, false); // Always false for vendor app
   }
 
   Future<String?> getToken() async {
@@ -184,46 +183,18 @@ class ApiClient {
     return prefs.getString(_kAuthToken);
   }
 
-  Future<bool> isGuest() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_kIsGuest) ?? false;
-  }
-
-  Future<void> clearToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kAuthToken);
-    await prefs.remove(_kIsGuest);
-  }
-
   Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null && token.isNotEmpty;
   }
 
-  // Helper for auth header
-  Options _authOptions(String token) =>
-      Options(headers: {"Authorization": "Bearer $token"});
-
-  // ---------------- AUTH :: CUSTOMER TOKEN ----------------
-  Future<String> loginCustomer(String email, String password) async {
-    final res = await _dio.post(
-      "integration/customer/token",
-      options: Options(headers: {"Authorization": null}),
-      data: {"username": email, "password": password},
-    );
-    final token = res.data is String ? res.data as String : res.data.toString();
-    await saveToken(token, isGuest: false);
-    return token;
-  }
-
   // ---------------- WEBKUL MARKETPLACE :: SELLER ENDPOINTS ----------------
-  /// Create a brand-new SELLER (customer + seller) in one call (no token required)
   Future<Map<String, dynamic>> createSellerAccount({
     required String email,
     required String firstname,
     required String lastname,
     required String password,
-    required String shopUrl, // must be unique, lowercase, no spaces
+    required String shopUrl,
     int storeId = 1,
     int websiteId = 1,
   }) async {
@@ -241,13 +212,12 @@ class ApiClient {
         "is_seller": "1",
         "profileurl": shopUrl,
         "password": password,
-        "registered": "0" // 0=new customer; 1=existing becomes seller
+        "registered": "0"
       },
     );
     return (res.data as List).first as Map<String, dynamic>;
   }
 
-  /// Convert an existing logged-in customer into a seller (requires customer token)
   Future<Map<String, dynamic>> becomeSeller({
     required String token,
     required String shopUrl,
@@ -260,7 +230,6 @@ class ApiClient {
     return (res.data as List).first as Map<String, dynamic>;
   }
 
-  /// Get current seller profile (requires customer token)
   Future<Map<String, dynamic>> getSellerProfile(String token) async {
     final res = await _dio.get(
       "mpapi/sellers/me",
@@ -270,33 +239,25 @@ class ApiClient {
     return items.isNotEmpty ? items.first as Map<String, dynamic> : {};
   }
 
-  /// True if current token represents an approved seller
-  Future<bool> _checkVendorStatus(String token) async {
-    try {
-      final profile = await getSellerProfile(token);
-      // Webkul usually returns string "1"/"0"
-      return profile['is_seller'] == "1" || profile['is_seller'] == 1;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  // ---------------- VENDOR LOGIN (ENFORCES SELLER) ----------------
+  // ---------------- AUTH :: VENDOR-ONLY ----------------
   Future<String> loginVendor({
     required String email,
     required String password,
   }) async {
     try {
-      // 1) Login as customer
-      final token = await loginCustomer(email, password);
+      final res = await _dio.post(
+        "integration/customer/token",
+        options: Options(headers: {"Authorization": null}),
+        data: {"username": email, "password": password},
+      );
+      final token = res.data is String ? res.data as String : res.data.toString();
 
-      // 2) Verify seller status via Webkul endpoint
       final isVendor = await _checkVendorStatus(token);
       if (!isVendor) {
-        await clearToken();
         throw Exception("This account is not registered as a vendor.");
       }
 
+      await saveToken(token);
       return token;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
@@ -305,8 +266,7 @@ class ApiClient {
       throw Exception("Login failed: ${_parseError(e)}");
     }
   }
-
-  // ---------------- REGISTER SELLER + AUTO LOGIN ----------------
+  // ---------------- REGISTER VENDOR + AUTO LOGIN ----------------
   Future<String> registerVendorAndLogin({
     required String firstname,
     required String lastname,
@@ -322,12 +282,29 @@ class ApiClient {
         password: password,
         shopUrl: shopUrl,
       );
-
-      // login and verify seller status
+      // Automatically log in the new vendor.
       final token = await loginVendor(email: email, password: password);
       return token;
     } catch (e) {
       throw Exception("Vendor registration failed: ${e.toString()}");
+    }
+  }
+
+  Options _authOptions(String token) =>
+      Options(headers: {"Authorization": "Bearer $token"});
+
+  Future<bool> _checkVendorStatus(String token) async {
+    try {
+      final res = await _dio.get(
+        "mpapi/sellers/me",
+        options: _authOptions(token),
+      );
+      final items = (res.data['items'] ?? []) as List;
+      if (items.isEmpty) return false;
+      final profile = items.first as Map<String, dynamic>;
+      return profile['is_seller'] == "1" || profile['is_seller'] == 1;
+    } on DioException {
+      return false;
     }
   }
 
@@ -425,23 +402,9 @@ class ApiClient {
 
   // ---------------- Logout ----------------
   Future<void> logout() async {
-    try {
-      await clearToken();
-    } finally {
-      _navigateToLogin();
-    }
-  }
-
-  void _navigateToLogin() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ctx = navigatorKey.currentContext;
-      if (ctx != null) {
-        Navigator.of(ctx).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-              (_) => false,
-        );
-      }
-    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kAuthToken);
+    await prefs.remove(_kIsGuest);
   }
 
   // ---------------- Dashboard (lightweight example) ----------------
