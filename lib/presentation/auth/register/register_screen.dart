@@ -26,9 +26,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirm = TextEditingController();
   final _businessNameController = TextEditingController();
   final _vendorPhoneController = TextEditingController();
-  final _shopUrl = TextEditingController(); // NEW: Webkul requires unique shop URL
+  final _shopUrl = TextEditingController();
 
-  final _api = ApiClient();
 
   bool _isChecked = false;
   bool _obscurePass = true;
@@ -79,7 +78,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // Sanitize shop URL: lowercase, remove spaces, and convert to a valid URL segment
     final shop = _shopUrl.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
 
     setState(() => _loading = true);
@@ -96,7 +94,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _toast('Vendor account created successfully!', err: false);
 
       if (!mounted) return;
-      // Use pushAndRemoveUntil to prevent going back to the registration screen
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const Home()),

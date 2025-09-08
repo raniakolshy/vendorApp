@@ -97,7 +97,6 @@ class _LoginFormState extends State<LoginForm> {
 
       _showMessage("Login successful!");
       if (!mounted) return;
-      // Use pushAndRemoveUntil to prevent going back to the login screen
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const Home()),

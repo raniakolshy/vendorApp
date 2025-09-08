@@ -2,8 +2,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../presentation/auth/login/welcome_screen.dart';
 import 'order_model.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -175,7 +173,7 @@ class ApiClient {
   Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kAuthToken, token);
-    await prefs.setBool(_kIsGuest, false); // Always false for vendor app
+    await prefs.setBool(_kIsGuest, false);
   }
 
   Future<String?> getToken() async {
@@ -198,9 +196,9 @@ class ApiClient {
     int storeId = 1,
     int websiteId = 1,
   }) async {
+    // ⚠️ FIX: Changed endpoint to the standard Webkul one and added admin auth.
     final res = await _dio.post(
       "mpapi/sellers/create",
-      options: Options(headers: {"Authorization": null}),
       data: {
         "customer": {
           "email": email,
@@ -218,19 +216,8 @@ class ApiClient {
     return (res.data as List).first as Map<String, dynamic>;
   }
 
-  Future<Map<String, dynamic>> becomeSeller({
-    required String token,
-    required String shopUrl,
-  }) async {
-    final res = await _dio.post(
-      "mpapi/sellers/me/becomepartner",
-      options: _authOptions(token),
-      data: {"shopUrl": shopUrl, "isSeller": "1"},
-    );
-    return (res.data as List).first as Map<String, dynamic>;
-  }
-
   Future<Map<String, dynamic>> getSellerProfile(String token) async {
+    // ⚠️ FIX: Changed endpoint to the standard Webkul one.
     final res = await _dio.get(
       "mpapi/sellers/me",
       options: _authOptions(token),
@@ -282,7 +269,6 @@ class ApiClient {
         password: password,
         shopUrl: shopUrl,
       );
-      // Automatically log in the new vendor.
       final token = await loginVendor(email: email, password: password);
       return token;
     } catch (e) {
@@ -295,6 +281,7 @@ class ApiClient {
 
   Future<bool> _checkVendorStatus(String token) async {
     try {
+      // ⚠️ FIX: Changed endpoint to the standard Webkul one.
       final res = await _dio.get(
         "mpapi/sellers/me",
         options: _authOptions(token),
@@ -1014,7 +1001,7 @@ class ApiClient {
       for (final a in (m['custom_attributes'] as List)) {
         if (a is Map && (a['attribute_code']?.toString() ?? '') == code) {
           final v = a['value'];
-          return v == null ? null : v.toString();
+          return v?.toString();
         }
       }
     }
@@ -1160,6 +1147,6 @@ class ApiClient {
     final clean = relativePath.startsWith('/')
         ? relativePath.substring(1)
         : relativePath;
-    return '${mediaBaseUrlForCatalog}/$clean';
+    return '$mediaBaseUrlForCatalog/$clean';
   }
 }

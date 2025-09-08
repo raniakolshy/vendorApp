@@ -677,13 +677,8 @@ class _ProfileMenuDialog extends StatelessWidget {
                   onSelect(NavKey.askadmin);
                 },
               ),
-
-              // You should define 't' somewhere, likely a localization helper object.
-// final t = AppLocalizations.of(context);
-
               InkWell(
                 onTap: () async {
-                  // Show a confirmation dialog
                   final bool? confirm = await showDialog<bool>(
                     context: context,
                     builder: (BuildContext context2) {
