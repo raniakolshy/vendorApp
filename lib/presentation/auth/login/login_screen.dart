@@ -82,6 +82,7 @@ class _LoginFormState extends State<LoginForm> {
       _showMessage("Please fix the errors and try again.", isError: true);
       return;
     }
+
     setState(() => _isLoading = true);
     try {
       await VendorApiClient().loginVendor(
@@ -90,6 +91,7 @@ class _LoginFormState extends State<LoginForm> {
       );
 
       _showMessage("Login successful!");
+
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
@@ -97,7 +99,7 @@ class _LoginFormState extends State<LoginForm> {
             (Route<dynamic> route) => false,
       );
     } catch (e) {
-      _showMessage("Login failed: ${_cleanError(e)}", isError: true);
+      _showMessage("Login failed: ${e.toString().replaceFirst('Exception: ', '')}", isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

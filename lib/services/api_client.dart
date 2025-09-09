@@ -132,13 +132,14 @@ class VendorApiClient {
   // ==========================
   Future<String> loginVendor(String email, String password) async {
     try {
-      _dio.options.headers.remove('Authorization');
+      // Use customer login endpoint
       final response = await _dio.post(
-        'integration/vendor/token',
-        data: jsonEncode({'username': email, 'password': password}), // Changed from 'email' to 'username'
+        'integration/customer/token',
+        data: {"username": email, "password": password},
       );
-      final token = response.data;
-      if (token is String && token.isNotEmpty) {
+
+      final token = response.data.toString();
+      if (token.isNotEmpty) {
         await saveToken(token);
         _token = token;
         _setAuthHeader(_token);
@@ -167,55 +168,39 @@ class VendorApiClient {
       String firstName,
       String lastName,
       String password,
-      String shopUrl, // Add shop URL parameter
-      String phone,    // Add phone parameter
+      String shopUrl,
+      String phone,
       ) async {
     try {
-      // Use admin token for registration
-      _setAuthHeader(_adminToken);
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
 
       final response = await _dio.post(
-        'vendors',
-        data: jsonEncode({
-          'vendor': {
-            'email': email,
-            'firstname': firstName,
-            'lastname': lastName,
-            'password': password,
-            'custom_attributes': [
-              {
-                'attribute_code': 'shop_url',
-                'value': shopUrl
-              },
-              {
-                'attribute_code': 'telephone',
-                'value': phone
-              },
-            ]
-          }
-        }),
+        'customers',
+        data: {
+          "customer": {
+            "email": email,
+            "firstname": firstName,
+            "lastname": lastName,
+            "website_id": 1,
+            "store_id": 1,
+          },
+          "password": password,
+        },
       );
+
       return response.data;
     } on DioException catch (e) {
-      if (e.response != null) {
-        final data = e.response!.data;
-        if (data is Map && data['message'] != null) {
-          throw Exception(data['message']);
-        } else if (data is String) {
-          throw Exception(data);
-        }
-      }
       throw Exception(_handleDioError(e));
     } finally {
-      // Reset to vendor token if available
       _setAuthHeader(_token);
     }
   }
 
+
   Future<bool> forgotPassword(String email) async {
     try {
       await _dio.put(
-        "vendors/password",
+        "customers/password",
         data: {"email": email, "template": "email_reset", "websiteId": 1},
       );
       return true;
@@ -235,8 +220,8 @@ class VendorApiClient {
   // ==========================
   Future<VendorProfile> getVendorProfile() async {
     try {
-      final response = await _dio.get('vendors/me');
-      return VendorProfile.fromJson(Map<String, dynamic>.from(response.data));
+      final response = await _dio.get('customers/me');
+      return response.data;
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
     }
@@ -248,8 +233,8 @@ class VendorApiClient {
   Future<void> updateVendorProfileMe(Map<String, dynamic> vendorData) async {
     try {
       await _dio.put(
-        'vendors/me',
-        data: jsonEncode({'vendor': vendorData}),
+        'customers/me',
+        data: jsonEncode({'customer': vendorData}),
       );
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
@@ -261,10 +246,20 @@ class VendorApiClient {
   // ==========================
   Future<Map<String, dynamic>> getDashboardMetrics() async {
     try {
-      final response = await _dio.get('vendors/dashboard-metrics');
+
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
+      final response = await _dio.get('');
       return response.data;
     } on DioException catch (e) {
-      throw Exception(_handleDioError(e));
+      return {
+        'total_orders': 0,
+        'total_revenue': 0,
+        'total_products': 0,
+        'pending_orders': 0
+      };
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 

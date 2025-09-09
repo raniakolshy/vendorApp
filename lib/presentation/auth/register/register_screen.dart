@@ -122,13 +122,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _phone.text.trim(),
       );
 
-      final token = await VendorApiClient().loginVendor(
+      // Auto-login
+      await VendorApiClient().loginVendor(
         _email.text.trim(),
         _pass.text.trim(),
       );
 
-      debugPrint('Registration successful! Token: $token');
-      _toast('Vendor account created successfully!', err: false);
+      _toast('Account created successfully!', err: false);
 
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
@@ -139,7 +139,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       final errorMessage = e.toString().replaceFirst("Exception: ", "");
       _toast('Registration failed: $errorMessage');
-      debugPrint('Registration error details: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
