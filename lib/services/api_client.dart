@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// A client for the Magento API, handling both vendor and admin-level requests.
 class VendorApiClient {
   static final VendorApiClient _instance = VendorApiClient._internal();
   factory VendorApiClient() => _instance;
@@ -17,6 +16,7 @@ class VendorApiClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Authorization': 'Bearer 87igct1wbbphdok6dk1roju4i83kyub9', // Add admin token here
       },
     ),
   );
@@ -132,9 +132,10 @@ class VendorApiClient {
   // ==========================
   Future<String> loginVendor(String email, String password) async {
     try {
+      _dio.options.headers.remove('Authorization');
       final response = await _dio.post(
         'integration/vendor/token',
-        data: jsonEncode({'email': email, 'password': password}),
+        data: jsonEncode({'username': email, 'password': password}), // Changed from 'email' to 'username'
       );
       final token = response.data;
       if (token is String && token.isNotEmpty) {
@@ -149,27 +150,65 @@ class VendorApiClient {
     }
   }
 
+  Future<bool> testConnection() async {
+    try {
+      final response = await _dio.get('', options: Options(
+          headers: {'Authorization': 'Bearer $_adminToken'}
+      ));
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Connection test failed: $e');
+      return false;
+    }
+  }
+
   Future<Map<String, dynamic>> registerVendor(
       String email,
       String firstName,
       String lastName,
       String password,
+      String shopUrl, // Add shop URL parameter
+      String phone,    // Add phone parameter
       ) async {
     try {
+      // Use admin token for registration
+      _setAuthHeader(_adminToken);
+
       final response = await _dio.post(
         'vendors',
         data: jsonEncode({
           'vendor': {
             'email': email,
-            'firstName': firstName,
-            'lastName': lastName,
+            'firstname': firstName,
+            'lastname': lastName,
             'password': password,
+            'custom_attributes': [
+              {
+                'attribute_code': 'shop_url',
+                'value': shopUrl
+              },
+              {
+                'attribute_code': 'telephone',
+                'value': phone
+              },
+            ]
           }
         }),
       );
       return response.data;
     } on DioException catch (e) {
+      if (e.response != null) {
+        final data = e.response!.data;
+        if (data is Map && data['message'] != null) {
+          throw Exception(data['message']);
+        } else if (data is String) {
+          throw Exception(data);
+        }
+      }
       throw Exception(_handleDioError(e));
+    } finally {
+      // Reset to vendor token if available
+      _setAuthHeader(_token);
     }
   }
 

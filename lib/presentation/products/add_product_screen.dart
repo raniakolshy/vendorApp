@@ -238,8 +238,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   // ---------- payload builder ----------
   Map<String, dynamic> _buildMagentoPayload({required bool isDraft}) {
-    final visibility = _visibility == 'Visible' ? 4 : 1; // 4 = Catalog, Search
-    final status = isDraft ? 2 : 1;                      // 2 = Disabled (draft), 1 = Enabled
+    final visibility = _visibility == 'Visible' ? 4 : 1;
+    final status = isDraft ? 2 : 1;
 
     final inStock = _stockAvail == 'In Stock';
     final qty = int.tryParse(_stock.text) ?? 0;
@@ -691,8 +691,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     child: Text(l10n.warn_prefer_three_images, style: const TextStyle(color: Colors.red)),
                                   ),
                               ]),
-
-                              // Linked products tabs (real data)
                               _sectionCard(
                                 title: l10n.sec_linked_products,
                                 children: [
@@ -700,7 +698,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 ],
                               ),
 
-                              // Sticky footer
                               Container(
                                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
                                 decoration: const BoxDecoration(

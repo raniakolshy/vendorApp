@@ -18,16 +18,14 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _first = TextEditingController();
-  final _last  = TextEditingController();
+  final _last = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
-  final _pass  = TextEditingController();
+  final _pass = TextEditingController();
   final _confirm = TextEditingController();
-  final _businessNameController = TextEditingController();
-  final _vendorPhoneController = TextEditingController();
   final _shopUrl = TextEditingController();
-
 
   bool _isChecked = false;
   bool _obscurePass = true;
@@ -42,8 +40,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _phone.dispose();
     _pass.dispose();
     _confirm.dispose();
-    _businessNameController.dispose();
-    _vendorPhoneController.dispose();
     _shopUrl.dispose();
     super.dispose();
   }
@@ -61,31 +57,69 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // Validation methods
+  String? _emailValidator(String? value) {
+    if (value == null || value.isEmpty) return 'Email is required';
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value)) {
+      return 'Enter a valid email address';
+    }
+    return null;
+  }
+
+  String? _requiredValidator(String? value, String fieldName) {
+    if (value == null || value.isEmpty) return '$fieldName is required';
+    return null;
+  }
+
+  String? _phoneValidator(String? value) {
+    if (value == null || value.isEmpty) return 'Phone number is required';
+    if (value.length < 8) return 'Enter a valid phone number';
+    return null;
+  }
+
+  String? _passwordValidator(String? value) {
+    if (value == null || value.isEmpty) return 'Password is required';
+    if (value.length < 6) return 'Password must be at least 6 characters';
+    return null;
+  }
+
+  String? _confirmPasswordValidator(String? value) {
+    if (value != _pass.text) return 'Passwords do not match';
+    return null;
+  }
+
+  String? _shopUrlValidator(String? value) {
+    if (value == null || value.isEmpty) return 'Shop URL is required';
+    if (value.contains(' ')) return 'Shop URL cannot contain spaces';
+    if (!RegExp(r'^[a-z0-9-]+$').hasMatch(value)) {
+      return 'Use only lowercase letters, numbers, and hyphens';
+    }
+    return null;
+  }
+
   Future<void> _onRegister() async {
     if (_loading) return;
     FocusScope.of(context).unfocus();
+
+    if (!_formKey.currentState!.validate()) {
+      _toast('Please fix the errors and try again.');
+      return;
+    }
 
     if (!_isChecked) {
       _toast('You must accept the terms and conditions');
       return;
     }
-    if (_pass.text != _confirm.text) {
-      _toast('Passwords do not match');
-      return;
-    }
-    if (_shopUrl.text.trim().isEmpty) {
-      _toast('Shop URL is required');
-      return;
-    }
 
     setState(() => _loading = true);
     try {
-
       await VendorApiClient().registerVendor(
         _email.text.trim(),
         _first.text.trim(),
         _last.text.trim(),
         _pass.text.trim(),
+        _shopUrl.text.trim(),
+        _phone.text.trim(),
       );
 
       final token = await VendorApiClient().loginVendor(
@@ -103,7 +137,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             (Route<dynamic> route) => false,
       );
     } catch (e) {
-      _toast('Registration failed: ${e.toString().replaceFirst("Exception: ", "")}');
+      final errorMessage = e.toString().replaceFirst("Exception: ", "");
+      _toast('Registration failed: $errorMessage');
+      debugPrint('Registration error details: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -118,100 +154,204 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-              Text(t?.createSimple ?? 'Create',
-                  style: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.black87)),
-              Text(t?.anAccount ?? 'an account',
-                  style: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.black87)),
-              const SizedBox(height: 36),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                Text(t?.createSimple ?? 'Create',
+                    style: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.black87)),
+                Text(t?.anAccount ?? 'an account',
+                    style: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.black87)),
+                const SizedBox(height: 36),
 
-              _Input(controller: _first, hintText: t?.firstName ?? 'First name', icon: Icons.person_outline),
-              const SizedBox(height: 20),
-              _Input(controller: _last, hintText: t?.lastName ?? 'Last name', icon: Icons.person_outline),
-              const SizedBox(height: 20),
-              _Input(controller: _email, hintText: t?.email ?? 'Email',
-                  icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
-              const SizedBox(height: 20),
-              _Input(controller: _phone, hintText: t?.phone ?? 'Phone',
-                  icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
-              const SizedBox(height: 20),
-
-              // NEW: Shop URL (Webkul)
-              _Input(
-                controller: _shopUrl,
-                hintText: 'Shop URL (unique, e.g. my-store)',
-                icon: Icons.storefront_outlined,
-              ),
-              const SizedBox(height: 20),
-
-              _Input(
-                controller: _pass,
-                hintText: t?.password ?? 'Password',
-                icon: Icons.lock_outline,
-                isPassword: true,
-                obscureText: _obscurePass,
-                toggleVisibility: () => setState(() => _obscurePass = !_obscurePass),
-              ),
-              const SizedBox(height: 20),
-              _Input(
-                controller: _confirm,
-                hintText: t?.passworConfirmation ?? 'Password confirmation',
-                icon: Icons.lock_outline,
-                isPassword: true,
-                obscureText: _obscureConfirm,
-                toggleVisibility: () => setState(() => _obscureConfirm = !_obscureConfirm),
-              ),
-
-              const SizedBox(height: 16),
-              _checkRow(
-                value: _isChecked,
-                title: RichText(
-                  text: TextSpan(
-                    style: GoogleFonts.poppins(color: Colors.black87),
-                    children: [
-                      TextSpan(text: '${t?.byClickingThe ?? 'By clicking the'} '),
-                      TextSpan(text: t?.signUp ?? 'Sign up',
-                          style: GoogleFonts.poppins(color: primaryPink, fontWeight: FontWeight.bold)),
-                      TextSpan(text: ' ${t?.publicOffer ?? 'you accept the public offer'}'),
-                    ],
+                // First Name
+                TextFormField(
+                  controller: _first,
+                  validator: (value) => _requiredValidator(value, 'First name'),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: inputFill,
+                    hintText: t?.firstName ?? 'First name',
+                    hintStyle: const TextStyle(color: greyText, fontSize: 16),
+                    prefixIcon: const Icon(Icons.person_outline, color: greyText),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: primaryPink, width: 2)),
                   ),
                 ),
-                onChanged: (v) => setState(() => _isChecked = v ?? false),
-              ),
+                const SizedBox(height: 20),
 
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity, height: 56,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _onRegister,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryPink,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                // Last Name
+                TextFormField(
+                  controller: _last,
+                  validator: (value) => _requiredValidator(value, 'Last name'),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: inputFill,
+                    hintText: t?.lastName ?? 'Last name',
+                    hintStyle: const TextStyle(color: greyText, fontSize: 16),
+                    prefixIcon: const Icon(Icons.person_outline, color: greyText),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: primaryPink, width: 2)),
                   ),
-                  child: _loading
-                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(t?.create ?? 'Create', style: const TextStyle(color: Colors.white, fontSize: 18)),
                 ),
-              ),
+                const SizedBox(height: 20),
 
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(t?.alreadyHaveAnAccount ?? 'Already have an account?', style: const TextStyle(color: greyText, fontSize: 14)),
-                  GestureDetector(
-                    onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                      child: Text('Login', style: TextStyle(color: primaryPink, fontWeight: FontWeight.w700, fontSize: 14)),
+                // Email
+                TextFormField(
+                  controller: _email,
+                  validator: _emailValidator,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: inputFill,
+                    hintText: t?.email ?? 'Email',
+                    hintStyle: const TextStyle(color: greyText, fontSize: 16),
+                    prefixIcon: const Icon(Icons.email_outlined, color: greyText),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: primaryPink, width: 2)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Phone
+                TextFormField(
+                  controller: _phone,
+                  validator: _phoneValidator,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: inputFill,
+                    hintText: t?.phone ?? 'Phone',
+                    hintStyle: const TextStyle(color: greyText, fontSize: 16),
+                    prefixIcon: const Icon(Icons.phone_outlined, color: greyText),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: primaryPink, width: 2)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Shop URL
+                TextFormField(
+                  controller: _shopUrl,
+                  validator: _shopUrlValidator,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: inputFill,
+                    hintText: 'Shop URL (unique, e.g. my-store)',
+                    hintStyle: const TextStyle(color: greyText, fontSize: 16),
+                    prefixIcon: const Icon(Icons.storefront_outlined, color: greyText),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: primaryPink, width: 2)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Password
+                TextFormField(
+                  controller: _pass,
+                  validator: _passwordValidator,
+                  obscureText: _obscurePass,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: inputFill,
+                    hintText: t?.password ?? 'Password',
+                    hintStyle: const TextStyle(color: greyText, fontSize: 16),
+                    prefixIcon: const Icon(Icons.lock_outline, color: greyText),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility, color: greyText),
+                      onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: primaryPink, width: 2)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Confirm Password
+                TextFormField(
+                  controller: _confirm,
+                  validator: _confirmPasswordValidator,
+                  obscureText: _obscureConfirm,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: inputFill,
+                    hintText: t?.passworConfirmation ?? 'Password confirmation',
+                    hintStyle: const TextStyle(color: greyText, fontSize: 16),
+                    prefixIcon: const Icon(Icons.lock_outline, color: greyText),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility, color: greyText),
+                      onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: primaryPink, width: 2)),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+                _checkRow(
+                  value: _isChecked,
+                  title: RichText(
+                    text: TextSpan(
+                      style: GoogleFonts.poppins(color: Colors.black87),
+                      children: [
+                        TextSpan(text: '${t?.byClickingThe ?? 'By clicking the'} '),
+                        TextSpan(text: t?.signUp ?? 'Sign up',
+                            style: GoogleFonts.poppins(color: primaryPink, fontWeight: FontWeight.bold)),
+                        TextSpan(text: ' ${t?.publicOffer ?? 'you accept the public offer'}'),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ],
+                  onChanged: (v) => setState(() => _isChecked = v ?? false),
+                ),
+
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : _onRegister,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryPink,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: _loading
+                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text(t?.create ?? 'Create', style: const TextStyle(color: Colors.white, fontSize: 18)),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(t?.alreadyHaveAnAccount ?? 'Already have an account?', style: const TextStyle(color: greyText, fontSize: 14)),
+                    GestureDetector(
+                      onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                        child: Text('Login', style: TextStyle(color: primaryPink, fontWeight: FontWeight.w700, fontSize: 14)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -226,9 +366,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Row(
           children: [
             SizedBox(
-              width: 24, height: 24,
+              width: 24,
+              height: 24,
               child: Checkbox(
-                value: value, onChanged: onChanged,
+                value: value,
+                onChanged: onChanged,
                 activeColor: primaryPink,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                 side: const BorderSide(color: lightBorder, width: 2),
@@ -238,51 +380,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Expanded(child: title),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Input extends StatelessWidget {
-  final String hintText;
-  final IconData icon;
-  final TextEditingController controller;
-  final bool isPassword;
-  final bool obscureText;
-  final VoidCallback? toggleVisibility;
-  final TextInputType keyboardType;
-
-  const _Input({
-    required this.hintText,
-    required this.icon,
-    required this.controller,
-    this.isPassword = false,
-    this.obscureText = false,
-    this.toggleVisibility,
-    this.keyboardType = TextInputType.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      obscureText: isPassword ? obscureText : false,
-      keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 16, color: Colors.black87),
-      decoration: InputDecoration(
-        filled: true, fillColor: inputFill,
-        hintText: hintText, hintStyle: const TextStyle(color: greyText, fontSize: 16),
-        prefixIcon: Icon(icon, color: greyText),
-        suffixIcon: isPassword
-            ? IconButton(
-          icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: greyText),
-          onPressed: toggleVisibility,
-        )
-            : null,
-        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: lightBorder)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: primaryPink, width: 2)),
       ),
     );
   }

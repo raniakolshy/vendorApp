@@ -10,21 +10,15 @@ const Color inputFill = Color(0xFFF4F4F4);
 const Color lightBorder = Color(0xFFDDDDDD);
 const Color greyText = Color(0xFF777777);
 
-/// You can still name it VerificationCodeScreen to avoid route changes,
-/// but it now collects the Magento reset TOKEN (from email link) + new password.
 class VerificationCodeScreen extends StatefulWidget {
-  /// (Optional) Pre-fill the email if you pass it from the Forgot screen
   final String? email;
-
   const VerificationCodeScreen({super.key, this.email});
-
   @override
   State<VerificationCodeScreen> createState() => _VerificationCodeScreenState();
 }
 
 class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   final _formKey = GlobalKey<FormState>();
-
   final _emailController = TextEditingController();
   final _tokenController = TextEditingController();
   final _pwdController = TextEditingController();

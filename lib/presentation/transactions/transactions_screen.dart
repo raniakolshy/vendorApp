@@ -66,22 +66,17 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
   bool _loading = true;
   String? _error;
 
-  // Admin token (you provided it). You can move this to a safer place if needed.
-  static const String _ADMIN_TOKEN = '87igct1wbbphdok6dk1roju4i83kyub9';
-
   DateTimeRange? _selectedRange;
 
   // Backing store after fetch
   List<Transaction> _allTransactions = [];
-
-  // Aggregates for the top 2 cards (keeping your design)
-  double _totalPaid = 0.0;       // shown in first BalanceCard
-  double _totalProcessing = 0.0; // shown in second BalanceCard
+  double _totalPaid = 0.0;
+  double _totalProcessing = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _refreshFromMagento(); // initial load (no date filter)
+    _refreshFromMagento();
   }
 
   Future<void> _refreshFromMagento() async {
@@ -346,7 +341,7 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
                               duration: const Duration(seconds: 3),
                             ),
                           );
-                          _refreshFromMagento(); // re-fetch with date filter
+                          _refreshFromMagento();
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFE51742),
@@ -394,8 +389,6 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
               ),
             ),
             const Gap(20),
-
-            // ---- same design, values now come from Magento sums ----
             BalanceCard(
               label: AppLocalizations.of(context)!.currentBalance,
               amount: _loading

@@ -29,7 +29,7 @@ void main() async {
 
   final localeProvider = LocaleProvider();
   await localeProvider.loadSavedLocale();
-
+  await VendorApiClient().init();
   runApp(MyApp(localeProvider: localeProvider));
 }
 

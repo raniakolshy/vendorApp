@@ -76,7 +76,7 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
       );
       for (final r in reviewPage.items) {
         final title = r.title ?? '';
-        final created = ''; // created_at is not available in MagentoReview model
+        final created = '';
         final status = r.status?.toString() ?? '';
         String statusTxt = 'Pending';
         if (status == '1') statusTxt = 'Approved';

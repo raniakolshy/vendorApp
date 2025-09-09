@@ -123,7 +123,7 @@ class AppShell extends StatelessWidget {
             ),
             Positioned(
               right: 12,
-              top: 62, // just below the dark top bar
+              top: 62,
               child: FadeTransition(
                 opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
                 child: SlideTransition(

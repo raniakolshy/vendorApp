@@ -22,21 +22,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     _checkTokenAndNavigate();
   }
 
-  // This is the function that checks for the token and navigates.
   Future<void> _checkTokenAndNavigate() async {
     final token = await _secureStorage.read(key: 'authToken');
-
-    // Make sure the widget is still in the tree before navigating.
     if (mounted) {
       if (token != null) {
-        // Token found, user is already logged in. Navigate to the Home screen.
-        // Use pushReplacement to prevent them from going back to the welcome screen.
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const Home()),
         );
       }
-      // If no token is found, the screen remains visible, and the user can press the buttons.
     }
   }
 
@@ -49,7 +43,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Couche 1 : fond avec l'image seule
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -60,7 +53,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             ),
           ),
 
-          // Léger voile sombre pour contraster les textes
           Container(
             color: Colors.black.withOpacity(0.25),
           ),
@@ -86,7 +78,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                   const Spacer(),
 
-                  // Logo / marque KOLSHY avec "KO" coloré (image)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
