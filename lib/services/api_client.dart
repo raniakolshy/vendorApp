@@ -72,62 +72,6 @@ class VendorApiClient {
   }
 
   // ==========================
-  // 🔧 Helpers you were missing
-  // ==========================
-  String guessMimeFromName(String filename) {
-    final ext = filename.split('.').last.toLowerCase();
-    switch (ext) {
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      case 'gif':
-        return 'image/gif';
-      case 'webp':
-        return 'image/webp';
-      case 'bmp':
-        return 'image/bmp';
-      case 'svg':
-        return 'image/svg+xml';
-      case 'pdf':
-        return 'application/pdf';
-      case 'json':
-        return 'application/json';
-      case 'csv':
-        return 'text/csv';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
-  String parseMagentoError(Object error) {
-    if (error is DioException) return _handleDioError(error);
-    if (error is SocketException) return 'Network error: ${error.message}';
-    return 'Unexpected error: $error';
-  }
-
-  // Media base URLs derived from baseUrl (no domain hardcoding)
-  String get _originFromBase {
-    final uri = Uri.parse(_dio.options.baseUrl);
-    return Uri(
-      scheme: uri.scheme,
-      host: uri.host,
-      port: uri.hasPort ? uri.port : null,
-    ).toString().replaceAll(RegExp(r'/$'), '');
-  }
-
-  String get mediaBaseUrlForVendor => '$_originFromBase/media/vendor';
-  String get mediaBaseUrlForCatalog => '$_originFromBase/media/catalog/product';
-
-  String productImageUrl(String? filePath, {bool vendor = false}) {
-    if (filePath == null || filePath.isEmpty) return '';
-    final cleaned = filePath.startsWith('/') ? filePath : '/$filePath';
-    final base = vendor ? mediaBaseUrlForVendor : mediaBaseUrlForCatalog;
-    return '$base$cleaned';
-  }
-
-  // ==========================
   // 🔐 Authentication
   // ==========================
   Future<String> loginVendor(String email, String password) async {
@@ -151,17 +95,6 @@ class VendorApiClient {
     }
   }
 
-  Future<bool> testConnection() async {
-    try {
-      final response = await _dio.get('', options: Options(
-          headers: {'Authorization': 'Bearer $_adminToken'}
-      ));
-      return response.statusCode == 200;
-    } catch (e) {
-      print('Connection test failed: $e');
-      return false;
-    }
-  }
 
   Future<Map<String, dynamic>> registerVendor(
       String email,
@@ -216,18 +149,17 @@ class VendorApiClient {
   }
 
   // ==========================
-  // 👤 Vendor profile (typed)
+  // 👤 VENDOR PROFILE (Customer endpoints)
   // ==========================
   Future<VendorProfile> getVendorProfile() async {
     try {
       final response = await _dio.get('customers/me');
-      return response.data;
+      return VendorProfile.fromJson(Map<String, dynamic>.from(response.data));
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
     }
   }
 
-  /// Alias to match old code
   Future<VendorProfile> getVendorProfileMe() => getVendorProfile();
 
   Future<void> updateVendorProfileMe(Map<String, dynamic> vendorData) async {
@@ -242,24 +174,281 @@ class VendorApiClient {
   }
 
   // ==========================
-  // 📊 Vendor dashboard
-  // ==========================
-  Future<Map<String, dynamic>> getDashboardMetrics() async {
+// 📊 DASHBOARD ANALYTICS FUNCTIONS
+// ==========================
+
+  Future<Map<String, dynamic>> getDashboardStats() async {
     try {
-
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+      final ordersResponse = await _dio.get(
+        'orders',
+        queryParameters: {
+          'searchCriteria[pageSize]': 1,
+          'searchCriteria[currentPage]': 1,
+        },
+      );
 
-      final response = await _dio.get('');
-      return response.data;
+      final orders = ordersResponse.data['items'] ?? [];
+      final totalOrders = ordersResponse.data['total_count'] ?? 0;
+
+      // Calculate total revenue
+      double totalRevenue = 0;
+      for (var order in orders) {
+        totalRevenue += double.tryParse(order['grand_total']?.toString() ?? '0') ?? 0;
+      }
+
+      // Get total products
+      final productsResponse = await _dio.get(
+        'products',
+        queryParameters: {
+          'searchCriteria[pageSize]': 1,
+        },
+      );
+      final totalProducts = productsResponse.data['total_count'] ?? 0;
+
+      // Get pending orders count
+      final pendingOrdersResponse = await _dio.get(
+        'orders',
+        queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'status',
+          'searchCriteria[filterGroups][0][filters][0][value]': 'pending',
+          'searchCriteria[pageSize]': 1,
+        },
+      );
+      final pendingOrders = pendingOrdersResponse.data['total_count'] ?? 0;
+
+      return {
+        'total_orders': totalOrders,
+        'total_revenue': totalRevenue,
+        'total_products': totalProducts,
+        'pending_orders': pendingOrders,
+      };
     } on DioException catch (e) {
       return {
         'total_orders': 0,
         'total_revenue': 0,
         'total_products': 0,
-        'pending_orders': 0
+        'pending_orders': 0,
       };
     } finally {
       _setAuthHeader(_token);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSalesHistory({int days = 30}) async {
+    try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
+      final now = DateTime.now();
+      final startDate = now.subtract(Duration(days: days));
+      final response = await _dio.get(
+        'orders',
+        queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'created_at',
+          'searchCriteria[filterGroups][0][filters][0][value]': startDate.toIso8601String(),
+          'searchCriteria[filterGroups][0][filters][0][condition_type]': 'gteq',
+          'searchCriteria[pageSize]': 100,
+        },
+      );
+
+      final orders = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+
+      // Group sales by date
+      final salesByDate = <String, double>{};
+      for (var order in orders) {
+        final date = order['created_at']?.toString().split(' ')[0] ?? '';
+        final amount = double.tryParse(order['grand_total']?.toString() ?? '0') ?? 0;
+
+        if (salesByDate.containsKey(date)) {
+          salesByDate[date] = salesByDate[date]! + amount;
+        } else {
+          salesByDate[date] = amount;
+        }
+      }
+
+      // Convert to list format
+      return salesByDate.entries.map((entry) => {
+        'date': entry.key,
+        'amount': entry.value,
+      }).toList();
+    } on DioException catch (e) {
+      return [];
+    } finally {
+      _setAuthHeader(_token);
+    }
+  }
+
+  Future<Map<String, dynamic>> getCustomerBreakdown() async {
+    try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
+      final response = await _dio.get(
+        'customers/search',
+        queryParameters: {
+          'searchCriteria[pageSize]': 100,
+        },
+      );
+
+      final customers = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+
+      // Simple breakdown - you can enhance this based on customer attributes
+      return {
+        'total_customers': customers.length,
+        'new_customers': customers.where((c) {
+          final created = c['created_at']?.toString();
+          if (created == null) return false;
+          final createdDate = DateTime.parse(created.split(' ')[0]);
+          return createdDate.isAfter(DateTime.now().subtract(const Duration(days: 30)));
+        }).length,
+        'returning_customers': customers.length,
+      };
+    } on DioException catch (e) {
+      return {
+        'total_customers': 0,
+        'new_customers': 0,
+        'returning_customers': 0,
+      };
+    } finally {
+      _setAuthHeader(_token);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTopSellingProducts({int limit = 10}) async {
+    try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
+      final response = await _dio.get(
+        'products',
+        queryParameters: {
+          'searchCriteria[pageSize]': limit,
+          'searchCriteria[sortOrders][0][field]': 'created_at',
+          'searchCriteria[sortOrders][0][direction]': 'DESC',
+        },
+      );
+
+      final products = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+
+      return products.map((product) => {
+        'id': product['id'],
+        'name': product['name'],
+        'sku': product['sku'],
+        'price': product['price'],
+        'image': product['media_gallery_entries']?[0]?['file'] ?? '',
+        'qty_sold': 0, // Magento doesn't provide this directly
+      }).toList();
+    } on DioException catch (e) {
+      return [];
+    } finally {
+      _setAuthHeader(_token);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTopCategories({int limit = 5}) async {
+    try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
+      final response = await _dio.get('categories');
+      final categories = List<Map<String, dynamic>>.from(response.data['children_data'] ?? []);
+
+      return categories.take(limit).map((category) => {
+        'id': category['id'],
+        'name': category['name'],
+        'product_count': category['product_count'] ?? 0,
+      }).toList();
+    } on DioException catch (e) {
+      return [];
+    } finally {
+      _setAuthHeader(_token);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getProductRatings() async {
+    try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
+      final response = await _dio.get(
+        'reviews',
+        queryParameters: {
+          'searchCriteria[pageSize]': 20,
+        },
+      );
+
+      final reviews = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+
+      // Calculate average ratings per product
+      final productRatings = <String, List<int>>{};
+      for (var review in reviews) {
+        final productSku = review['extension_attributes']?['sku'] ?? review['product_sku'];
+        final rating = review['ratings']?[0]?['value'] ?? review['rating_votes']?[0]?['value'];
+
+        if (productSku != null && rating != null) {
+          if (productRatings.containsKey(productSku)) {
+            productRatings[productSku]!.add(int.tryParse(rating.toString()) ?? 0);
+          } else {
+            productRatings[productSku] = [int.tryParse(rating.toString()) ?? 0];
+          }
+        }
+      }
+
+      return productRatings.entries.map((entry) => {
+        'product_sku': entry.key,
+        'average_rating': entry.value.isEmpty ? 0 : entry.value.reduce((a, b) => a + b) / entry.value.length,
+        'total_reviews': entry.value.length,
+      }).toList();
+    } on DioException catch (e) {
+      return [];
+    } finally {
+      _setAuthHeader(_token);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getLatestReviews({int limit = 10}) async {
+    try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
+      final response = await _dio.get(
+        'reviews',
+        queryParameters: {
+          'searchCriteria[pageSize]': limit,
+          'searchCriteria[sortOrders][0][field]': 'created_at',
+          'searchCriteria[sortOrders][0][direction]': 'DESC',
+        },
+      );
+
+      final reviews = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+
+      return reviews.map((review) => {
+        'id': review['id'],
+        'title': review['title'],
+        'detail': review['detail'],
+        'nickname': review['nickname'],
+        'created_at': review['created_at'],
+        'rating': review['ratings']?[0]?['value'] ?? review['rating_votes']?[0]?['value'] ?? 0,
+        'product_sku': review['extension_attributes']?['sku'] ?? review['product_sku'],
+      }).toList();
+    } on DioException catch (e) {
+      return [];
+    } finally {
+      _setAuthHeader(_token);
+    }
+  }
+
+  Future<Map<String, dynamic>> getCustomerInfo() async {
+    try {
+      // Use customer endpoint for basic info
+      final response = await _dio.get('customers/me');
+      final customerData = Map<String, dynamic>.from(response.data);
+
+      return {
+        'id': customerData['id'],
+        'email': customerData['email'],
+        'firstname': customerData['firstname'],
+        'lastname': customerData['lastname'],
+        'phone': customerData['telephone'] ?? customerData['phone'],
+        'created_at': customerData['created_at'],
+      };
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
     }
   }
 
@@ -270,8 +459,9 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
-        'vendors/products',
+        'products',
         queryParameters: {
           'searchCriteria[pageSize]': pageSize,
           'searchCriteria[currentPage]': currentPage,
@@ -280,6 +470,8 @@ class VendorApiClient {
       return response.data['items'] ?? [];
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
@@ -289,6 +481,7 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final res = await _dio.get(
         'products',
         queryParameters: {
@@ -302,6 +495,8 @@ class VendorApiClient {
       return res.data['items'] ?? [];
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
@@ -310,8 +505,9 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
-        'vendors/reviews',
+        'reviews',
         queryParameters: {
           'searchCriteria[pageSize]': pageSize,
           'searchCriteria[currentPage]': currentPage,
@@ -320,6 +516,8 @@ class VendorApiClient {
       return response.data['items'] ?? [];
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
@@ -329,36 +527,39 @@ class VendorApiClient {
         int pageSize = 20,
         int currentPage = 1,
       }) async {
-    final queryParams = {
-      'searchCriteria[filterGroups][0][filters][0][field]': 'increment_id',
-      'searchCriteria[filterGroups][0][filters][0][value]': '%$searchQuery%',
-      'searchCriteria[filterGroups][0][filters][0][conditionType]': 'like',
-      'searchCriteria[pageSize]': '$pageSize',
-      'searchCriteria[currentPage]': '$currentPage',
-    };
-
-    if (status != null) {
-      queryParams['searchCriteria[filterGroups][1][filters][0][field]'] = 'status';
-      queryParams['searchCriteria[filterGroups][1][filters][0][value]'] = status;
-    }
-
     try {
-      final response = await _dio.get('vendors/orders', queryParameters: queryParams);
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+      final queryParams = {
+        'searchCriteria[filterGroups][0][filters][0][field]': 'increment_id',
+        'searchCriteria[filterGroups][0][filters][0][value]': '%$searchQuery%',
+        'searchCriteria[filterGroups][0][filters][0][conditionType]': 'like',
+        'searchCriteria[pageSize]': '$pageSize',
+        'searchCriteria[currentPage]': '$currentPage',
+      };
+
+      if (status != null) {
+        queryParams['searchCriteria[filterGroups][1][filters][0][field]'] = 'status';
+        queryParams['searchCriteria[filterGroups][1][filters][0][value]'] = status;
+      }
+
+      final response = await _dio.get('orders', queryParameters: queryParams);
       final ordersJson = (response.data['items'] as List?) ?? [];
       return ordersJson.map((json) => MagentoOrder.fromJson(json)).toList();
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
-  /// Simple "all vendor orders" to match older calls
   Future<List<Map<String, dynamic>>> getVendorOrders({
     int currentPage = 1,
     int pageSize = 20,
   }) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
-        'vendors/orders',
+        'orders',
         queryParameters: {
           'searchCriteria[currentPage]': currentPage,
           'searchCriteria[pageSize]': pageSize,
@@ -367,17 +568,20 @@ class VendorApiClient {
       return List<Map<String, dynamic>>.from(response.data['items'] ?? []);
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
   // ==========================
-  // 🛍️ Catalog (public)
+  // 🛍️ CATALOG (Admin token)
   // ==========================
   Future<List<dynamic>> getProducts({
     int pageSize = 50,
     int currentPage = 1,
   }) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'products',
         queryParameters: {
@@ -388,6 +592,8 @@ class VendorApiClient {
       return response.data['items'] ?? [];
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
@@ -396,6 +602,7 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'products',
         queryParameters: {
@@ -409,19 +616,21 @@ class VendorApiClient {
       return response.data['items'] ?? [];
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
   Future<Map<String, dynamic>> getProductLiteBySku({required String sku}) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'products',
         queryParameters: {
           'searchCriteria[filterGroups][0][filters][0][field]': 'sku',
           'searchCriteria[filterGroups][0][filters][0][value]': sku,
           'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
-          'fields':
-          'items[sku,name,type_id,image,media_gallery_entries[file],custom_attributes[attribute_code,value]]',
+          'fields': 'items[sku,name,type_id,image,media_gallery_entries[file],custom_attributes[attribute_code,value]]',
         },
       );
       final items = (response.data['items'] as List?) ?? [];
@@ -431,11 +640,14 @@ class VendorApiClient {
       return Map<String, dynamic>.from(items.first);
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
   Future<MagentoProduct> getProductDetailsBySku(String sku) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'products',
         queryParameters: {
@@ -449,17 +661,19 @@ class VendorApiClient {
       throw Exception('Product with SKU $sku not found.');
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
   // ==========================
-  // 🧑‍💼 Admin endpoints
+  // 🧑‍💼 ADMIN ENDPOINTS (Admin token)
   // ==========================
   Future<List<Map<String, dynamic>>> getCustomersAdmin({
     int currentPage = 1,
     int pageSize = 20,
   }) async {
-    _setAuthHeader(_adminToken);
+    _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
     try {
       final response = await _dio.get(
         'customers/search',
@@ -472,6 +686,8 @@ class VendorApiClient {
       return List<Map<String, dynamic>>.from(data['items'] ?? []);
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
@@ -481,7 +697,7 @@ class VendorApiClient {
     int currentPage = 1,
     int pageSize = 20,
   }) async {
-    _setAuthHeader(_adminToken);
+    _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
     final Map<String, dynamic> queryParameters = {
       'searchCriteria[currentPage]': currentPage,
       'searchCriteria[pageSize]': pageSize,
@@ -507,6 +723,8 @@ class VendorApiClient {
       return List<Map<String, dynamic>>.from(data['items'] ?? []);
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
@@ -514,7 +732,7 @@ class VendorApiClient {
     int currentPage = 1,
     int pageSize = 20,
   }) async {
-    _setAuthHeader(_adminToken);
+    _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
     try {
       final response = await _dio.get(
         'products',
@@ -527,6 +745,8 @@ class VendorApiClient {
       return List<Map<String, dynamic>>.from(data['items'] ?? []);
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
@@ -535,7 +755,7 @@ class VendorApiClient {
     int pageSize = 20,
     int? statusEq,
   }) async {
-    _setAuthHeader(_adminToken);
+    _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
 
     final Map<String, dynamic> qp = {
       'searchCriteria[currentPage]': page,
@@ -564,26 +784,32 @@ class VendorApiClient {
       return ReviewPage(totalCount: total, items: items);
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
   Future<Map<String, dynamic>> getInvoiceById({required int invoiceId}) async {
-    _setAuthHeader(_adminToken);
+    _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
     try {
       final response = await _dio.get('invoices/$invoiceId');
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
   Future<List<dynamic>> getInvoiceComments({required int invoiceId}) async {
-    _setAuthHeader(_adminToken);
+    _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
     try {
       final response = await _dio.get('invoices/$invoiceId/comments');
       return List<dynamic>.from(response.data['items'] ?? []);
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
@@ -592,7 +818,7 @@ class VendorApiClient {
     required String comment,
     required bool isVisibleOnFront,
   }) async {
-    _setAuthHeader(_adminToken);
+    _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
     try {
       await _dio.post(
         'invoices/$invoiceId/comments',
@@ -605,11 +831,13 @@ class VendorApiClient {
       );
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
   Future<List<Map<String, dynamic>>> getAllCategories() async {
-    _setAuthHeader(_adminToken);
+    _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
     try {
       final response = await _dio.get('categories');
       final decodedData = response.data;
@@ -617,13 +845,15 @@ class VendorApiClient {
       return raw.map((e) => Map<String, dynamic>.from(e)).toList();
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
   Future<Map<String, dynamic>> createProductAsAdmin(
       Map<String, dynamic> productData,
       ) async {
-    _setAuthHeader(_adminToken);
+    _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
     try {
       final response = await _dio.post(
         'products',
@@ -632,11 +862,13 @@ class VendorApiClient {
       return response.data;
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
   // ==========================
-  // 📨 Contact (unauthenticated)
+  // 📨 CONTACT (Unauthenticated)
   // ==========================
   Future<void> sendContactMessage({
     required String name,
@@ -657,6 +889,73 @@ class VendorApiClient {
       );
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    }
+  }
+
+  // ==========================
+  // 🔧 HELPER METHODS
+  // ==========================
+  String guessMimeFromName(String filename) {
+    final ext = filename.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      case 'bmp':
+        return 'image/bmp';
+      case 'svg':
+        return 'image/svg+xml';
+      case 'pdf':
+        return 'application/pdf';
+      case 'json':
+        return 'application/json';
+      case 'csv':
+        return 'text/csv';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  String parseMagentoError(Object error) {
+    if (error is DioException) return _handleDioError(error);
+    if (error is SocketException) return 'Network error: ${error.message}';
+    return 'Unexpected error: $error';
+  }
+
+  String get _originFromBase {
+    final uri = Uri.parse(_dio.options.baseUrl);
+    return Uri(
+      scheme: uri.scheme,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+    ).toString().replaceAll(RegExp(r'/$'), '');
+  }
+
+  String get mediaBaseUrlForVendor => '$_originFromBase/media/vendor';
+  String get mediaBaseUrlForCatalog => '$_originFromBase/media/catalog/product';
+
+  String productImageUrl(String? filePath, {bool vendor = false}) {
+    if (filePath == null || filePath.isEmpty) return '';
+    final cleaned = filePath.startsWith('/') ? filePath : '/$filePath';
+    final base = vendor ? mediaBaseUrlForVendor : mediaBaseUrlForCatalog;
+    return '$base$cleaned';
+  }
+
+  Future<bool> testConnection() async {
+    try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+      final response = await _dio.get('');
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 }

@@ -1,6 +1,5 @@
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-
 import '../../services/api_client.dart';
 import '../Translation/Language.dart';
 import '../admin/admin_news_screen.dart';
@@ -11,14 +10,16 @@ import '../pdf/print_pdf_screen.dart';
 import '../profile/edit_profile_screen.dart';
 import 'nav_key.dart';
 
-/// ---- theme constants ----
+/// ---- theme constants (delete if you already have these) ----
+
 const kIconGray = Color(0xFF8E9196);
 const kTextGray = Color(0xFF2E2F32);
 const kDividerGray = Color(0xFFE7E8EA);
 const kDrawerActive = Color(0xFFF4F5F7);
 const kMutedOrange = Color(0xFFFF8A00);
 const kRedLogout = Color(0xFFE64949);
-/// -------------------------
+
+/// -----------------------------------------------------------
 
 class KolshyDrawer extends StatefulWidget {
   final NavKey selected;
@@ -37,10 +38,6 @@ class KolshyDrawer extends StatefulWidget {
 class _KolshyDrawerState extends State<KolshyDrawer> {
   bool _productOpen = false;
 
-  // vendor flag
-  bool _isVendor = false;
-  bool _loadingVendor = true;
-
   static const _iconBase = <NavKey, String>{
     NavKey.dashboard: 'dashboard',
     NavKey.orders: 'orders',
@@ -54,46 +51,7 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
   };
 
   @override
-  void initState() {
-    super.initState();
-    _productOpen = {
-      NavKey.productAdd,
-      NavKey.productList,
-      NavKey.productDrafts,
-    }.contains(widget.selected);
-    _loadVendorFlag();
-  }
-
-  Future<void> _loadVendorFlag() async {
-    try {
-      final VendorProfile? me = await VendorApiClient().getVendorInfo();
-      bool vendor = false;
-      if (me != null) {
-        // Check vendor status using the typed properties
-        // You might need to add these properties to your VendorProfile model
-        // or use a different approach to determine vendor status
-        vendor = me.customerId != null && me.customerId! > 0;
-        // If you have specific vendor flags in your model, use them instead:
-        // vendor = me.isVendor == true || me.isSeller == true || (me.sellerId ?? 0) != 0;
-      }
-      if (!mounted) return;
-      setState(() {
-        _isVendor = vendor;
-        _loadingVendor = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isVendor = false;
-        _loadingVendor = false;
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
-
     return Column(
       children: [
         Padding(
@@ -119,103 +77,64 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
             children: [
               _DrawerItem.asset(
                 base: _iconBase[NavKey.dashboard]!,
-                label: t?.dashboard ?? 'Dashboard',
+                label: AppLocalizations.of(context)!.dashboard,
                 active: widget.selected == NavKey.dashboard,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  widget.onSelect(NavKey.dashboard);
-                },
+                onTap: () => widget.onSelect(NavKey.dashboard),
               ),
-
-              if (!_loadingVendor && _isVendor)
-                _DrawerItem.asset(
-                  base: _iconBase[NavKey.orders]!,
-                  label: t?.orders ?? 'Orders',
-                  active: widget.selected == NavKey.orders,
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    widget.onSelect(NavKey.orders);
-                  },
-                ),
-
-              if (!_loadingVendor && _isVendor)
-                _Expandable(
-                  label: t?.product ?? 'Product',
-                  base: 'product',
-                  open: _productOpen,
-                  onTap: () => setState(() => _productOpen = !_productOpen),
-                  children: [
-                    _Child(
-                      label: t?.addProduct ?? 'Add Product',
-                      active: widget.selected == NavKey.productAdd,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        widget.onSelect(NavKey.productAdd);
-                      },
-                    ),
-                    _Child(
-                      label: t?.myProductList ?? 'My Products',
-                      active: widget.selected == NavKey.productList,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        widget.onSelect(NavKey.productList);
-                      },
-                    ),
-                    _Child(
-                      label: t?.draftProduct ?? 'Drafts',
-                      active: widget.selected == NavKey.productDrafts,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        widget.onSelect(NavKey.productDrafts);
-                      },
-                    ),
-                  ],
-                ),
-
+              _DrawerItem.asset(
+                base: _iconBase[NavKey.orders]!,
+                label: AppLocalizations.of(context)!.orders,
+                active: widget.selected == NavKey.orders,
+                onTap: () => widget.onSelect(NavKey.orders),
+              ),
+              _Expandable(
+                label: AppLocalizations.of(context)!.product,
+                base: 'product',
+                open: _productOpen,
+                onTap: () => setState(() => _productOpen = !_productOpen),
+                children: [
+                  _Child(
+                    label: AppLocalizations.of(context)!.addProduct,
+                    active: widget.selected == NavKey.productAdd,
+                    onTap: () => widget.onSelect(NavKey.productAdd),
+                  ),
+                  _Child(
+                    label: AppLocalizations.of(context)!.myProductList,
+                    active: widget.selected == NavKey.productList,
+                    onTap: () => widget.onSelect(NavKey.productList),
+                  ),
+                  _Child(
+                    label: AppLocalizations.of(context)!.draftProduct,
+                    active: widget.selected == NavKey.productDrafts,
+                    onTap: () => widget.onSelect(NavKey.productDrafts),
+                  ),
+                ],
+              ),
               _DrawerItem.asset(
                 base: _iconBase[NavKey.analytics]!,
-                label: t?.customerAnalytics ?? 'Customer Analytics',
+                label: AppLocalizations.of(context)!.customerAnalytics,
                 active: widget.selected == NavKey.analytics,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  widget.onSelect(NavKey.analytics);
-                },
+                onTap: () => widget.onSelect(NavKey.analytics),
               ),
-
-              if (!_loadingVendor && _isVendor)
-                _DrawerItem.asset(
-                  base: _iconBase[NavKey.transactions]!,
-                  label: t?.transactions ?? 'Transactions',
-                  active: widget.selected == NavKey.transactions,
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    widget.onSelect(NavKey.transactions);
-                  },
-                ),
-
-              if (!_loadingVendor && _isVendor)
-                _DrawerItem.asset(
-                  base: _iconBase[NavKey.revenue]!,
-                  label: t?.revenue ?? 'Revenue',
-                  trailing: const _RevenueBadge(6),
-                  active: widget.selected == NavKey.revenue,
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    widget.onSelect(NavKey.revenue);
-                  },
-                ),
-
-              if (!_loadingVendor && _isVendor)
-                _DrawerItem.asset(
-                  base: _iconBase[NavKey.review]!,
-                  label: t?.review ?? 'Review',
-                  active: widget.selected == NavKey.review,
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    widget.onSelect(NavKey.review);
-                  },
-                ),
-
+              _DrawerItem.asset(
+                base: _iconBase[NavKey.transactions]!,
+                label: AppLocalizations.of(context)!.transactions,
+                active: widget.selected == NavKey.transactions,
+                onTap: () => widget.onSelect(NavKey.transactions),
+              ),
+              _DrawerItem.asset(
+                base: _iconBase[NavKey.revenue]!,
+                label: AppLocalizations.of(context)!.revenue,
+                trailing: const _RevenueBadge(6),
+                active: widget.selected == NavKey.revenue,
+                onTap: () => widget.onSelect(NavKey.revenue),
+              ),
+              _DrawerItem.asset(
+                base: _iconBase[NavKey.review]!,
+                label: AppLocalizations.of(context)!.review,
+                active: widget.selected == NavKey.review,
+                onTap: () => widget.onSelect(NavKey.review),
+              ),
               const SizedBox(height: 12),
               const Divider(color: kDividerGray, height: 24),
 
@@ -226,20 +145,19 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
               InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {},
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                   child: Row(
                     children: [
                       Icon(Icons.download_for_offline_outlined,
                           color: Colors.black45),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Install main application',
+                          AppLocalizations.of(context)!.installmainapplication,
                           style: TextStyle(
-                            color: Colors.black45,
-                            fontWeight: FontWeight.w600,
-                          ),
+                              color: Colors.black45,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -265,6 +183,7 @@ class _AssetIcon extends StatelessWidget {
     required this.active,
     this.size = 22,
   });
+
   @override
   Widget build(BuildContext context) {
     final path = 'assets/icons/${base}_${active ? 'on' : 'off'}.png';
@@ -375,7 +294,8 @@ class _Expandable extends StatelessWidget {
                 AnimatedRotation(
                   turns: open ? .5 : 0,
                   duration: const Duration(milliseconds: 160),
-                  child: const Icon(Icons.expand_more_rounded, color: kIconGray),
+                  child:
+                  const Icon(Icons.expand_more_rounded, color: kIconGray),
                 ),
               ],
             ),
@@ -402,6 +322,7 @@ class _Child extends StatelessWidget {
     required this.active,
     required this.onTap,
   });
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -438,6 +359,7 @@ class _Child extends StatelessWidget {
 class _RevenueBadge extends StatelessWidget {
   final int count;
   const _RevenueBadge(this.count);
+
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -457,55 +379,10 @@ class _RevenueBadge extends StatelessWidget {
   );
 }
 
-class _ProfileButton extends StatefulWidget {
+class _ProfileButton extends StatelessWidget {
   final ValueChanged<NavKey> onSelect;
+
   const _ProfileButton({required this.onSelect});
-
-  @override
-  State<_ProfileButton> createState() => _ProfileButtonState();
-}
-
-class _ProfileButtonState extends State<_ProfileButton> {
-  String? _displayName;     // e.g. "Jane Doe"
-  String? _storeName;       // e.g. "Kolshy Store"
-  String? _avatarUrl;       // optional, if you store a URL in custom_attributes
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfile();
-  }
-
-  Future<void> _loadProfile() async {
-    try {
-      final VendorProfile? me = await VendorApiClient().getVendorInfo();
-      if (me != null) {
-        // Use typed properties instead of map access
-        final first = ''; // You'll need to add firstname/lastname to VendorProfile
-        final last = '';  // or create a separate method to get user info
-        final email = ''; // For now, using empty strings as placeholders
-
-        // For now, using company name as display name
-        final display = me.companyName ?? 'Vendor';
-        final storeName = me.companyName ?? 'Vendor Store';
-
-        if (!mounted) return;
-        setState(() {
-          _displayName = display;
-          _storeName = storeName;
-          _avatarUrl = null; // Set this if you have avatar URL in VendorProfile
-          _loading = false;
-        });
-      } else {
-        if (!mounted) return;
-        setState(() => _loading = false);
-      }
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -514,68 +391,38 @@ class _ProfileButtonState extends State<_ProfileButton> {
       onTap: () => showDialog(
         context: context,
         barrierColor: Colors.black.withOpacity(.25),
-        builder: (_) => _ProfileMenuDialog(onSelect: widget.onSelect),
+        builder: (_) => _ProfileMenuDialog(onSelect: onSelect),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         child: Row(
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundImage: _avatarUrl != null
-                  ? NetworkImage(_avatarUrl!)
-                  : const AssetImage('assets/avatar_placeholder.jpg') as ImageProvider,
-              backgroundColor: const Color(0xFFEDEDED),
+              backgroundImage: AssetImage('assets/avatar_placeholder.jpg'),
+              backgroundColor: Color(0xFFEDEDED),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
-              child: _loading
-                  ? const _NameSkeleton()
-                  : Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    _displayName ?? '—',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: kTextGray,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _storeName ?? 'Vendor',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.black54,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                    ),
-                  ),
+                  Text('Annette Black',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, color: kTextGray)),
+                  SizedBox(height: 2),
+                  Text('Kolshy Store',
+                      style: TextStyle(
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12)),
                 ],
               ),
             ),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: kIconGray),
+            Icon(Icons.keyboard_arrow_down_rounded, color: kIconGray),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _NameSkeleton extends StatelessWidget {
-  const _NameSkeleton();
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(height: 12, width: 120, color: Color(0xFFEDEDED)),
-        const SizedBox(height: 6),
-        Container(height: 10, width: 90, color: Color(0xFFF1F1F1)),
-      ],
     );
   }
 }
@@ -588,131 +435,132 @@ class _ProfileMenuDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-
     return Dialog(
-        elevation: 20,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        backgroundColor: Colors.white,
-        shadowColor: Colors.black.withOpacity(.25),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _MenuRow(
-                  icon: Icons.person_outline,
-                  label: t?.profileSettings ?? 'Profile Settings',
-                  onTap: () {
-                    Navigator.pop(context); // close dialog
-                    onSelect(NavKey.profileSettings);
-                  },
-                ),
+      elevation: 20,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      backgroundColor: Colors.white,
+      shadowColor: Colors.black.withOpacity(.25),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _MenuRow(
+                icon: Icons.person_outline,
+                label: AppLocalizations.of(context)!.profileSettings,
+                onTap: () {
+                  Navigator.pop(context);
+                  onSelect(NavKey.profileSettings);
+                },
+              ),
 
-                const _DividerLine(),
+              const _DividerLine(),
 
-                _MenuRow(
-                  icon: Icons.picture_as_pdf_outlined,
-                  label: t?.printPDF ?? 'Print PDF',
-                  onTap: () {
-                    Navigator.pop(context);
-                    onSelect(NavKey.printPdf);
-                  },
-                ),
-                _MenuRow(
-                  icon: Icons.article_outlined,
-                  label: t?.adminNews ?? 'Admin News',
-                  onTap: () {
-                    Navigator.pop(context);
-                    onSelect(NavKey.adminNews);
-                  },
-                ),
-                _MenuRow(
-                  icon: Icons.translate_outlined,
-                  label: t?.language ?? 'Language',
-                  onTap: () {
-                    Navigator.pop(context);
-                    onSelect(NavKey.language);
-                  },
-                ),
+              _MenuRow(
+                icon: Icons.picture_as_pdf_outlined,
+                label: AppLocalizations.of(context)!.printPDF,
+                onTap: () {
+                  Navigator.pop(context);
+                  onSelect(NavKey.printPdf);
+                },
+              ),
+              _MenuRow(
+                icon: Icons.article_outlined,
+                label: AppLocalizations.of(context)!.adminNews,
+                onTap: () {
+                  Navigator.pop(context);
+                  onSelect(NavKey.adminNews);
+                },
+              ),
+              _MenuRow(
+                icon: Icons.translate_outlined,
+                label: AppLocalizations.of(context)!.language,
+                onTap: () {
+                  Navigator.pop(context);
+                  onSelect(NavKey.language);
+                },
+              ),
 
-                const _DividerLine(),
-                _MenuRow(
-                  icon: Icons.support_agent_outlined,
-                  label: t?.askForSupport ?? 'Ask for Support',
-                  onTap: () {
-                    Navigator.pop(context);
-                    onSelect(NavKey.askadmin);
-                  },
-                ),
-                InkWell(
-                  onTap: () async {
-                    final bool? confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (BuildContext context2) {
-                        return AlertDialog(
-                          title: Text(t?.logout ?? 'Logout'),
-                          content: Text(t?.confirmLogout ?? 'Are you sure you want to log out?'),
-                          actions: <Widget>[
-                            TextButton(
-                              onPressed: () => Navigator.of(context2).pop(false),
-                              child: Text(t?.cancel ?? 'Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context2).pop(true),
-                              child: Text(t?.logout ?? 'Logout'),
-                            ),
-                          ],
+              const _DividerLine(),
+              _MenuRow(
+                icon: Icons.support_agent_outlined,
+                label: AppLocalizations.of(context)!.askForSupport,
+                onTap: () {
+                  Navigator.pop(context);
+                  onSelect(NavKey.askadmin);
+                },
+              ),
+
+              // Destructive action
+              InkWell(
+                onTap: () async {
+                  final bool? confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context2) {
+                      return AlertDialog(
+                        title: Text(t?.logout ?? 'Logout'),
+                        content: Text(t?.confirmLogout ?? 'Are you sure you want to log out?'),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.of(context2).pop(false),
+                            child: Text(t?.cancel ?? 'Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context2).pop(true),
+                            child: Text(t?.logout ?? 'Logout'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                  if (confirm == true) {
+                    try {
+                      await VendorApiClient().logout();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                              (route) => false,
                         );
-                      },
-                    );
-                    if (confirm == true) {
-                      try {
-                        await VendorApiClient().logout();
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                                (route) => false,
-                          );
 
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(t?.logoutSuccessful ?? 'Logged out successfully'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        });
-                      } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('${t?.logoutFailed ?? 'Logout failed'}: $e'),
-                            backgroundColor: Colors.red,
+                            content: Text(t?.logoutSuccessful ?? 'Logged out successfully'),
+                            backgroundColor: Colors.green,
                           ),
                         );
-                      }
+                      });
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${t?.logoutFailed ?? 'Logout failed'}: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
                     }
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-                    child: Text(
-                      t?.logout ?? 'Logout',
-                      style: const TextStyle(
-                        color: kRedLogout,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
+                  }
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+                  child: Text(
+                    t?.logout ?? 'Logout',
+                    style: const TextStyle(
+                      color: kRedLogout,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+      ),
     );
   }
 }
@@ -756,6 +604,7 @@ class _MenuRow extends StatelessWidget {
 
 class _DividerLine extends StatelessWidget {
   const _DividerLine();
+
   @override
   Widget build(BuildContext context) {
     return const Padding(
