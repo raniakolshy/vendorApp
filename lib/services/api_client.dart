@@ -626,7 +626,6 @@ class VendorApiClient {
   }) async {
     try {
       final vendorId = await getVendorId();
-
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'products',
