@@ -67,11 +67,17 @@ class VendorApiClient {
   Future<int> getVendorId() async {
     if (_vendorId != null) return _vendorId!;
 
-    final profile = await getVendorProfile();
-    _vendorId = profile.customerId;
-    return _vendorId!;
+    try {
+      final profile = await getVendorProfile();
+      _vendorId = profile.customerId;
+      if (_vendorId == null) {
+        throw Exception('Vendor ID not found in profile');
+      }
+      return _vendorId!;
+    } catch (e) {
+      throw Exception('Failed to get vendor ID: $e');
+    }
   }
-  // Centralized error parsing (also exposed via parseMagentoError)
   String _handleDioError(DioException e) {
     if (e.response != null) {
       final data = e.response!.data;
@@ -91,7 +97,6 @@ class VendorApiClient {
   // ==========================
   Future<String> loginVendor(String email, String password) async {
     try {
-      // Use customer login endpoint
       final response = await _dio.post(
         'integration/customer/token',
         data: {"username": email, "password": password},
@@ -194,13 +199,8 @@ class VendorApiClient {
 
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
-      // Get vendor ID first
       final vendorProfile = await getVendorProfile();
       final vendorId = vendorProfile.customerId;
-
-      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
-
-      // Get orders for this specific vendor
       final ordersResponse = await _dio.get(
         'orders',
         queryParameters: {
@@ -214,14 +214,11 @@ class VendorApiClient {
 
       final orders = ordersResponse.data['items'] ?? [];
       final totalOrders = ordersResponse.data['total_count'] ?? 0;
-
-      // Calculate total revenue for this vendor
       double totalRevenue = 0;
       for (var order in orders) {
         totalRevenue += double.tryParse(order['grand_total']?.toString() ?? '0') ?? 0;
       }
 
-      // Get products for this vendor
       final productsResponse = await _dio.get(
         'products',
         queryParameters: {
@@ -232,8 +229,6 @@ class VendorApiClient {
         },
       );
       final totalProducts = productsResponse.data['total_count'] ?? 0;
-
-      // Get pending orders for this vendor
       final pendingOrdersResponse = await _dio.get(
         'orders',
         queryParameters: {
@@ -267,7 +262,8 @@ class VendorApiClient {
 
   Future<List<Map<String, dynamic>>> getSalesHistory({int days = 30}) async {
     try {
-      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+      // REMOVED: This line caused the API to use the admin token instead of the user's token.
+      // _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
 
       final now = DateTime.now();
       final startDate = now.subtract(Duration(days: days));
@@ -310,8 +306,6 @@ class VendorApiClient {
 
   Future<Map<String, dynamic>> getCustomerBreakdown() async {
     try {
-      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
-
       final response = await _dio.get(
         'customers/search',
         queryParameters: {
@@ -320,8 +314,6 @@ class VendorApiClient {
       );
 
       final customers = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
-
-      // Simple breakdown - you can enhance this based on customer attributes
       return {
         'total_customers': customers.length,
         'new_customers': customers.where((c) {
@@ -345,8 +337,6 @@ class VendorApiClient {
 
   Future<List<Map<String, dynamic>>> getTopSellingProducts({int limit = 10}) async {
     try {
-      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
-
       final response = await _dio.get(
         'products',
         queryParameters: {
@@ -357,14 +347,13 @@ class VendorApiClient {
       );
 
       final products = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
-
       return products.map((product) => {
         'id': product['id'],
         'name': product['name'],
         'sku': product['sku'],
         'price': product['price'],
         'image': product['media_gallery_entries']?[0]?['file'] ?? '',
-        'qty_sold': 0, // Magento doesn't provide this directly
+        'qty_sold': 0,
       }).toList();
     } on DioException catch (e) {
       return [];
@@ -375,16 +364,10 @@ class VendorApiClient {
 
   Future<List<Map<String, dynamic>>> getTopCategories({int limit = 5}) async {
     try {
-      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
-
       final response = await _dio.get('categories');
-      final categories = List<Map<String, dynamic>>.from(response.data['children_data'] ?? []);
-
-      return categories.take(limit).map((category) => {
-        'id': category['id'],
-        'name': category['name'],
-        'product_count': category['product_count'] ?? 0,
-      }).toList();
+      final decodedData = response.data;
+      final raw = (decodedData['children_data'] ?? decodedData['items'] ?? []) as List;
+      return raw.map((e) => Map<String, dynamic>.from(e)).toList();
     } on DioException catch (e) {
       return [];
     } finally {
@@ -394,8 +377,6 @@ class VendorApiClient {
 
   Future<List<Map<String, dynamic>>> getProductRatings() async {
     try {
-      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
-
       final response = await _dio.get(
         'reviews',
         queryParameters: {
@@ -404,8 +385,6 @@ class VendorApiClient {
       );
 
       final reviews = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
-
-      // Calculate average ratings per product
       final productRatings = <String, List<int>>{};
       for (var review in reviews) {
         final productSku = review['extension_attributes']?['sku'] ?? review['product_sku'];
@@ -434,8 +413,6 @@ class VendorApiClient {
 
   Future<List<Map<String, dynamic>>> getLatestReviews({int limit = 10}) async {
     try {
-      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
-
       final response = await _dio.get(
         'reviews',
         queryParameters: {
@@ -465,7 +442,6 @@ class VendorApiClient {
 
   Future<Map<String, dynamic>> getCustomerInfo() async {
     try {
-      // Use customer endpoint for basic info
       final response = await _dio.get('customers/me');
       final customerData = Map<String, dynamic>.from(response.data);
 
@@ -489,7 +465,6 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
-      // First get vendor profile to get the vendor ID
       final vendorProfile = await getVendorProfile();
 
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
@@ -949,7 +924,29 @@ class VendorApiClient {
       throw Exception(_handleDioError(e));
     }
   }
+  Future<void> debugProductFields() async {
+    try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+      final response = await _dio.get(
+        'products',
+        queryParameters: {
+          'searchCriteria[pageSize]': 1,
+          'fields': 'items[custom_attributes]'
+        },
+      );
 
+      final product = response.data['items'][0];
+      print('Product fields: ${product.keys}');
+      if (product['custom_attributes'] != null) {
+        print('Custom attributes:');
+        for (var attr in product['custom_attributes']) {
+          print('  ${attr['attribute_code']}: ${attr['value']}');
+        }
+      }
+    } catch (e) {
+      print('Debug error: $e');
+    }
+  }
   // ==========================
   // 🔧 HELPER METHODS
   // ==========================
@@ -1175,6 +1172,7 @@ class MagentoReview {
       ratings: _ratings(),
     );
   }
+
 }
 
 
