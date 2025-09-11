@@ -550,13 +550,13 @@ Map<String, Map<int, double>> _convertToProductRatings(dynamic ratingsData) {
     result['quality'] = qualityRatings;
   }
 
-  // Ensure we have all expected categories with default values
   result['price'] = result['price'] ?? {5: 0.0, 4: 0.0, 3: 0.0, 2: 0.0, 1: 0.0};
   result['value'] = result['value'] ?? {5: 0.0, 4: 0.0, 3: 0.0, 2: 0.0, 1: 0.0};
   result['quality'] = result['quality'] ?? {5: 0.0, 4: 0.0, 3: 0.0, 2: 0.0, 1: 0.0};
 
   return result;
 }
+
 // =============================================================
 // All of the nested classes moved outside of the State class
 // =============================================================
