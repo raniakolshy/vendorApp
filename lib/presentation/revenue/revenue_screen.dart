@@ -152,7 +152,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
       buckets[key]!.cost += discount.abs();
     }
 
-    // Stable sort by a synthetic date index (try parse month/day back)
     final keys = buckets.keys.toList();
     keys.sort((a, b) => _syntheticKeyOrder(a).compareTo(_syntheticKeyOrder(b)));
 
@@ -161,18 +160,16 @@ class _RevenueScreenState extends State<RevenueScreen> {
         .toList(growable: false);
   }
 
-  // Fetch helper: orders for last N days
   Future<List<Map<String, dynamic>>> _fetchOrdersForLast({required int days}) async {
     final now = DateTime.now();
     final from = now.subtract(Duration(days: days));
-    return VendorApiClient().getOrdersAdmin(
+    return VendorApiClient().getVendorOrders(
       dateFrom: from,
       dateTo: now,
       pageSize: 200,
     );
   }
 
-  // Fetch helper: orders for current calendar year
   Future<List<Map<String, dynamic>>> _fetchOrdersForThisYear() async {
     final now = DateTime.now();
     final from = DateTime(now.year, 1, 1);

@@ -379,10 +379,38 @@ class _RevenueBadge extends StatelessWidget {
   );
 }
 
-class _ProfileButton extends StatelessWidget {
+class _ProfileButton extends StatefulWidget {
   final ValueChanged<NavKey> onSelect;
 
   const _ProfileButton({required this.onSelect});
+
+  @override
+  State<_ProfileButton> createState() => _ProfileButtonState();
+}
+
+class _ProfileButtonState extends State<_ProfileButton> {
+  VendorProfile? _vendorProfile;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVendorProfile();
+  }
+
+  Future<void> _loadVendorProfile() async {
+    try {
+      final profile = await VendorApiClient().getVendorProfile();
+      setState(() {
+        _vendorProfile = profile;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -391,35 +419,45 @@ class _ProfileButton extends StatelessWidget {
       onTap: () => showDialog(
         context: context,
         barrierColor: Colors.black.withOpacity(.25),
-        builder: (_) => _ProfileMenuDialog(onSelect: onSelect),
+        builder: (_) => _ProfileMenuDialog(onSelect: widget.onSelect),
       ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         child: Row(
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundImage: AssetImage('assets/avatar_placeholder.jpg'),
-              backgroundColor: Color(0xFFEDEDED),
+              backgroundImage: _isLoading
+                  ? const AssetImage('assets/avatar_placeholder.jpg')
+                  : (_vendorProfile?.logoUrl != null && _vendorProfile!.logoUrl!.isNotEmpty
+                  ? NetworkImage(VendorApiClient().productImageUrl(_vendorProfile!.logoUrl, vendor: true))
+                  : const AssetImage('assets/avatar_placeholder.jpg')) as ImageProvider,
+              backgroundColor: const Color(0xFFEDEDED),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Annette Black',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w700, color: kTextGray)),
-                  SizedBox(height: 2),
-                  Text('Kolshy Store',
-                      style: TextStyle(
-                          color: Colors.black54,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12)),
+                  Text(
+                    _isLoading
+                        ? 'Loading...'
+                        : '${_vendorProfile?.companyName ?? (_vendorProfile != null ? '${_vendorProfile!.firstname} ${_vendorProfile!.lastname}' : 'User')}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, color: kTextGray),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _isLoading ? '' : 'Kolshy Vendor',
+                    style: const TextStyle(
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12),
+                  ),
                 ],
               ),
             ),
-            Icon(Icons.keyboard_arrow_down_rounded, color: kIconGray),
+            const Icon(Icons.keyboard_arrow_down_rounded, color: kIconGray),
           ],
         ),
       ),

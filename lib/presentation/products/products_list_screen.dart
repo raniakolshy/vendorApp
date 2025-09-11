@@ -199,9 +199,15 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       final productsData = await _VendorApiClient.getProducts();
       _allProducts = productsData.map((p) => Product.fromMagentoProduct(p)).toList();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load products: $e')),
-      );
+      if (e.toString().contains('vendor') || e.toString().contains('Vendor ID')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Vendor authentication issue. Please log in again.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load products: $e')),
+        );
+      }
     } finally {
       setState(() => _isLoading = false);
     }

@@ -90,11 +90,27 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _checkAuthStatus() async {
-    final isLoggedIn = VendorApiClient().hasToken;
-    setState(() {
-      _isLoggedIn = isLoggedIn;
-      _isLoading = false;
-    });
+    try {
+      final hasToken = VendorApiClient().hasToken;
+      if (hasToken) {
+        await VendorApiClient().getVendorProfile();
+        setState(() {
+          _isLoggedIn = true;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoggedIn = false;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      await VendorApiClient.removeToken();
+      setState(() {
+        _isLoggedIn = false;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -110,6 +126,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _isLoggedIn ? const Home() : const WelcomeScreen();
   }
 }
+
 
 class Home extends StatefulWidget {
   const Home({super.key});

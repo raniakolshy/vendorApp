@@ -56,7 +56,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
 
   Future<void> _refreshFromServer() async {
     setState(() {
-      _loading = false; // allow fetchNextPage() to run
+      _loading = false;
       _page = 1;
       _totalCount = 0;
       _allReviews.clear();

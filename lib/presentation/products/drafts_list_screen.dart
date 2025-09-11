@@ -129,7 +129,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
   Future<void> _loadDrafts() async {
     setState(() => _isLoading = true);
     try {
-      // Corrected call to not pass a page parameter
+      // Use the vendor-specific method
       final products = await _VendorApiClient.getDraftProducts();
       _all = products.map((product) => _Draft.fromMagentoProduct(product)).toList();
     } catch (e) {

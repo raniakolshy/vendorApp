@@ -7,7 +7,7 @@ class VendorApiClient {
   static final VendorApiClient _instance = VendorApiClient._internal();
   factory VendorApiClient() => _instance;
   VendorApiClient._internal();
-
+  int? _vendorId;
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: 'https://kolshy.ae/rest/V1/',
@@ -31,6 +31,15 @@ class VendorApiClient {
   Future<void> init() async {
     _token = await _getToken();
     _setAuthHeader(_token);
+
+    if (_token != null && _token!.isNotEmpty) {
+      try {
+        final profile = await getVendorProfile();
+        _vendorId = profile.customerId;
+      } catch (e) {
+        print('Failed to get vendor ID: $e');
+      }
+    }
   }
 
   static Future<void> saveToken(String token) async {
@@ -55,7 +64,13 @@ class VendorApiClient {
       _dio.options.headers.remove('Authorization');
     }
   }
+  Future<int> getVendorId() async {
+    if (_vendorId != null) return _vendorId!;
 
+    final profile = await getVendorProfile();
+    _vendorId = profile.customerId;
+    return _vendorId!;
+  }
   // Centralized error parsing (also exposed via parseMagentoError)
   String _handleDioError(DioException e) {
     if (e.response != null) {
@@ -179,10 +194,19 @@ class VendorApiClient {
 
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
+      // Get vendor ID first
+      final vendorProfile = await getVendorProfile();
+      final vendorId = vendorProfile.customerId;
+
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
+      // Get orders for this specific vendor
       final ordersResponse = await _dio.get(
         'orders',
         queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
           'searchCriteria[pageSize]': 1,
           'searchCriteria[currentPage]': 1,
         },
@@ -191,27 +215,33 @@ class VendorApiClient {
       final orders = ordersResponse.data['items'] ?? [];
       final totalOrders = ordersResponse.data['total_count'] ?? 0;
 
-      // Calculate total revenue
+      // Calculate total revenue for this vendor
       double totalRevenue = 0;
       for (var order in orders) {
         totalRevenue += double.tryParse(order['grand_total']?.toString() ?? '0') ?? 0;
       }
 
-      // Get total products
+      // Get products for this vendor
       final productsResponse = await _dio.get(
         'products',
         queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
           'searchCriteria[pageSize]': 1,
         },
       );
       final totalProducts = productsResponse.data['total_count'] ?? 0;
 
-      // Get pending orders count
+      // Get pending orders for this vendor
       final pendingOrdersResponse = await _dio.get(
         'orders',
         queryParameters: {
-          'searchCriteria[filterGroups][0][filters][0][field]': 'status',
-          'searchCriteria[filterGroups][0][filters][0][value]': 'pending',
+          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
+          'searchCriteria[filterGroups][1][filters][0][field]': 'status',
+          'searchCriteria[filterGroups][1][filters][0][value]': 'pending',
           'searchCriteria[pageSize]': 1,
         },
       );
@@ -459,10 +489,16 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
+      // First get vendor profile to get the vendor ID
+      final vendorProfile = await getVendorProfile();
+
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'products',
         queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][0][filters][0][value]': vendorProfile.customerId,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
           'searchCriteria[pageSize]': pageSize,
           'searchCriteria[currentPage]': currentPage,
         },
@@ -553,14 +589,21 @@ class VendorApiClient {
   }
 
   Future<List<Map<String, dynamic>>> getVendorOrders({
+    DateTime? dateFrom,
+    DateTime? dateTo,
     int currentPage = 1,
     int pageSize = 20,
   }) async {
     try {
+      final vendorId = await getVendorId();
+
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'orders',
         queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
           'searchCriteria[currentPage]': currentPage,
           'searchCriteria[pageSize]': pageSize,
         },
@@ -581,10 +624,15 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
+      final vendorId = await getVendorId();
+
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'products',
         queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
           'searchCriteria[pageSize]': pageSize,
           'searchCriteria[currentPage]': currentPage,
         },
@@ -602,6 +650,8 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
+      final vendorId = await getVendorId();
+
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'products',
@@ -609,6 +659,9 @@ class VendorApiClient {
           'searchCriteria[filterGroups][0][filters][0][field]': 'status',
           'searchCriteria[filterGroups][0][filters][0][value]': 0,
           'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
+          'searchCriteria[filterGroups][1][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][1][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][1][filters][0][conditionType]': 'eq',
           'searchCriteria[pageSize]': pageSize,
           'searchCriteria[currentPage]': currentPage,
         },
@@ -755,20 +808,25 @@ class VendorApiClient {
     int pageSize = 20,
     int? statusEq,
   }) async {
-    _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
-
-    final Map<String, dynamic> qp = {
-      'searchCriteria[currentPage]': page,
-      'searchCriteria[pageSize]': pageSize,
-    };
-
-    if (statusEq != null) {
-      qp['searchCriteria[filterGroups][0][filters][0][field]'] = 'status_id';
-      qp['searchCriteria[filterGroups][0][filters][0][value]'] = statusEq;
-      qp['searchCriteria[filterGroups][0][filters][0][conditionType]'] = 'eq';
-    }
-
     try {
+      final vendorId = await getVendorId();
+
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
+      final Map<String, dynamic> qp = {
+        'searchCriteria[currentPage]': page,
+        'searchCriteria[pageSize]': pageSize,
+        'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+        'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
+        'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
+      };
+
+      if (statusEq != null) {
+        qp['searchCriteria[filterGroups][1][filters][0][field]'] = 'status_id';
+        qp['searchCriteria[filterGroups][1][filters][0][value]'] = statusEq;
+        qp['searchCriteria[filterGroups][1][filters][0][conditionType]'] = 'eq';
+      }
+
       final res = await _dio.get('reviews', queryParameters: qp);
 
       final itemsList = (res.data['items'] as List?) ?? const [];
@@ -1123,6 +1181,8 @@ class MagentoReview {
 /// Typed vendor profile so you can do vp.customerId, vp.companyName, etc.
 class VendorProfile {
   final int? customerId;
+  final String? firstname;
+  final String? lastname;
   final String? companyName;
   final String? bio;
   final String? country;
@@ -1148,6 +1208,8 @@ class VendorProfile {
 
   VendorProfile({
     this.customerId,
+    this.firstname,
+    this.lastname,
     this.companyName,
     this.bio,
     this.country,
@@ -1190,6 +1252,8 @@ class VendorProfile {
 
     return VendorProfile(
       customerId: _s<int>('customerId', 'customer_id'),
+      firstname: _s<String>('firstname'),
+      lastname: _s<String>('lastname'),
       companyName: _s<String>('companyName', 'company_name'),
       bio: _s<String>('bio'),
       country: _s<String>('country'),
@@ -1222,4 +1286,5 @@ class VendorProfile {
       bannerBase64: _s<String>('bannerBase64', 'banner_base64'),
     );
   }
+
 }
