@@ -404,14 +404,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final customerInfo = await VendorApiClient().getCustomerInfo();
 
-      if (customerInfo != null) {
+      final apiClient = VendorApiClient();
+
+      if (apiClient.hasToken) {
         final firstName = customerInfo['firstname'] ?? '';
-        final lastName = customerInfo['lastname'] ?? '';
+        final lastname = customerInfo['lastname'] ?? '';
         final email = customerInfo['email'] ?? '';
 
         setState(() {
-          _userName = '$firstName $lastName'.trim();
+          _userName = '$firstName $lastname'.trim();
           if (_userName!.isEmpty) _userName = email;
+          if (_userName!.isEmpty) _userName = 'Vendor'; // Fallback
         });
       } else {
         setState(() {
@@ -419,7 +422,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       }
     } catch (e) {
-      // ignore
+      print('Error loading user name: $e');
       setState(() => _userName = 'Guest');
     }
   }

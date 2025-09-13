@@ -1,4 +1,3 @@
-
 import 'package:app_vendor/services/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +9,7 @@ import 'presentation/Translation/Language.dart';
 import 'presentation/admin/admin_news_screen.dart';
 import 'presentation/admin/ask_admin_screen.dart';
 import 'presentation/pdf/print_pdf_screen.dart';
+import 'package:graphql_flutter/graphql_flutter.dart'; // ADD THIS IMPORT
 import 'presentation/profile/edit_profile_screen.dart';
 import 'presentation/analytics/customer_analytics_screen.dart';
 import 'presentation/dashboard/dashboard_screen.dart' hide AppLocalizations, ApiClient;
@@ -40,33 +40,39 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: localeProvider,
-      child: Consumer<LocaleProvider>(
-        builder: (context, provider, child) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'Kolshy',
-            locale: provider.locale,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            localeResolutionCallback: (locale, supportedLocales) {
-              if (locale == null) return supportedLocales.first;
-              for (var supported in supportedLocales) {
-                if (supported.languageCode == locale.languageCode) {
-                  return supported;
+    return GraphQLProvider( // FIXED: Only one return statement
+      client: ValueNotifier(GraphQLClient(
+        link: HttpLink('https://kolshy.ae/graphql'),
+        cache: GraphQLCache(store: InMemoryStore()),
+      )),
+      child: ChangeNotifierProvider.value(
+        value: localeProvider,
+        child: Consumer<LocaleProvider>(
+          builder: (context, provider, child) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'Kolshy',
+              locale: provider.locale,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              localeResolutionCallback: (locale, supportedLocales) {
+                if (locale == null) return supportedLocales.first;
+                for (var supported in supportedLocales) {
+                  if (supported.languageCode == locale.languageCode) {
+                    return supported;
+                  }
                 }
-              }
-              return supportedLocales.first;
-            },
-            theme: ThemeData(
-              useMaterial3: true,
-              fontFamily: 'Inter',
-              scaffoldBackgroundColor: Colors.white,
-            ),
-            home: const AuthWrapper(), // Changed to AuthWrapper
-          );
-        },
+                return supportedLocales.first;
+              },
+              theme: ThemeData(
+                useMaterial3: true,
+                fontFamily: 'Inter',
+                scaffoldBackgroundColor: Colors.white,
+              ),
+              home: const AuthWrapper(),
+            );
+          },
+        ),
       ),
     );
   }
@@ -126,7 +132,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _isLoggedIn ? const Home() : const WelcomeScreen();
   }
 }
-
 
 class Home extends StatefulWidget {
   const Home({super.key});
