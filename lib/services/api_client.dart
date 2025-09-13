@@ -262,9 +262,6 @@ class VendorApiClient {
 
   Future<List<Map<String, dynamic>>> getSalesHistory({int days = 30}) async {
     try {
-      // REMOVED: This line caused the API to use the admin token instead of the user's token.
-      // _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
-
       final now = DateTime.now();
       final startDate = now.subtract(Duration(days: days));
       final response = await _dio.get(
@@ -413,6 +410,7 @@ class VendorApiClient {
 
   Future<List<Map<String, dynamic>>> getLatestReviews({int limit = 10}) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'reviews',
         queryParameters: {
@@ -421,19 +419,9 @@ class VendorApiClient {
           'searchCriteria[sortOrders][0][direction]': 'DESC',
         },
       );
-
-      final reviews = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
-
-      return reviews.map((review) => {
-        'id': review['id'],
-        'title': review['title'],
-        'detail': review['detail'],
-        'nickname': review['nickname'],
-        'created_at': review['created_at'],
-        'rating': review['ratings']?[0]?['value'] ?? review['rating_votes']?[0]?['value'] ?? 0,
-        'product_sku': review['extension_attributes']?['sku'] ?? review['product_sku'],
-      }).toList();
+      return List<Map<String, dynamic>>.from(response.data['items'] ?? []);
     } on DioException catch (e) {
+      print('Get reviews error: ${_handleDioError(e)}');
       return [];
     } finally {
       _setAuthHeader(_token);
@@ -564,28 +552,22 @@ class VendorApiClient {
   }
 
   Future<List<Map<String, dynamic>>> getVendorOrders({
-    DateTime? dateFrom,
-    DateTime? dateTo,
     int currentPage = 1,
     int pageSize = 20,
   }) async {
     try {
-      final vendorId = await getVendorId();
-
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'orders',
         queryParameters: {
-          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
-          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
-          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
           'searchCriteria[currentPage]': currentPage,
           'searchCriteria[pageSize]': pageSize,
         },
       );
       return List<Map<String, dynamic>>.from(response.data['items'] ?? []);
     } on DioException catch (e) {
-      throw Exception(_handleDioError(e));
+      print('Get orders error: ${_handleDioError(e)}');
+      return [];
     } finally {
       _setAuthHeader(_token);
     }
@@ -599,22 +581,18 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
-      final vendorId = await getVendorId();
-
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'products',
         queryParameters: {
-          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
-          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
-          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
           'searchCriteria[pageSize]': pageSize,
           'searchCriteria[currentPage]': currentPage,
         },
       );
       return response.data['items'] ?? [];
     } on DioException catch (e) {
-      throw Exception(_handleDioError(e));
+      print('Get products error: ${_handleDioError(e)}');
+      return [];
     } finally {
       _setAuthHeader(_token);
     }
@@ -625,24 +603,23 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
-      final vendorId = await getVendorId();
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'products',
         queryParameters: {
-          'searchCriteria[filterGroups][0][filters][0][field]': 'status',
-          'searchCriteria[filterGroups][0][filters][0][value]': 0,
-          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
-          'searchCriteria[filterGroups][1][filters][0][field]': 'vendor_id',
-          'searchCriteria[filterGroups][1][filters][0][value]': vendorId,
-          'searchCriteria[filterGroups][1][filters][0][conditionType]': 'eq',
           'searchCriteria[pageSize]': pageSize,
           'searchCriteria[currentPage]': currentPage,
         },
       );
-      return response.data['items'] ?? [];
+
+      final allProducts = response.data['items'] ?? [];
+      return allProducts.where((product) {
+        final status = product['status']?.toString();
+        return status == '2' || status == '0';
+      }).toList();
     } on DioException catch (e) {
-      throw Exception(_handleDioError(e));
+      print('Get draft products error: ${_handleDioError(e)}');
+      return [];
     } finally {
       _setAuthHeader(_token);
     }

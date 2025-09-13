@@ -2472,4 +2472,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get logoutFailed => 'Logout Failed';
 
+  @override
+  String get noDraftsAvailable => 'No drafts available';
+
+  @override
+  String get noReviewsAvailable => 'There are no reviews available';
 }

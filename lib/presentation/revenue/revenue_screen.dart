@@ -134,7 +134,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   List<ChartData> _buildChartFromOrders(List<Map<String, dynamic>> orders, {required _Period period}) {
-    final Map<String, _Agg> buckets = {}; // key -> Agg
+    final Map<String, _Agg> buckets = {};
     for (final o in orders) {
       final createdAtStr = (o['created_at'] as String?) ?? '';
       final created = DateTime.tryParse(createdAtStr)?.toLocal();
@@ -164,8 +164,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
     final now = DateTime.now();
     final from = now.subtract(Duration(days: days));
     return VendorApiClient().getVendorOrders(
-      dateFrom: from,
-      dateTo: now,
       pageSize: 200,
     );
   }

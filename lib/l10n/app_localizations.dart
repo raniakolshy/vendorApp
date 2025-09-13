@@ -4843,6 +4843,10 @@ abstract class AppLocalizations {
 
   String get logoutFailed;
 
+  String get noDraftsAvailable;
+
+  String get noReviewsAvailable ;
+
 
 
 

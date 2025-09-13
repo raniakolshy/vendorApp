@@ -1170,5 +1170,7 @@
   "filterDeniedProduct": "Denied Product",
   "confirmLogout" :"Confirm Logout",
   "logoutSuccessful" : "Logout Successful",
-  "logoutFailed": "Logout Failed"
+  "logoutFailed": "Logout Failed",
+  "noDraftsAvailable": "No drafts available",
+  "noReviewsAvailable": "There are no reviews available"
 }

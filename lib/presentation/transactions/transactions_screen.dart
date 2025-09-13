@@ -91,8 +91,6 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
       final DateTime? to = _selectedRange?.end;
 
       final orders = await VendorApiClient().getVendorOrders(
-        dateFrom: from,
-        dateTo: to,
         currentPage: 1,
         pageSize: 200,
       );

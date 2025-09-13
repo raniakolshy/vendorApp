@@ -2472,5 +2472,9 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get logoutFailed => 'فشل تسجيل الخروج';
 
+  @override
+  String get noDraftsAvailable=> 'لا توجد مسودات متاحة';
 
+  @override
+  String get noReviewsAvailable => 'لا توجد مراجعات متاحة';
 }

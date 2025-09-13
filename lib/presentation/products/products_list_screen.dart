@@ -27,7 +27,6 @@ class ProductsApp extends StatelessWidget {
       routes: {
         '/edit_product': (context) => const EditProductScreen(),
       },
-      // Localization setup
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
     );
@@ -118,9 +117,9 @@ class Product {
       createdAt: _fmtDate(DateTime.parse(product['created_at'] ?? DateTime.now().toString())),
       quantityPerSource: stockItem['qty']?.toInt() ?? 0,
       salableQuantity: stockItem['is_in_stock'] == true ? stockItem['qty']?.toInt() ?? 0 : 0,
-      quantitySold: 0, // Not available in this API, defaulting to 0
-      quantityConfirmed: 0, // Not available in this API, defaulting to 0
-      quantityPending: 0, // Not available in this API, defaulting to 0
+      quantitySold: 0,
+      quantityConfirmed: 0,
+      quantityPending: 0,
       visibility: _parseVisibility(product['visibility']),
     );
   }

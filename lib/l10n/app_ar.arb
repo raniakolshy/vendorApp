@@ -600,7 +600,8 @@
   "drafts": "المسودات",
   "pendingReview": "في انتظار المراجعة",
   "loadMore": "تحميل المزيد",
-  "noDraftsMatchSearch": "لا توجد مسودات تطابق بحثك.",
+  "noDraftsMatchSearch": "لا توجد مسودات تطابق بحثك",
+  "noDraftsAvailable": "لا توجد مسودات متاحة",
   "deleteDraftQuestion": "حذف المسودة؟",
   "deleteDraftConfirmation": "سيتم حذف \"{name}\".",
   "@deleteDraftConfirmation": {
@@ -1143,4 +1144,5 @@
   "confirmLogout" :"تأكيد تسجيل الخروج",
   "logoutSuccessful" : "تم تسجيل الخروج بنجاح",
   "logoutFailed": "فشل تسجيل الخروج",
+  "noReviewsAvailable": "لا توجد مراجعات متاحة"
 }
