@@ -2,10 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
-
-import 'graphql_client.dart';
-import 'graphql_queries.dart';
 
 class VendorApiClient {
   static final VendorApiClient _instance = VendorApiClient._internal();
@@ -61,11 +57,6 @@ class VendorApiClient {
     return prefs.getString('vendor_token');
   }
 
-  Future<GraphQLClient> _getGraphQLClient() async {
-    final graphQLService = GraphQLClientService();
-    return graphQLService.getClient();
-  }
-
   void _setAuthHeader(String? token) {
     if (token != null && token.isNotEmpty) {
       _dio.options.headers['Authorization'] = 'Bearer $token';
@@ -76,17 +67,11 @@ class VendorApiClient {
   Future<int> getVendorId() async {
     if (_vendorId != null) return _vendorId!;
 
-    try {
-      final profile = await getVendorProfile();
-      _vendorId = profile.customerId;
-      if (_vendorId == null) {
-        throw Exception('Vendor ID not found in profile');
-      }
-      return _vendorId!;
-    } catch (e) {
-      throw Exception('Failed to get vendor ID: $e');
-    }
+    final profile = await getVendorProfile();
+    _vendorId = profile.customerId;
+    return _vendorId!;
   }
+  // Centralized error parsing (also exposed via parseMagentoError)
   String _handleDioError(DioException e) {
     if (e.response != null) {
       final data = e.response!.data;
@@ -106,6 +91,7 @@ class VendorApiClient {
   // ==========================
   Future<String> loginVendor(String email, String password) async {
     try {
+      // Use customer login endpoint
       final response = await _dio.post(
         'integration/customer/token',
         data: {"username": email, "password": password},
@@ -182,25 +168,10 @@ class VendorApiClient {
   // ==========================
   Future<VendorProfile> getVendorProfile() async {
     try {
-      final client = await _getGraphQLClient();
-      final options = QueryOptions(
-        document: gql(GraphQLQueries.getVendorProfile),
-      );
-
-      final result = await client.query(options);
-
-      if (result.hasException) {
-        throw Exception(result.exception!.graphqlErrors.first.message);
-      }
-
-      final customerData = result.data?['customer'];
-      if (customerData == null) {
-        throw Exception('Customer profile not found');
-      }
-
-      return VendorProfile.fromJson(Map<String, dynamic>.from(customerData));
-    } catch (e) {
-      throw Exception('Failed to get vendor profile: $e');
+      final response = await _dio.get('customers/me');
+      return VendorProfile.fromJson(Map<String, dynamic>.from(response.data));
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
     }
   }
 
@@ -223,57 +194,81 @@ class VendorApiClient {
 
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
+      // Get vendor ID first
       final vendorProfile = await getVendorProfile();
       final vendorId = vendorProfile.customerId;
 
-      final client = await _getGraphQLClient();
-      final options = QueryOptions(
-        document: gql(GraphQLQueries.getDashboardStats),
-        variables: {
-          'vendorId': vendorId,
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
+      // Get orders for this specific vendor
+      final ordersResponse = await _dio.get(
+        'orders',
+        queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
+          'searchCriteria[pageSize]': 1,
+          'searchCriteria[currentPage]': 1,
         },
       );
 
-      final result = await client.query(options);
+      final orders = ordersResponse.data['items'] ?? [];
+      final totalOrders = ordersResponse.data['total_count'] ?? 0;
 
-      if (result.hasException) {
-        throw Exception(result.exception!.graphqlErrors.first.message);
-      }
-
-      final orders = result.data?['orders'];
-      final products = result.data?['products'];
-
+      // Calculate total revenue for this vendor
       double totalRevenue = 0;
-      int pendingOrders = 0;
-
-      if (orders != null) {
-        final orderItems = orders['items'] ?? [];
-        for (var order in orderItems) {
-          totalRevenue += double.tryParse(order['grand_total']?.toString() ?? '0') ?? 0;
-          if (order['status'] == 'pending') {
-            pendingOrders++;
-          }
-        }
+      for (var order in orders) {
+        totalRevenue += double.tryParse(order['grand_total']?.toString() ?? '0') ?? 0;
       }
+
+      // Get products for this vendor
+      final productsResponse = await _dio.get(
+        'products',
+        queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
+          'searchCriteria[pageSize]': 1,
+        },
+      );
+      final totalProducts = productsResponse.data['total_count'] ?? 0;
+
+      // Get pending orders for this vendor
+      final pendingOrdersResponse = await _dio.get(
+        'orders',
+        queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
+          'searchCriteria[filterGroups][1][filters][0][field]': 'status',
+          'searchCriteria[filterGroups][1][filters][0][value]': 'pending',
+          'searchCriteria[pageSize]': 1,
+        },
+      );
+      final pendingOrders = pendingOrdersResponse.data['total_count'] ?? 0;
 
       return {
-        'total_orders': orders?['total_count'] ?? 0,
+        'total_orders': totalOrders,
         'total_revenue': totalRevenue,
-        'total_products': products?['total_count'] ?? 0,
+        'total_products': totalProducts,
         'pending_orders': pendingOrders,
       };
-    } catch (e) {
+    } on DioException catch (e) {
       return {
         'total_orders': 0,
         'total_revenue': 0,
         'total_products': 0,
         'pending_orders': 0,
       };
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
   Future<List<Map<String, dynamic>>> getSalesHistory({int days = 30}) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
       final now = DateTime.now();
       final startDate = now.subtract(Duration(days: days));
       final response = await _dio.get(
@@ -315,6 +310,8 @@ class VendorApiClient {
 
   Future<Map<String, dynamic>> getCustomerBreakdown() async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
       final response = await _dio.get(
         'customers/search',
         queryParameters: {
@@ -323,6 +320,8 @@ class VendorApiClient {
       );
 
       final customers = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+
+      // Simple breakdown - you can enhance this based on customer attributes
       return {
         'total_customers': customers.length,
         'new_customers': customers.where((c) {
@@ -346,6 +345,8 @@ class VendorApiClient {
 
   Future<List<Map<String, dynamic>>> getTopSellingProducts({int limit = 10}) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
       final response = await _dio.get(
         'products',
         queryParameters: {
@@ -356,13 +357,14 @@ class VendorApiClient {
       );
 
       final products = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+
       return products.map((product) => {
         'id': product['id'],
         'name': product['name'],
         'sku': product['sku'],
         'price': product['price'],
         'image': product['media_gallery_entries']?[0]?['file'] ?? '',
-        'qty_sold': 0,
+        'qty_sold': 0, // Magento doesn't provide this directly
       }).toList();
     } on DioException catch (e) {
       return [];
@@ -373,10 +375,16 @@ class VendorApiClient {
 
   Future<List<Map<String, dynamic>>> getTopCategories({int limit = 5}) async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
       final response = await _dio.get('categories');
-      final decodedData = response.data;
-      final raw = (decodedData['children_data'] ?? decodedData['items'] ?? []) as List;
-      return raw.map((e) => Map<String, dynamic>.from(e)).toList();
+      final categories = List<Map<String, dynamic>>.from(response.data['children_data'] ?? []);
+
+      return categories.take(limit).map((category) => {
+        'id': category['id'],
+        'name': category['name'],
+        'product_count': category['product_count'] ?? 0,
+      }).toList();
     } on DioException catch (e) {
       return [];
     } finally {
@@ -386,6 +394,8 @@ class VendorApiClient {
 
   Future<List<Map<String, dynamic>>> getProductRatings() async {
     try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
       final response = await _dio.get(
         'reviews',
         queryParameters: {
@@ -394,6 +404,8 @@ class VendorApiClient {
       );
 
       final reviews = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+
+      // Calculate average ratings per product
       final productRatings = <String, List<int>>{};
       for (var review in reviews) {
         final productSku = review['extension_attributes']?['sku'] ?? review['product_sku'];
@@ -423,6 +435,7 @@ class VendorApiClient {
   Future<List<Map<String, dynamic>>> getLatestReviews({int limit = 10}) async {
     try {
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+
       final response = await _dio.get(
         'reviews',
         queryParameters: {
@@ -431,9 +444,19 @@ class VendorApiClient {
           'searchCriteria[sortOrders][0][direction]': 'DESC',
         },
       );
-      return List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+
+      final reviews = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+
+      return reviews.map((review) => {
+        'id': review['id'],
+        'title': review['title'],
+        'detail': review['detail'],
+        'nickname': review['nickname'],
+        'created_at': review['created_at'],
+        'rating': review['ratings']?[0]?['value'] ?? review['rating_votes']?[0]?['value'] ?? 0,
+        'product_sku': review['extension_attributes']?['sku'] ?? review['product_sku'],
+      }).toList();
     } on DioException catch (e) {
-      print('Get reviews error: ${_handleDioError(e)}');
       return [];
     } finally {
       _setAuthHeader(_token);
@@ -442,17 +465,20 @@ class VendorApiClient {
 
   Future<Map<String, dynamic>> getCustomerInfo() async {
     try {
-      final profile = await getVendorProfile();
+      // Use customer endpoint for basic info
+      final response = await _dio.get('customers/me');
+      final customerData = Map<String, dynamic>.from(response.data);
+
       return {
-        'id': profile.customerId,
-        'email': '',
-        'firstname': profile.firstname,
-        'lastname': profile.lastname,
-        'phone': profile.phone,
-        'created_at': '',
+        'id': customerData['id'],
+        'email': customerData['email'],
+        'firstname': customerData['firstname'],
+        'lastname': customerData['lastname'],
+        'phone': customerData['telephone'] ?? customerData['phone'],
+        'created_at': customerData['created_at'],
       };
-    } catch (e) {
-      throw Exception('Failed to get customer info: $e');
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
     }
   }
 
@@ -463,6 +489,7 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
+      // First get vendor profile to get the vendor ID
       final vendorProfile = await getVendorProfile();
 
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
@@ -562,33 +589,30 @@ class VendorApiClient {
   }
 
   Future<List<Map<String, dynamic>>> getVendorOrders({
+    DateTime? dateFrom,
+    DateTime? dateTo,
     int currentPage = 1,
     int pageSize = 20,
   }) async {
     try {
-      final vendorProfile = await getVendorProfile();
-      final vendorId = vendorProfile.customerId;
+      final vendorId = await getVendorId();
 
-      final client = await _getGraphQLClient();
-      final options = QueryOptions(
-        document: gql(GraphQLQueries.getVendorOrders),
-        variables: {
-          'vendorId': vendorId,
-          'pageSize': pageSize,
-          'currentPage': currentPage,
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+      final response = await _dio.get(
+        'orders',
+        queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
+          'searchCriteria[currentPage]': currentPage,
+          'searchCriteria[pageSize]': pageSize,
         },
       );
-
-      final result = await client.query(options);
-
-      if (result.hasException) {
-        throw Exception(result.exception!.graphqlErrors.first.message);
-      }
-
-      return List<Map<String, dynamic>>.from(result.data?['orders']?['items'] ?? []);
-    } catch (e) {
-      print('Get vendor orders error: $e');
-      return [];
+      return List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
   }
 
@@ -600,18 +624,22 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
+      final vendorId = await getVendorId();
+
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
       final response = await _dio.get(
         'products',
         queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][0][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
           'searchCriteria[pageSize]': pageSize,
           'searchCriteria[currentPage]': currentPage,
         },
       );
       return response.data['items'] ?? [];
     } on DioException catch (e) {
-      print('Get products error: ${_handleDioError(e)}');
-      return [];
+      throw Exception(_handleDioError(e));
     } finally {
       _setAuthHeader(_token);
     }
@@ -622,32 +650,30 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
-      final vendorProfile = await getVendorProfile();
-      final vendorId = vendorProfile.customerId;
+      final vendorId = await getVendorId();
 
-      final client = await _getGraphQLClient();
-      final options = QueryOptions(
-        document: gql(GraphQLQueries.getVendorProducts),
-        variables: {
-          'vendorId': vendorId,
-          'pageSize': pageSize,
-          'currentPage': currentPage,
-          'status': '2',
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+      final response = await _dio.get(
+        'products',
+        queryParameters: {
+          'searchCriteria[filterGroups][0][filters][0][field]': 'status',
+          'searchCriteria[filterGroups][0][filters][0][value]': 0,
+          'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
+          'searchCriteria[filterGroups][1][filters][0][field]': 'vendor_id',
+          'searchCriteria[filterGroups][1][filters][0][value]': vendorId,
+          'searchCriteria[filterGroups][1][filters][0][conditionType]': 'eq',
+          'searchCriteria[pageSize]': pageSize,
+          'searchCriteria[currentPage]': currentPage,
         },
       );
-
-      final result = await client.query(options);
-
-      if (result.hasException) {
-        throw Exception(result.exception!.graphqlErrors.first.message);
-      }
-
-      return result.data?['products']?['items'] ?? [];
-    } catch (e) {
-      print('Get draft products error: $e');
-      return [];
+      return response.data['items'] ?? [];
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_token);
     }
-}
+  }
+
   Future<Map<String, dynamic>> getProductLiteBySku({required String sku}) async {
     try {
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
@@ -923,44 +949,6 @@ class VendorApiClient {
       throw Exception(_handleDioError(e));
     }
   }
-  Future<void> debugProductFields() async {
-    try {
-      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
-      final response = await _dio.get(
-        'products',
-        queryParameters: {
-          'searchCriteria[pageSize]': 1,
-          'fields': 'items[custom_attributes]'
-        },
-      );
-
-      final product = response.data['items'][0];
-      print('Product fields: ${product.keys}');
-      if (product['custom_attributes'] != null) {
-        print('Custom attributes:');
-        for (var attr in product['custom_attributes']) {
-          print('  ${attr['attribute_code']}: ${attr['value']}');
-        }
-      }
-    } catch (e) {
-      print('Debug error: $e');
-    }
-  }
-  Future<void> debugCurrentVendor() async {
-    try {
-      final token = await _getToken();
-      print('Current token: $token');
-
-      final profile = await getVendorProfile();
-      print('Vendor profile: ${profile.customerId} - ${profile.firstname} ${profile.lastname}');
-
-      final drafts = await getDraftProducts();
-      print('Found ${drafts.length} draft products');
-
-    } catch (e) {
-      print('Debug error: $e');
-    }
-  }
 
   // ==========================
   // 🔧 HELPER METHODS
@@ -1187,7 +1175,6 @@ class MagentoReview {
       ratings: _ratings(),
     );
   }
-
 }
 
 
@@ -1299,5 +1286,4 @@ class VendorProfile {
       bannerBase64: _s<String>('bannerBase64', 'banner_base64'),
     );
   }
-
 }

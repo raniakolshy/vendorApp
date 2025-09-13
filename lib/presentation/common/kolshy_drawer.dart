@@ -428,12 +428,19 @@ class _ProfileButtonState extends State<_ProfileButton> {
             CircleAvatar(
               radius: 18,
               backgroundImage: _isLoading
-                  ? const AssetImage('assets/avatar_placeholder.jpg')
-                  : (_vendorProfile?.logoUrl != null && _vendorProfile!.logoUrl!.isNotEmpty
-                  ? NetworkImage(VendorApiClient().productImageUrl(_vendorProfile!.logoUrl, vendor: true))
-                  : const AssetImage('assets/avatar_placeholder.jpg')) as ImageProvider,
+                  ? const AssetImage('assets/avatar.png')
+                  : (_vendorProfile?.logoUrl != null &&
+                  _vendorProfile!.logoUrl!.isNotEmpty
+                  ? NetworkImage(
+                VendorApiClient().productImageUrl(
+                  _vendorProfile!.logoUrl,
+                  vendor: true,
+                ),
+              )
+                  : const AssetImage('assets/avatar.png')) as ImageProvider,
               backgroundColor: const Color(0xFFEDEDED),
             ),
+
             const SizedBox(width: 12),
             Expanded(
               child: Column(
