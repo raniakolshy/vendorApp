@@ -65,7 +65,7 @@ class GraphQLQueries {
       }
     }
   ''';
-  
+
   static const String getVendorOrders = r'''
     query GetVendorOrders($vendorId: Int!, $pageSize: Int, $currentPage: Int) {
       orders(

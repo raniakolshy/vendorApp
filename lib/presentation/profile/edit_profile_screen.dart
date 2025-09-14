@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -11,7 +11,7 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import '../../services/api_client.dart';
 import '../common/description_markdown_field.dart';
 import 'View_profile.dart';
-import 'package:app_vendor/services/api_client.dart' as api;
+import 'package:kolshy_vendor/services/api_client.dart' as api;
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -22,8 +22,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _scroll = ScrollController();
-
-  // Controllers
   final _companyName = TextEditingController();
   final _phoneNumber = TextEditingController();
   final _bio = TextEditingController();
@@ -77,7 +75,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   bool _saving = false;
 
-  // ---------- styling helpers ----------
   BorderRadius get _radius => BorderRadius.circular(16);
 
   InputDecoration _dec(BuildContext context, {String? hint, Widget? prefix, bool enabled = true}) {
@@ -162,6 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _locationPageRequestUrlPath.text = vp.locationPathReq ?? '';
       _privacyPolicyRequestUrlPath.text = vp.privacyPathReq ?? '';
 
+      // Images
       _logoUrl = vp.logoUrl;
       _bannerUrl = vp.bannerUrl;
       if (vp.logoBase64?.isNotEmpty == true) {
@@ -177,7 +175,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ---------- Section Card ----------
   Widget _sectionCard({required String title, required List<Widget> children}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -204,7 +201,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ---------- File Picker ----------
   Future<void> _pickImage({required bool isLogo}) async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
     if (result != null && result.files.isNotEmpty) {
@@ -221,7 +217,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ---------- Save ----------
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
     if (_customerId == null) {
@@ -281,18 +276,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ---------- Build ----------
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     final switchTheme = SwitchThemeData(
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      thumbColor: MaterialStateProperty.resolveWith((s) => Colors.white),
-      trackColor: MaterialStateProperty.resolveWith(
+      thumbColor: WidgetStateProperty.resolveWith((s) => Colors.white),
+      trackColor: WidgetStateProperty.resolveWith(
             (s) => s.contains(MaterialState.selected) ? Colors.black87 : const Color(0xFFD6D6D6),
       ),
-      overlayColor: MaterialStateProperty.all(Colors.transparent),
+      overlayColor: WidgetStateProperty.all(Colors.transparent),
     );
 
     return Scaffold(
@@ -334,6 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 _buildLogoPicker(l10n),
                                 const SizedBox(height: 20),
 
+
                                 _label(l10n.lbl_company_banner, help: l10n.help_company_banner),
                                 _buildBannerPicker(l10n),
                                 const SizedBox(height: 20),
@@ -346,7 +341,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 const SizedBox(height: 20),
 
-                                // Location Dropdown
                                 _label(l10n.lbl_location, help: l10n.help_location),
                                 DropdownButtonFormField<String>(
                                   value: _selectedCountry,
@@ -361,7 +355,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 const SizedBox(height: 20),
 
-                                // Phone Number Field
                                 _label(l10n.lbl_phone_number, help: l10n.help_phone_number),
                                 IntlPhoneField(
                                   controller: _phoneNumber,
@@ -422,8 +415,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 _buildSocialMediaField(l10n.sm_tiktok, FontAwesomeIcons.tiktok, _tiktokId, _tiktokEnabled, (v) => setState(() => _tiktokEnabled = v), l10n),
                                 const SizedBox(height: 20),
                               ]),
-
-                              // Policies Section
                               _sectionCard(title: l10n.sec_company_policy, children: [
                                 DescriptionMarkdownField(
                                   label: l10n.lbl_return_policy,
@@ -450,8 +441,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 const SizedBox(height: 20),
                               ]),
-
-                              // Meta Information Section
                               _sectionCard(title: l10n.sec_meta_information, children: [
                                 DescriptionMarkdownField(
                                   label: l10n.lbl_meta_keywords,
@@ -475,7 +464,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   decoration: _dec(context, hint: l10n.hint_input_text),
                                 ),
                                 const SizedBox(height: 20),
-
                                 _label(l10n.lbl_profile_target, help: l10n.help_profile_target),
                                 TextFormField(
                                   initialValue: 'marketplace/seller/profile/shop/comp',
@@ -546,7 +534,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
 
-                  // Sticky footer
                   Container(
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
                     decoration: const BoxDecoration(

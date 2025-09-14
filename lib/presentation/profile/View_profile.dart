@@ -1,11 +1,7 @@
 import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
-// Use ONE import; keep it namespaced so there are no clashes.
-import 'package:app_vendor/services/api_client.dart' as api;
+import 'package:kolshy_vendor/services/api_client.dart' as api;
 
 class VendorProfileScreen extends StatefulWidget {
   const VendorProfileScreen({super.key});
@@ -110,7 +106,6 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Banner
                   Container(
                     height: 200,
                     decoration: BoxDecoration(
@@ -127,6 +122,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Logo
                       Container(
                         width: 80,
                         height: 80,
@@ -188,13 +184,10 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-
-                  // Bio
                   _sectionCard(title: 'About Us', children: [
                     Text(_profile?.bio?.isNotEmpty == true ? _profile!.bio! : '—'),
                   ]),
 
-                  // Products
                   _sectionCard(title: 'Our Products', children: [
                     if (_products.isEmpty)
                       const Padding(
@@ -214,6 +207,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                         itemCount: _products.length,
                         itemBuilder: (context, index) {
                           final product = _products[index];
+
                           String imagePath = '';
                           final mg = product['media_gallery_entries'];
                           if (mg is List && mg.isNotEmpty) {

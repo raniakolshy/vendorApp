@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -23,7 +23,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
   final _scroll = ScrollController();
 
-  // ===== Admin token (per your request) =====
   static const String _ADMIN_TOKEN = '87igct1wbbphdok6dk1roju4i83kyub9';
 
   // Controllers
@@ -37,26 +36,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _maxQty = TextEditingController(text: '0');
   final _stock = TextEditingController();
   final _weight = TextEditingController();
-  final _cities = TextEditingController(); // unused in payload by default
+  final _cities = TextEditingController();
   final _url = TextEditingController();
   final _metaTitle = TextEditingController();
   final _metaKeywords = TextEditingController();
   final _metaDesc = TextEditingController();
 
-  // Tags
   final _tagInput = TextEditingController();
   List<String> _tags = [];
 
-  // Images
   List<Uint8List> _images = [];
   List<String> _imageNames = [];
   DropzoneViewController? _dzCtrl;
 
-  // State toggles (UI kept the same)
   bool _hasSpecial = false;
   bool _taxes = true;
-  String _stockAvail = 'In Stock';   // 'In Stock' | 'Out of Stock'
-  String _visibility = 'Invisible';  // 'Invisible' | 'Visible'
+  String _stockAvail = 'In Stock';
+  String _visibility = 'Invisible';
   bool _submitting = false;
 
   // ===== Magento categories (real, no mock) =====
@@ -226,7 +222,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   void _delete() {
     final l10n = AppLocalizations.of(context)!;
-    // If you add delete, use admin token via VendorApiClient as well.
     _snack(l10n.toast_product_deleted);
   }
 
@@ -251,7 +246,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     final weightVal = double.tryParse(_weight.text.trim().isEmpty ? '0' : _weight.text.trim()) ?? 0;
 
-    // Category (direct from Magento selection)
     final categoryLinks = <Map<String, dynamic>>[];
     if (_selectedCategoryId != null && _selectedCategoryId!.isNotEmpty) {
       categoryLinks.add({"position": 0, "category_id": _selectedCategoryId});
@@ -344,11 +338,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     final switchTheme = SwitchThemeData(
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      thumbColor: MaterialStateProperty.resolveWith((s) => Colors.white),
-      trackColor: MaterialStateProperty.resolveWith(
-            (s) => s.contains(MaterialState.selected) ? Colors.black87 : const Color(0xFFD6D6D6),
+      thumbColor: WidgetStateProperty.resolveWith((s) => Colors.white),
+      trackColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected) ? Colors.black87 : const Color(0xFFD6D6D6),
       ),
-      overlayColor: MaterialStateProperty.all(Colors.transparent),
+      overlayColor: WidgetStateProperty.all(Colors.transparent),
     );
 
     return Scaffold(
@@ -380,7 +374,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
                           child: Column(
                             children: [
-                              // Name & description
                               _sectionCard(title: l10n.sec_name_description, children: [
                                 _label(l10n.lbl_product_title, help: l10n.help_product_title),
                                 TextFormField(
@@ -824,7 +817,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
-  // Category label with indent (keep visuals)
   String _categoryLabel(Map<String, dynamic> cat) {
     final level = (cat['level'] as num?)?.toInt() ?? 0;
     final name = (cat['name'] as String?) ?? 'Unnamed';
@@ -853,9 +845,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 }
-
-// ================= LinkedProducts tabs (real Magento data) =================
-
 class LinkedProductsTabs extends StatefulWidget {
   const LinkedProductsTabs({super.key, this.height = 600, required this.l10n, required this.adminToken});
   final double height;
@@ -1114,6 +1103,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
     final onSurfaceMuted = isDark ? Colors.white70 : Colors.black54;
 
     final l10n = widget.l10n;
+
     if (_loading) {
       return const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()));
     }
@@ -1126,7 +1116,6 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
       );
     }
 
-
     List<Map<String, dynamic>> decorated = _allProducts.map((p) {
       final status = (p['status'] as num?)?.toInt() ?? 2;
       final enabled = status == 1;
@@ -1135,6 +1124,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
       final sku = (p['sku'] ?? '').toString();
       final type = (p['type_id'] ?? '').toString();
       final price = (p['price'] ?? 0).toString();
+      // stock info
       final ext = p['extension_attributes'] as Map<String, dynamic>?;
       final stock = ext?['stock_item'] as Map<String, dynamic>?;
       final isInStock = (stock?['is_in_stock'] as bool?) ?? true;
@@ -1351,7 +1341,6 @@ class ProductCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Header row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1368,6 +1357,7 @@ class ProductCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
+
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Container(
               width: 60,
@@ -1396,7 +1386,6 @@ class ProductCard extends StatelessWidget {
           ]),
           const SizedBox(height: 16),
 
-          // Footer row
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(l10n.lbl_price, style: theme.textTheme.bodySmall?.copyWith(color: onSurfaceMuted)),

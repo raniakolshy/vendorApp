@@ -1,8 +1,7 @@
-import 'package:app_vendor/l10n/app_localizations.dart';
-import 'package:app_vendor/presentation/auth/forgot_password/verification_code_screen.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:kolshy_vendor/presentation/auth/forgot_password/verification_code_screen.dart';
 import '../../../services/api_client.dart';
 
 const Color primaryPink = Color(0xFFE51742);
@@ -78,6 +77,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
               const SizedBox(height: 36),
+
+              // Email field
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,

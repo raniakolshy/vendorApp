@@ -1,18 +1,15 @@
-import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../../services/api_client.dart';
 import 'add_product_screen.dart';
 
+// ===== Models =====
 
 enum DraftStatus {
   draft,
   pendingReview,
 }
 
-enum Gender {
-  male,
-  female,
-}
 
 class _Draft {
   _Draft({
@@ -23,7 +20,6 @@ class _Draft {
     required this.price,
     required this.created,
     required this.status,
-    required this.gender,
     this.thumbnail,
   });
 
@@ -34,7 +30,6 @@ class _Draft {
   final double price;
   final DateTime created;
   final DraftStatus status;
-  final Gender gender;
   final String? thumbnail;
 
   factory _Draft.fromMagentoProduct(Map<String, dynamic> product) {
@@ -46,7 +41,6 @@ class _Draft {
       price: (product['price'] ?? 0.0).toDouble(),
       created: DateTime.parse(product['created_at'] ?? DateTime.now().toString()),
       status: _parseStatus(product['status']),
-      gender: Gender.male,
       thumbnail: product['media_gallery_entries']?[0]?['file'],
     );
   }
@@ -58,6 +52,7 @@ class _Draft {
     return DraftStatus.draft;
   }
 }
+
 class Product {
   Product({
     required this.name,
@@ -78,7 +73,6 @@ String _fmtDate(DateTime d) {
   final yyyy = d.year.toString();
   return '$dd / $mm / $yyyy';
 }
-
 class DraftsListScreen extends StatefulWidget {
   const DraftsListScreen({super.key});
 
@@ -132,7 +126,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
   }
 
   List<_Draft> get _filtered {
-    final localizations = AppLocalizations.of(context)!;
+    final _localizations = AppLocalizations.of(context)!;
     final q = _searchCtrl.text.trim().toLowerCase();
     final byText = _all.where((d) =>
     d.name.toLowerCase().contains(q) ||
@@ -285,6 +279,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
+
                     DropdownButtonFormField<String>(
                       value: _filter,
                       decoration: InputDecoration(
@@ -311,7 +306,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
 
                     const SizedBox(height: 18),
 
-                    // Drafts list with soft dividers
                     ListView.builder(
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
@@ -324,6 +318,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
                     ),
 
                     const SizedBox(height: 22),
+
                     if (_filtered.isNotEmpty)
                       Center(
                         child: Opacity(
@@ -439,12 +434,10 @@ class _DraftRow extends StatelessWidget {
                     width: 86,
                     height: 86,
                     color: const Color(0xFFEDEEEF),
-                    child: draft.thumbnail != null && draft.thumbnail!.isNotEmpty
-                        ? Image.network(draft.thumbnail!, fit: BoxFit.cover, errorBuilder: (ctx, err, stack) => Image.asset(draft.gender == Gender.male ? 'assets/avatar_placeholder.jpg' : 'assets/female.jpg', fit: BoxFit.cover))
-                        : Image.asset(draft.gender == Gender.male ? 'assets/avatar_placeholder.jpg' : 'assets/female.jpg', fit: BoxFit.cover),
                   ),
                 ),
               ),
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,6 +533,7 @@ class _DraftRow extends StatelessWidget {
     );
   }
 }
+
 class _InputSurface extends StatelessWidget {
   const _InputSurface({required this.child});
   final Widget child;

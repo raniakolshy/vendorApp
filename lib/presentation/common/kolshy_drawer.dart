@@ -1,16 +1,9 @@
-import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../../services/api_client.dart';
-import '../Translation/Language.dart';
-import '../admin/admin_news_screen.dart';
-import '../admin/ask_admin_screen.dart';
-import '../analytics/customer_analytics_screen.dart';
 import '../auth/login/welcome_screen.dart';
-import '../pdf/print_pdf_screen.dart';
-import '../profile/edit_profile_screen.dart';
 import 'nav_key.dart';
 
-/// ---- theme constants (delete if you already have these) ----
 
 const kIconGray = Color(0xFF8E9196);
 const kTextGray = Color(0xFF2E2F32);
@@ -18,8 +11,6 @@ const kDividerGray = Color(0xFFE7E8EA);
 const kDrawerActive = Color(0xFFF4F5F7);
 const kMutedOrange = Color(0xFFFF8A00);
 const kRedLogout = Color(0xFFE64949);
-
-/// -----------------------------------------------------------
 
 class KolshyDrawer extends StatefulWidget {
   final NavKey selected;
@@ -138,7 +129,6 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
               const SizedBox(height: 12),
               const Divider(color: kDividerGray, height: 24),
 
-              // Profile row → opens figma-style popup
               _ProfileButton(onSelect: widget.onSelect),
 
               // Extra CTA
@@ -173,7 +163,6 @@ class _KolshyDrawerState extends State<KolshyDrawer> {
   }
 }
 
-// drawer icon uses "<name>_on.png" / "<name>_off.png"
 class _AssetIcon extends StatelessWidget {
   final String base;
   final bool active;
@@ -449,7 +438,7 @@ class _ProfileButtonState extends State<_ProfileButton> {
                   Text(
                     _isLoading
                         ? 'Loading...'
-                        : '${_vendorProfile?.companyName ?? (_vendorProfile != null ? '${_vendorProfile!.firstname} ${_vendorProfile!.lastname}' : 'User')}',
+                        : _vendorProfile?.companyName ?? (_vendorProfile != null ? '${_vendorProfile!.firstname} ${_vendorProfile!.lastname}' : 'User'),
                     style: const TextStyle(
                         fontWeight: FontWeight.w700, color: kTextGray),
                   ),
@@ -540,7 +529,6 @@ class _ProfileMenuDialog extends StatelessWidget {
                 },
               ),
 
-              // Destructive action
               InkWell(
                 onTap: () async {
                   final bool? confirm = await showDialog<bool>(
@@ -646,6 +634,7 @@ class _MenuRow extends StatelessWidget {
     );
   }
 }
+
 class _DividerLine extends StatelessWidget {
   const _DividerLine();
 

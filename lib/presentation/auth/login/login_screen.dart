@@ -1,8 +1,8 @@
 // presentation/auth/login/login_screen.dart
-import 'package:app_vendor/l10n/app_localizations.dart';
-import 'package:app_vendor/main.dart';
-import 'package:app_vendor/presentation/auth/forgot_password/forgot_password_screen.dart';
-import 'package:app_vendor/presentation/auth/register/register_screen.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/main.dart';
+import 'package:kolshy_vendor/presentation/auth/forgot_password/forgot_password_screen.dart';
+import 'package:kolshy_vendor/presentation/auth/register/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';

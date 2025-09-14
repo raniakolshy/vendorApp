@@ -1,4 +1,4 @@
-import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../../services/api_client.dart';
 
@@ -27,7 +27,6 @@ class ProductsApp extends StatelessWidget {
       routes: {
         '/edit_product': (context) => const EditProductScreen(),
       },
-      // Localization setup
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
     );
@@ -274,7 +273,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 localizations.cancelButton,
-                style: TextStyle(color: Colors.grey[700]),
+                style: TextStyle(color: Colors.grey[700]), // Customize button color
               ),
             ),
             TextButton(
@@ -339,7 +338,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     Text(
                       localizations.productsTitle,
                       style: Theme.of(context)
@@ -348,10 +346,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                           ?.copyWith(fontWeight: FontWeight.w800, fontSize: 22),
                     ),
                     const SizedBox(height: 16),
+
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Search
                         _InputSurface(
                           child: TextField(
                             controller: _searchCtrl,
@@ -375,7 +373,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Filter
                         DropdownButtonFormField<String>(
                           value: _filter,
                           decoration: InputDecoration(
@@ -425,6 +422,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     ),
 
                     const SizedBox(height: 22),
+
                     if (_filtered.isNotEmpty)
                       Center(
                         child: Opacity(
@@ -566,6 +564,8 @@ class _ProductRow extends StatelessWidget {
                         ?.copyWith(color: Colors.black54),
                   ),
                   const SizedBox(height: 16),
+
+                  // Product details with consistent spacing
                   _ProductDetailRow(
                     label: localizations.idLabel,
                     value: product.id,

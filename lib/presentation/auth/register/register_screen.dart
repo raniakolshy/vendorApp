@@ -1,8 +1,7 @@
-// presentation/auth/register/register_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:app_vendor/l10n/app_localizations.dart';
-import 'package:app_vendor/main.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/main.dart';
 import '../../../services/api_client.dart';
 import '../login/login_screen.dart';
 
@@ -122,7 +121,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _phone.text.trim(),
       );
 
-      // Auto-login
       await VendorApiClient().loginVendor(
         _email.text.trim(),
         _pass.text.trim(),
@@ -165,7 +163,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.black87)),
                 const SizedBox(height: 36),
 
-                // First Name
                 TextFormField(
                   controller: _first,
                   validator: (value) => _requiredValidator(value, 'First name'),
@@ -183,7 +180,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Last Name
                 TextFormField(
                   controller: _last,
                   validator: (value) => _requiredValidator(value, 'Last name'),
@@ -201,7 +197,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Email
                 TextFormField(
                   controller: _email,
                   validator: _emailValidator,
@@ -220,7 +215,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Phone
                 TextFormField(
                   controller: _phone,
                   validator: _phoneValidator,
@@ -239,7 +233,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Shop URL
                 TextFormField(
                   controller: _shopUrl,
                   validator: _shopUrlValidator,
@@ -257,7 +250,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Password
                 TextFormField(
                   controller: _pass,
                   validator: _passwordValidator,
@@ -280,7 +272,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Confirm Password
                 TextFormField(
                   controller: _confirm,
                   validator: _confirmPasswordValidator,

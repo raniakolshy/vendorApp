@@ -1,4 +1,4 @@
-import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'kolshy_drawer.dart';
 import 'nav_key.dart';
@@ -66,7 +66,6 @@ class AppShell extends StatelessWidget {
                   active: bottomIndex == 2,
                   onTap: () => onBottomTap(2),
                 ),
-                // Bell + popover
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -275,7 +274,6 @@ class _NotificationsCardState extends State<_NotificationsCard> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Row(
                 children: [
                   Text(
@@ -293,7 +291,6 @@ class _NotificationsCardState extends State<_NotificationsCard> {
                   ),
                 ],
               ),
-              // Scrollable list with swipe-to-remove
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 400),
                 child: ListView.builder(
@@ -334,7 +331,7 @@ class _NotificationsCardState extends State<_NotificationsCard> {
   }
 }
 
-// Data model
+
 class _NotifData {
   final String avatar, name, handleAndTime, line1;
   final bool unread;
@@ -347,7 +344,6 @@ class _NotifData {
   });
 }
 
-// A single notification row (with avatar, text, unread dot)
 class _NotifTile extends StatelessWidget {
   final String avatar;
   final String name;
@@ -381,7 +377,6 @@ class _NotifTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // name + meta
                 Row(
                   children: [
                     Flexible(
@@ -418,7 +413,6 @@ class _NotifTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          // blue unread dot
           Container(
             width: 8,
             height: 8,

@@ -17,7 +17,6 @@ class Gap extends StatelessWidget {
   }
 }
 
-
 class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
 
@@ -64,7 +63,6 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
 
   DateTimeRange? _selectedRange;
 
-  // Backing store after fetch
   List<Transaction> _allTransactions = [];
   double _totalPaid = 0.0;
   double _totalProcessing = 0.0;

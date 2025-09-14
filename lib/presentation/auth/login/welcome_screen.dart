@@ -1,9 +1,8 @@
-import 'package:app_vendor/presentation/auth/login/login_screen.dart';
-import 'package:app_vendor/presentation/auth/register/register_screen.dart';
-import 'package:app_vendor/presentation/dashboard/dashboard_screen.dart'; // New import for the DashboardScreen
+import 'package:kolshy_vendor/presentation/auth/login/login_screen.dart';
+import 'package:kolshy_vendor/presentation/auth/register/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:app_vendor/main.dart';
+import 'package:kolshy_vendor/main.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -56,7 +55,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             color: Colors.black.withOpacity(0.25),
           ),
 
-          // Contenu
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -87,11 +85,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ],
                   ),
 
-                  // Sous-titre centré
                   const _Subtitle(),
                   const SizedBox(height: 28),
 
-                  // Boutons
                   _PrimaryButton(
                     label: "Sign up",
                     onPressed: () {

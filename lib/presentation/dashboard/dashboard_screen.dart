@@ -1,9 +1,11 @@
+// lib/presentation/dashboard/dashboard_screen.dart
 import 'dart:math' show min, max, pi, atan2;
-import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import '../../services/api_client.dart';
+import 'package:flutter/widgets.dart';
 
+import '../../services/api_client.dart';
 
 
 const double kHeaderHeight   = 200;
@@ -11,8 +13,8 @@ const double kStatCardWidth  = 140;
 const double kStatCardHeight = 92;
 const double kStatOverlap    = kStatCardHeight / 2;
 
-const Color kPrimaryLine  = Color(0xFF97ADFF);
-const Color kCompareLine  = Color(0xFFFFC879);
+const Color kPrimaryLine  = Color(0xFF97ADFF); // 97ADFF
+const Color kCompareLine  = Color(0xFFFFC879); // FFC879
 const Color kPageBg       = Color(0xFFF6F7FB);
 const Color kHeaderColor  = Color(0xFF222222);
 
@@ -33,8 +35,8 @@ class CategoryTileData {
 
 class Review {
   final String user;
-  final int rating; // 1..5
-  final String timeAgo; // e.g., "2h"
+  final int rating;
+  final String timeAgo;
   final String comment;
   final String? product;
   Review({required this.user, required this.rating, required this.timeAgo, required this.comment, this.product});
@@ -408,6 +410,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final topCategories = await vendorApi.getTopCategories();
       final productRatings = await vendorApi.getProductRatings();
       final latestReviews = await vendorApi.getLatestReviews();
+      final customerInfo = await vendorApi.getCustomerInfo();
 
       setState(() {
         _dashboardStats     = stats;
@@ -560,9 +563,6 @@ class _RangeDropDown extends StatelessWidget {
   }
 }
 
-/// =============================================================
-/// Small stat row
-/// =============================================================
 class _StatRow extends StatelessWidget {
   final Map<String, dynamic>? dashboardStats;
   const _StatRow({this.dashboardStats});
@@ -673,7 +673,7 @@ class _MiniStatCard extends StatelessWidget {
 }
 
 /// =============================================================
-/// Section card (overflow-safe title/trailing)
+/// Section card
 /// =============================================================
 class SectionCard extends StatelessWidget {
   final String title;
@@ -758,6 +758,7 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
     final labels  = xLabelsForRangeKey(context, widget.rangeKey);
     final primary = spotsFromSiteByKey(salesData, widget.rangeKey);
     final bounds  = yBounds(primary);
+
     final totalSales = salesData.values.fold<double>(0, (sum, value) => sum + value);
 
     return Container(
@@ -946,7 +947,7 @@ class _LinePainter extends CustomPainter {
 }
 
 /// =============================================================
-/// Animated Donut (for “Total customers”)
+/// Animated Donut
 /// =============================================================
 class _CustomersCard extends StatefulWidget {
   final Map<String, int>? customerBreakdown;
@@ -1039,7 +1040,7 @@ class _CustomersCardState extends State<_CustomersCard> {
                     if (active != null)
                       _FloatingInfoCard(
                         label: active.label,
-                        valueText: _formatCount(active.value, total), // shows %
+                        valueText: _formatCount(active.value, total),
                         color: active.color,
                       ),
                   ],
@@ -1079,7 +1080,7 @@ String _formatCount(double part, double total) {
 }
 
 /// =============================================================
-/// AOV section (kept simple)
+/// AOV section
 /// =============================================================
 class AOVSection extends StatelessWidget {
   final String rangeKey;
@@ -1347,7 +1348,7 @@ class _EmptyStripe extends StatelessWidget {
 /// Ratings triple
 /// =============================================================
 class RatingsPanel extends StatelessWidget {
-  final Map<int, double> price;
+  final Map<int, double> price;   // 5..1 -> percent 0..100
   final Map<int, double> value;
   final Map<int, double> quality;
 
@@ -1542,7 +1543,6 @@ class _ModernReviewCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-
           if (r.product != null) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1560,7 +1560,6 @@ class _ModernReviewCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
           ],
-
           Text(
             r.comment,
             style: textTheme.bodyMedium?.copyWith(
@@ -1569,7 +1568,6 @@ class _ModernReviewCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-
           Row(
             children: [
               _InteractiveButton(
@@ -1628,9 +1626,6 @@ class _EmptyReviewState extends StatelessWidget {
   }
 }
 
-/// =============================================================
-/// Simple responsive 2-up grid
-/// =============================================================
 class _TwoUpGrid extends StatelessWidget {
   final List<Widget> children;
   const _TwoUpGrid({required this.children});
@@ -1639,7 +1634,7 @@ class _TwoUpGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, c) {
-        final isTwo = c.maxWidth >= 660; // split when there’s room
+        final isTwo = c.maxWidth >= 660;
         final itemWidth = isTwo ? (c.maxWidth - 16) / 2 : c.maxWidth;
         return Wrap(
           spacing: 16,

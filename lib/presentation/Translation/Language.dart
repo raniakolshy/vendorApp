@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:app_vendor/l10n/app_localizations.dart';
-import 'package:app_vendor/state_management/locale_provider.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/state_management/locale_provider.dart';
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -12,16 +12,13 @@ class LanguageScreen extends StatefulWidget {
 
 class _LanguageScreenState extends State<LanguageScreen> {
   static const Color _bgScaffold = Color(0xFFFAFAFA);
-  static const Color _primary = Color(0xFFDD1E1E); // Updated to match your red color
-  static const Color _stroke = Color(0xFFE5E5E5); // Updated border color
-
   late String selectedLanguage;
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    selectedLanguage = 'english'; // Default value
+    selectedLanguage = 'english';
   }
 
   @override
@@ -37,25 +34,6 @@ class _LanguageScreenState extends State<LanguageScreen> {
     return Consumer<LocaleProvider>(
       builder: (context, localeProvider, child) {
         final locale = localeProvider.locale;
-
-        if (locale == null) {
-          return Scaffold(
-            backgroundColor: _bgScaffold,
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              automaticallyImplyLeading: false,
-              title: Text(
-                t.language,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        }
 
         final code = locale.languageCode;
 
@@ -93,7 +71,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            automaticallyImplyLeading: false, //
+            automaticallyImplyLeading: false,
             title: Text(
               t.language,
               style: const TextStyle(

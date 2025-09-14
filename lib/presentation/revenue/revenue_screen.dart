@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:ui' as ui;
-import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +18,7 @@ class RevenueScreen extends StatefulWidget {
 
 class _RevenueScreenState extends State<RevenueScreen> {
   static const double _COMMISSION_RATE = 0.0;
+
   static const int _pageSize = 10;
   int _shown = 0;
   bool _isLoadingMore = false;
@@ -125,7 +126,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   List<ChartData> _buildChartFromOrders(List<Map<String, dynamic>> orders, {required _Period period}) {
-    final Map<String, _Agg> buckets = {};
+    final Map<String, _Agg> buckets = {}; // key -> Agg
     for (final o in orders) {
       final createdAtStr = (o['created_at'] as String?) ?? '';
       final created = DateTime.tryParse(createdAtStr)?.toLocal();
@@ -155,6 +156,8 @@ class _RevenueScreenState extends State<RevenueScreen> {
     final now = DateTime.now();
     final from = now.subtract(Duration(days: days));
     return VendorApiClient().getVendorOrders(
+      dateFrom: from,
+      dateTo: now,
       pageSize: 200,
     );
   }
@@ -222,8 +225,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-
-    // visible slice for "history"
     final visible = _historyData.take(_shown).toList();
     final canLoadMore = _shown < _historyData.length;
 
@@ -241,6 +242,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
           return '';
       }
     }
+
     void onFilterChanged(String v) {
       setState(() {
         _selectedFilter = v;
@@ -268,7 +270,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Page Title
             Row(
               children: [
                 Text(
@@ -283,7 +284,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
               ],
             ),
             const SizedBox(height: 20),
-
             _buildMetricCard(
               label: l10n.earning,
               value: _fmtCurrency(_totalRevenue),
@@ -312,13 +312,13 @@ class _RevenueScreenState extends State<RevenueScreen> {
             ),
 
             const SizedBox(height: 24),
-
             Container(
               decoration: _boxDecoration(),
               padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Header row with title + filter + download
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -455,7 +455,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
             ),
 
             const SizedBox(height: 24),
-
             Container(
               decoration: _boxDecoration(),
               padding: const EdgeInsets.all(18),

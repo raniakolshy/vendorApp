@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class VendorApiClient {
@@ -37,7 +38,9 @@ class VendorApiClient {
         final profile = await getVendorProfile();
         _vendorId = profile.customerId;
       } catch (e) {
-        print('Failed to get vendor ID: $e');
+        if (kDebugMode) {
+          print('Failed to get vendor ID: $e');
+        }
       }
     }
   }
@@ -450,7 +453,6 @@ class VendorApiClient {
 
   Future<Map<String, dynamic>> getCustomerInfo() async {
     try {
-      // Use customer endpoint for basic info
       final response = await _dio.get('customers/me');
       final customerData = Map<String, dynamic>.from(response.data);
 

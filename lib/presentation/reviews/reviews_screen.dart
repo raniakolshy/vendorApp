@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:app_vendor/l10n/app_localizations.dart';
-import 'package:app_vendor/services/api_client.dart' as api;
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/services/api_client.dart' as api;
 
 class ReviewsScreen extends StatefulWidget {
   const ReviewsScreen({

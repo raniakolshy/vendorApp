@@ -1,19 +1,17 @@
-import 'package:app_vendor/services/api_client.dart';
+import 'package:kolshy_vendor/services/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:app_vendor/state_management/locale_provider.dart';
-import 'package:app_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/state_management/locale_provider.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'presentation/auth/login/login_screen.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'presentation/Translation/Language.dart';
 import 'presentation/admin/admin_news_screen.dart';
 import 'presentation/admin/ask_admin_screen.dart';
 import 'presentation/pdf/print_pdf_screen.dart';
-import 'package:graphql_flutter/graphql_flutter.dart'; // ADD THIS IMPORT
 import 'presentation/profile/edit_profile_screen.dart';
 import 'presentation/analytics/customer_analytics_screen.dart';
-import 'presentation/dashboard/dashboard_screen.dart' hide AppLocalizations, ApiClient;
-import 'presentation/orders/orders_list_screen.dart' hide VendorApiClient;
+import 'presentation/dashboard/dashboard_screen.dart';
+import 'presentation/orders/orders_list_screen.dart';
 import 'presentation/products/add_product_screen.dart';
 import 'presentation/products/drafts_list_screen.dart';
 import 'presentation/products/products_list_screen.dart';
@@ -40,39 +38,33 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GraphQLProvider( // FIXED: Only one return statement
-      client: ValueNotifier(GraphQLClient(
-        link: HttpLink('https://kolshy.ae/graphql'),
-        cache: GraphQLCache(store: InMemoryStore()),
-      )),
-      child: ChangeNotifierProvider.value(
-        value: localeProvider,
-        child: Consumer<LocaleProvider>(
-          builder: (context, provider, child) {
-            return MaterialApp(
-              debugShowCheckedModeBanner: false,
-              title: 'Kolshy',
-              locale: provider.locale,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              localeResolutionCallback: (locale, supportedLocales) {
-                if (locale == null) return supportedLocales.first;
-                for (var supported in supportedLocales) {
-                  if (supported.languageCode == locale.languageCode) {
-                    return supported;
-                  }
+    return ChangeNotifierProvider.value(
+      value: localeProvider,
+      child: Consumer<LocaleProvider>(
+        builder: (context, provider, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Kolshy',
+            locale: provider.locale,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localeResolutionCallback: (locale, supportedLocales) {
+              if (locale == null) return supportedLocales.first;
+              for (var supported in supportedLocales) {
+                if (supported.languageCode == locale.languageCode) {
+                  return supported;
                 }
-                return supportedLocales.first;
-              },
-              theme: ThemeData(
-                useMaterial3: true,
-                fontFamily: 'Inter',
-                scaffoldBackgroundColor: Colors.white,
-              ),
-              home: const AuthWrapper(),
-            );
-          },
-        ),
+              }
+              return supportedLocales.first;
+            },
+            theme: ThemeData(
+              useMaterial3: true,
+              fontFamily: 'Inter',
+              scaffoldBackgroundColor: Colors.white,
+            ),
+            home: const AuthWrapper(),
+          );
+        },
       ),
     );
   }

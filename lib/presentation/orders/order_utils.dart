@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'order_model.dart';
 import 'package:intl/intl.dart';
 
-/// Keep this enum OUT of UI files to avoid circular imports.
 enum OrderStatus { delivered, processing, cancelled, onHold, closed, pending }
 
 class OrderUtils {

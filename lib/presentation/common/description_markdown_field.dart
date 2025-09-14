@@ -43,14 +43,11 @@ class _DescriptionMarkdownFieldState extends State<DescriptionMarkdownField> {
     final start = s.start.clamp(0, t.length);
     final end = s.end.clamp(0, t.length);
     final selected = (start < end) ? t.substring(start, end) : '';
-
-    // If nothing selected: insert tokens and put caret in the middle.
     if (selected.isEmpty) {
       final inserted = t.replaceRange(start, end, '$left$right');
       final caret = start + left.length;
       _setText(inserted, caret, caret);
     } else {
-      // If already wrapped, unwrap (toggle)
       final already =
           t.substring((start - left.length).clamp(0, t.length), start) == left &&
               t.substring(end, (end + right.length).clamp(0, t.length)) == right;
@@ -76,8 +73,6 @@ class _DescriptionMarkdownFieldState extends State<DescriptionMarkdownField> {
   void _toggleListPrefix(String prefix, {bool numbered = false}) {
     final s = _sel;
     final t = _text;
-
-    // determine lines range covering selection
     int lineStart = t.lastIndexOf('\n', s.start - 1) + 1;
     int lineEnd = t.indexOf('\n', s.end);
     if (lineEnd == -1) lineEnd = t.length;
