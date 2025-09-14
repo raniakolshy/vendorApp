@@ -3,6 +3,7 @@ import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/api_client.dart';
+import '../../services/vendor_graphql_manager.dart';
 
 void main() => runApp(const CustomerAnalyticsApp());
 
@@ -40,31 +41,89 @@ class CustomerAnalyticsScreen extends StatefulWidget {
 }
 
 class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
-  // ---- CONFIG ----
-  static const int _pageSize = 20; // page size for Magento customers
-
+  static const int _pageSize = 20;
   final TextEditingController _searchCtrl = TextEditingController();
 
-  // Time filter values (localized labels used in UI; we’ll map to periods)
-  String _timeFilter = ''; // set in didChangeDependencies
-  int _shown = 2; // list pagination inside the card (keep your original UX)
+  String _timeFilter = '';
+  int _shown = 2;
   bool _loadingMore = false;
 
   // Magento data
   bool _loading = true;
+  bool _isLoading = true;
   bool _loadingAgg = true;
-  String? _currency; // from orders
-  List<Map<String, dynamic>> _allVendorOrders = []; // raw orders for the vendor
-  Map<String, _Agg> _aggByEmail = {};           // aggregated orders by email for current period
-  Map<String, _Agg> _prevAggByEmail = {};       // aggregated orders for previous period (for % change)
+  String? _currency;
+  final VendorGraphQLManager _vendorManager = VendorGraphQLManager();
+  List<Map<String, dynamic>> _allVendorOrders = [];
+  Map<String, _Agg> _aggByEmail = {};
+  Map<String, _Agg> _prevAggByEmail = {};
+  Map<String, dynamic> _analyticsData = {};
 
-  // live search
   void _onSearchChanged() => setState(() => _shown = 2);
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(_onSearchChanged);
+    _initAndLoadAnalytics();
+  }
+
+  Future<void> _initAndLoadAnalytics() async {
+    await _vendorManager.initVendorSession();
+    _loadAnalytics();
+  }
+
+  Future<void> _loadAnalytics() async {
+    if (!_vendorManager.hasToken) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _loadingAgg = true;
+    });
+
+    try {
+      final period = _getPeriodFromFilter(_timeFilter);
+      _analyticsData = await _vendorManager.getCustomerAnalytics(period: period);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load analytics: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+        _loadingAgg = false;
+      });
+    }
+  }
+
+  String _getPeriodFromFilter(String filter) {
+    final l10n = AppLocalizations.of(context)!;
+    if (filter == l10n.last7Days) return '7_days';
+    if (filter == l10n.last30Days) return '30_days';
+    if (filter == l10n.lastYear) return '1_year';
+    return 'all_time';
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore) return;
+    setState(() => _loadingMore = true);
+    await Future.delayed(const Duration(milliseconds: 300));
+    setState(() {
+      _shown = (_shown + 2).clamp(0, _analyticsData['customers']?.length ?? 0).toInt();
+      _loadingMore = false;
+    });
+  }
+
+  void _onTimeFilterChanged(String? v) async {
+    if (v == null || v == _timeFilter) return;
+    setState(() {
+      _timeFilter = v;
+      _shown = 2;
+    });
+    await _loadAnalytics();
   }
 
   @override
@@ -202,26 +261,6 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
     }
     return customersFromOrders;
   }
-
-  Future<void> _loadMore() async {
-    if (_loadingMore) return;
-    setState(() => _loadingMore = true);
-    await Future.delayed(const Duration(milliseconds: 300));
-    setState(() {
-      _shown = (_shown + 2).clamp(0, _filteredCustomers.length);
-      _loadingMore = false;
-    });
-  }
-
-  void _onTimeFilterChanged(String? v) async {
-    if (v == null || v == _timeFilter) return;
-    setState(() {
-      _timeFilter = v;
-      _shown = 2;
-    });
-    await _reloadAggregates();
-  }
-
   int get _customersCount => _aggByEmail.keys.length;
   int get _customersPrevCount => _prevAggByEmail.keys.length;
   double get _incomeSum => _aggByEmail.values.fold(0.0, (p, a) => p + a.total);
@@ -558,8 +597,6 @@ class _CustomerSummaryDto {
   });
 
   factory _CustomerSummaryDto.fromOrder(Map<String, dynamic> o, String email) {
-    // This is a simplified way to get customer details from an order.
-    // In a real app, you might fetch full customer details separately.
     final first = (o['customer_firstname'] ?? '').toString();
     final last = (o['customer_lastname'] ?? '').toString();
 
@@ -568,9 +605,9 @@ class _CustomerSummaryDto {
     return _CustomerSummaryDto(
       email: email,
       name: nameCombined.isEmpty ? email : nameCombined,
-      gender: null, // Gender is not available in vendor orders
-      telephone: null, // Telephone is not available in vendor orders
-      prettyAddress: null, // Address is not available in vendor orders
+      gender: null,
+      telephone: null,
+      prettyAddress: null,
     );
   }
 }

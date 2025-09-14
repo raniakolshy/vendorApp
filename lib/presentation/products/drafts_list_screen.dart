@@ -1,6 +1,7 @@
 import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../../services/api_client.dart';
+import '../../services/vendor_graphql_manager.dart';
 import 'add_product_screen.dart';
 
 // ===== Models =====
@@ -84,17 +85,18 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String? _filter;
   static const int _pageSize = 2;
+  int _currentPage = 1;
   int _shown = _pageSize;
   bool _loadingMore = false;
   bool _isLoading = true;
   List<_Draft> _all = [];
-  final VendorApiClient _VendorApiClient = VendorApiClient();
+  final VendorGraphQLManager _vendorManager = VendorGraphQLManager();
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(_onSearchChanged);
-    _loadDrafts();
+    _initAndLoadDrafts();
   }
 
   @override
@@ -111,10 +113,23 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
     super.dispose();
   }
 
+  Future<void> _initAndLoadDrafts() async {
+    await _vendorManager.initVendorSession();
+    _loadDrafts();
+  }
+
   Future<void> _loadDrafts() async {
+    if (!_vendorManager.hasToken) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
-      final products = await _VendorApiClient.getDraftProducts();
+      final products = await _vendorManager.getDraftProducts(
+        pageSize: _pageSize,
+        currentPage: _currentPage,
+      );
       _all = products.map((product) => _Draft.fromMagentoProduct(product)).toList();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -149,9 +164,14 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
 
     setState(() => _loadingMore = true);
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
+      _currentPage++;
+      final moreProducts = await _vendorManager.getDraftProducts(
+        pageSize: _pageSize,
+        currentPage: _currentPage,
+      );
+
       setState(() {
-        _shown += _pageSize;
+        _all.addAll(moreProducts.map((product) => _Draft.fromMagentoProduct(product)));
         _loadingMore = false;
       });
     } catch (e) {

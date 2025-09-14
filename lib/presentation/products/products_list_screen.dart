@@ -1,6 +1,7 @@
 import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../../services/api_client.dart';
+import '../../services/vendor_graphql_manager.dart';
 
 void main() => runApp(const ProductsApp());
 
@@ -12,7 +13,6 @@ class ProductsApp extends StatelessWidget {
     final baseTheme = ThemeData(
       useMaterial3: true,
       colorSchemeSeed: const Color(0xFF111111),
-      fontFamily: 'Roboto',
     );
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -163,15 +163,21 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   String? _filter;
   static const int _pageSize = 2;
   int _shown = _pageSize;
+  int _currentPage = 1;
   bool _loadingMore = false;
   bool _isLoading = true;
-  final VendorApiClient _VendorApiClient = VendorApiClient();
+  final VendorGraphQLManager _vendorManager = VendorGraphQLManager();
   List<Product> _allProducts = [];
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(_onSearchChanged);
+    _initAndLoadProducts();
+  }
+
+  Future<void> _initAndLoadProducts() async {
+    await _vendorManager.initVendorSession();
     _loadProducts();
   }
 
@@ -190,20 +196,22 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   }
 
   Future<void> _loadProducts() async {
+    if (!_vendorManager.hasToken) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
-      final productsData = await _VendorApiClient.getProducts();
+      final productsData = await _vendorManager.getVendorProducts(
+        pageSize: _pageSize,
+        currentPage: _currentPage,
+      );
       _allProducts = productsData.map((p) => Product.fromMagentoProduct(p)).toList();
     } catch (e) {
-      if (e.toString().contains('vendor') || e.toString().contains('Vendor ID')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Vendor authentication issue. Please log in again.')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load products: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load products: $e')),
+      );
     } finally {
       setState(() => _isLoading = false);
     }
@@ -242,12 +250,26 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   }
 
   Future<void> _loadMore() async {
+    if (_loadingMore) return;
+
     setState(() => _loadingMore = true);
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    setState(() {
-      _loadingMore = false;
-      _shown = (_shown + _pageSize).clamp(0, _filtered.length);
-    });
+    try {
+      _currentPage++;
+      final moreProducts = await _vendorManager.getVendorProducts(
+        pageSize: _pageSize,
+        currentPage: _currentPage,
+      );
+
+      setState(() {
+        _allProducts.addAll(moreProducts.map((product) => Product.fromMagentoProduct(product)));
+        _loadingMore = false;
+      });
+    } catch (e) {
+      setState(() => _loadingMore = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load more: $e')),
+      );
+    }
   }
 
   void _deleteProduct(Product product) {
