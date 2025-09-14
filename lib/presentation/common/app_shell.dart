@@ -117,7 +117,6 @@ class AppShell extends StatelessWidget {
       transitionBuilder: (ctx, anim, _, __) {
         return Stack(
           children: [
-            // tap outside to close
             Positioned.fill(
               child: GestureDetector(onTap: () => Navigator.pop(ctx)),
             ),
@@ -162,7 +161,7 @@ class _TopBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip( // <-- accessibilité multi-langue
+    return Tooltip(
       message: name,
       child: GestureDetector(
         onTap: onTap,

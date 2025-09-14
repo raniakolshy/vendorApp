@@ -37,7 +37,6 @@ class _DescriptionMarkdownFieldState extends State<DescriptionMarkdownField> {
     setState(() {});
   }
 
-  /// Wrap current selection with [left] and [right] tokens.
   void _wrap(String left, String right) {
     final s = _sel;
     final t = _text;
@@ -74,7 +73,6 @@ class _DescriptionMarkdownFieldState extends State<DescriptionMarkdownField> {
     _focus.requestFocus();
   }
 
-  /// Add a list prefix ('- ' or '1. ') at the start of the current line(s).
   void _toggleListPrefix(String prefix, {bool numbered = false}) {
     final s = _sel;
     final t = _text;
@@ -183,7 +181,7 @@ class _DescriptionMarkdownFieldState extends State<DescriptionMarkdownField> {
               contentPadding: EdgeInsets.all(16),
             ),
             onChanged: (value) {
-              setState(() {}); // Refresh preview when text changes
+              setState(() {});
             },
           ),
         ],

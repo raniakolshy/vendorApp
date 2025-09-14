@@ -646,7 +646,6 @@ class _MenuRow extends StatelessWidget {
     );
   }
 }
-
 class _DividerLine extends StatelessWidget {
   const _DividerLine();
 

@@ -7,7 +7,6 @@ import '../../services/api_client.dart';
 
 void main() => runApp(const TransactionsScreen());
 
-/// A custom widget for a gap with a specific height.
 class Gap extends StatelessWidget {
   final double h;
   const Gap(this.h, {super.key});
@@ -18,7 +17,7 @@ class Gap extends StatelessWidget {
   }
 }
 
-/// The main application widget
+
 class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
 
@@ -56,12 +55,9 @@ class PayoutsScreen extends StatefulWidget {
 }
 
 class _PayoutsScreenState extends State<PayoutsScreen> {
-  // ---- unchanged UI state ----
   static const int _pageSize = 5;
   int _shownCount = _pageSize;
   bool _isLoadingMore = false;
-
-  // ---- new: data state from Magento ----
   final _money = NumberFormat.currency(symbol: 'AED ', decimalDigits: 2);
   bool _loading = true;
   String? _error;
@@ -363,10 +359,6 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')} / ${date.month.toString().padLeft(2, '0')} / ${date.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final filteredTransactions = _filteredTransactions;
@@ -454,8 +446,6 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
     );
   }
 }
-
-/// Balance Card (unchanged)
 class BalanceCard extends StatelessWidget {
   final String label;
   final String amount;
@@ -510,7 +500,6 @@ class BalanceCard extends StatelessWidget {
   }
 }
 
-/// Payout History Section (unchanged UI)
 class _PayoutHistory extends StatelessWidget {
   final List<Transaction> transactions;
   final bool canLoadMore;
@@ -637,8 +626,6 @@ class _PayoutHistory extends StatelessWidget {
     );
   }
 }
-
-/// Transaction Model (unchanged)
 enum TransactionStatus { paid, onProcess, failed }
 
 class Transaction {
@@ -656,8 +643,6 @@ class Transaction {
     required this.purchasedOn,
   });
 }
-
-/// Transaction Item (unchanged UI)
 class TransactionItem extends StatelessWidget {
   final Transaction transaction;
   const TransactionItem({super.key, required this.transaction});
@@ -773,8 +758,6 @@ class _StatusPill extends StatelessWidget {
     );
   }
 }
-
-/// Load More Button (unchanged)
 class _LoadMoreButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isLoading;

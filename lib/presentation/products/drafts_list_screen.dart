@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../services/api_client.dart';
 import 'add_product_screen.dart';
 
-// ===== Models =====
 
 enum DraftStatus {
   draft,
@@ -47,7 +46,7 @@ class _Draft {
       price: (product['price'] ?? 0.0).toDouble(),
       created: DateTime.parse(product['created_at'] ?? DateTime.now().toString()),
       status: _parseStatus(product['status']),
-      gender: Gender.male, // You'll need to map this from custom attributes
+      gender: Gender.male,
       thumbnail: product['media_gallery_entries']?[0]?['file'],
     );
   }
@@ -59,8 +58,6 @@ class _Draft {
     return DraftStatus.draft;
   }
 }
-
-// Product model for passing to AddProductScreen
 class Product {
   Product({
     required this.name,
@@ -75,8 +72,6 @@ class Product {
   final double price;
 }
 
-// ===== Utils =====
-
 String _fmtDate(DateTime d) {
   final dd = d.day.toString().padLeft(2, '0');
   final mm = d.month.toString().padLeft(2, '0');
@@ -84,7 +79,6 @@ String _fmtDate(DateTime d) {
   return '$dd / $mm / $yyyy';
 }
 
-// Main Screen Widget
 class DraftsListScreen extends StatefulWidget {
   const DraftsListScreen({super.key});
 
@@ -93,7 +87,6 @@ class DraftsListScreen extends StatefulWidget {
 }
 
 class _DraftsListScreenState extends State<DraftsListScreen> {
-  // UI state
   final TextEditingController _searchCtrl = TextEditingController();
   String? _filter;
   static const int _pageSize = 2;
@@ -114,9 +107,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final localizations = AppLocalizations.of(context)!;
-    if (_filter == null) {
-      _filter = localizations.allDrafts;
-    }
+    _filter ??= localizations.allDrafts;
   }
 
   @override
@@ -129,7 +120,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
   Future<void> _loadDrafts() async {
     setState(() => _isLoading = true);
     try {
-      // Use the vendor-specific method
       final products = await _VendorApiClient.getDraftProducts();
       _all = products.map((product) => _Draft.fromMagentoProduct(product)).toList();
     } catch (e) {
@@ -165,9 +155,7 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
 
     setState(() => _loadingMore = true);
     try {
-      // The new API client loads all drafts at once, so we handle pagination locally.
-      // This is the fix for the named parameter 'page' error.
-      await Future.delayed(const Duration(milliseconds: 500)); // Simulate a slight delay
+      await Future.delayed(const Duration(milliseconds: 500));
       setState(() {
         _shown += _pageSize;
         _loadingMore = false;
@@ -230,8 +218,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
         ],
       ),
     );
-    // You would typically call an API here to delete the draft by its ID.
-    // For now, we'll just remove it from the local list.
     if (ok == true && mounted) setState(() => _all.remove(d));
   }
 
@@ -250,7 +236,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
     return Scaffold(
       body: Column(
         children: [
-          // Main card
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(14),
@@ -270,7 +255,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     Text(
                       localizations.draftsTitle,
                       style: Theme.of(context)
@@ -279,8 +263,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
                           ?.copyWith(fontWeight: FontWeight.w800, fontSize: 22),
                     ),
                     const SizedBox(height: 16),
-
-                    // Search
                     _InputSurface(
                       child: TextField(
                         controller: _searchCtrl,
@@ -303,8 +285,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-
-                    // Filter
                     DropdownButtonFormField<String>(
                       value: _filter,
                       decoration: InputDecoration(
@@ -344,8 +324,6 @@ class _DraftsListScreenState extends State<DraftsListScreen> {
                     ),
 
                     const SizedBox(height: 22),
-
-                    // Load more button with static asset icon
                     if (_filtered.isNotEmpty)
                       Center(
                         child: Opacity(
@@ -453,7 +431,6 @@ class _DraftRow extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thumbnail with gender-specific avatar
               Container(
                 margin: const EdgeInsets.only(right: 20),
                 child: ClipRRect(
@@ -468,8 +445,6 @@ class _DraftRow extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // Details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -565,9 +540,6 @@ class _DraftRow extends StatelessWidget {
     );
   }
 }
-
-// ===== Reused UI components from other screens =====
-
 class _InputSurface extends StatelessWidget {
   const _InputSurface({required this.child});
   final Widget child;

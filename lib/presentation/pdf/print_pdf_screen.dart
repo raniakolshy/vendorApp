@@ -23,7 +23,6 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
   bool _saving = false;
 
   Map<String, dynamic>? _invoice;
-  String? _lastComment;
 
   @override
   void initState() {
@@ -74,7 +73,6 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
       if (!mounted) return;
       setState(() {
         _invoice = inv;
-        _lastComment = latest;
         if (latest != null && latest.trim().isNotEmpty) {
           _infoController.text = latest;
         }

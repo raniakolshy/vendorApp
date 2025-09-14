@@ -32,7 +32,7 @@ class _AskAdminScreenState extends State<AskAdminScreen> {
     try {
       final VendorProfile me = await VendorApiClient().getVendorProfile();
       // Use typed properties instead of map access
-      final name = '${me.companyName ?? ''}'.trim();
+      final name = (me.companyName ?? '').trim();
       final email = '';
       final messageBody = '[${_subjectController.text.trim()}]\n\n${_queryController.text.trim()}';
 

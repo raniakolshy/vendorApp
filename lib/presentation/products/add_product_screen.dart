@@ -1114,8 +1114,6 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
     final onSurfaceMuted = isDark ? Colors.white70 : Colors.black54;
 
     final l10n = widget.l10n;
-
-    // Loading / error states
     if (_loading) {
       return const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()));
     }
@@ -1128,16 +1126,15 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
       );
     }
 
-    // Map Magento items -> view model for filtering
+
     List<Map<String, dynamic>> decorated = _allProducts.map((p) {
-      final status = (p['status'] as num?)?.toInt() ?? 2; // 1 enabled, 2 disabled
+      final status = (p['status'] as num?)?.toInt() ?? 2;
       final enabled = status == 1;
       final name = (p['name'] ?? '').toString();
       final id = (p['id'] ?? '').toString();
       final sku = (p['sku'] ?? '').toString();
       final type = (p['type_id'] ?? '').toString();
       final price = (p['price'] ?? 0).toString();
-      // stock info
       final ext = p['extension_attributes'] as Map<String, dynamic>?;
       final stock = ext?['stock_item'] as Map<String, dynamic>?;
       final isInStock = (stock?['is_in_stock'] as bool?) ?? true;
@@ -1146,7 +1143,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
       String invLabel;
       if (isInStock) {
         if (qty != null && qty <= 5) {
-          invLabel = l10n.inv_low_stock_label; // you can adjust threshold
+          invLabel = l10n.inv_low_stock_label;
         } else {
           invLabel = l10n.inv_in_stock_label;
         }
@@ -1165,7 +1162,6 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
       };
     }).toList();
 
-    // Search
     final q = _search.text.trim().toLowerCase();
     if (q.isNotEmpty) {
       decorated = decorated.where((p) {
@@ -1175,7 +1171,6 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
       }).toList();
     }
 
-    // Enabled/Disabled filter
     decorated = decorated.where((p) {
       final isEnabled = (p['enabled'] as bool?) ?? true;
       if (isEnabled && !_showEnabled) return false;
@@ -1209,7 +1204,6 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
 
     return Column(
       children: [
-        // Toolbar
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
           child: LayoutBuilder(
@@ -1329,7 +1323,7 @@ class EmptyModern extends StatelessWidget {
 }
 
 class ProductCard extends StatelessWidget {
-  final Map<String, dynamic> product; // expects: id, sku, name, type, price, statusLabel, enabled
+  final Map<String, dynamic> product;
   final AppLocalizations l10n;
   const ProductCard({super.key, required this.product, required this.l10n});
 
@@ -1374,8 +1368,6 @@ class ProductCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-
-          // Main row
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Container(
               width: 60,

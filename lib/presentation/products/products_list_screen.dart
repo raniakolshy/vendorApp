@@ -118,9 +118,9 @@ class Product {
       createdAt: _fmtDate(DateTime.parse(product['created_at'] ?? DateTime.now().toString())),
       quantityPerSource: stockItem['qty']?.toInt() ?? 0,
       salableQuantity: stockItem['is_in_stock'] == true ? stockItem['qty']?.toInt() ?? 0 : 0,
-      quantitySold: 0, // Not available in this API, defaulting to 0
-      quantityConfirmed: 0, // Not available in this API, defaulting to 0
-      quantityPending: 0, // Not available in this API, defaulting to 0
+      quantitySold: 0,
+      quantityConfirmed: 0,
+      quantityPending: 0,
       visibility: _parseVisibility(product['visibility']),
     );
   }
@@ -152,7 +152,6 @@ class Product {
   }
 }
 
-// Main Screen Widget
 class ProductsListScreen extends StatefulWidget {
   const ProductsListScreen({super.key});
 
@@ -181,9 +180,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final localizations = AppLocalizations.of(context)!;
-    if (_filter == null) {
-      _filter = localizations.allProducts;
-    }
+    _filter ??= localizations.allProducts;
   }
 
   @override
@@ -247,7 +244,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
   Future<void> _loadMore() async {
     setState(() => _loadingMore = true);
-    // Simulate a slight delay to mimic a network call
     await Future<void>.delayed(const Duration(milliseconds: 900));
     setState(() {
       _loadingMore = false;
@@ -278,7 +274,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 localizations.cancelButton,
-                style: TextStyle(color: Colors.grey[700]), // Customize button color
+                style: TextStyle(color: Colors.grey[700]),
               ),
             ),
             TextButton(
@@ -324,7 +320,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     return Scaffold(
       body: Column(
         children: [
-          // Main card
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(14),
@@ -353,8 +348,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                           ?.copyWith(fontWeight: FontWeight.w800, fontSize: 22),
                     ),
                     const SizedBox(height: 16),
-
-                    // Search and Filter in a column (stacked vertically)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -432,8 +425,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     ),
 
                     const SizedBox(height: 22),
-
-                    // Load more button with static asset icon
                     if (_filtered.isNotEmpty)
                       Center(
                         child: Opacity(
@@ -575,8 +566,6 @@ class _ProductRow extends StatelessWidget {
                         ?.copyWith(color: Colors.black54),
                   ),
                   const SizedBox(height: 16),
-
-                  // Product details with consistent spacing
                   _ProductDetailRow(
                     label: localizations.idLabel,
                     value: product.id,
@@ -711,7 +700,7 @@ class _ProductDetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12), // Consistent spacing
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
           Expanded(

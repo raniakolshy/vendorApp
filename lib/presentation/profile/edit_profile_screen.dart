@@ -121,59 +121,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _loading = true);
     try {
       final vp = await VendorApiClient().getVendorProfileMe();
-      if (vp != null) {
-        _customerId = vp.customerId;
-        _companyName.text = vp.companyName ?? '';
-        _bio.text = vp.bio ?? '';
-        _selectedCountry = vp.country?.isNotEmpty == true ? vp.country! : _selectedCountry;
-        _phoneNumber.text = vp.phone ?? '';
-        _lowStockQuantity.text = vp.lowStockQty ?? '';
-        _taxVatNumber.text = vp.vatNumber ?? '';
-        _paymentDetails.text = vp.paymentDetails ?? '';
+      _customerId = vp.customerId;
+      _companyName.text = vp.companyName ?? '';
+      _bio.text = vp.bio ?? '';
+      _selectedCountry = vp.country?.isNotEmpty == true ? vp.country! : _selectedCountry;
+      _phoneNumber.text = vp.phone ?? '';
+      _lowStockQuantity.text = vp.lowStockQty ?? '';
+      _taxVatNumber.text = vp.vatNumber ?? '';
+      _paymentDetails.text = vp.paymentDetails ?? '';
 
-        _twitterId.text = vp.twitter ?? '';
-        _facebookId.text = vp.facebook ?? '';
-        _instagramId.text = vp.instagram ?? '';
-        _youtubeId.text = vp.youtube ?? '';
-        _vimeoId.text = vp.vimeo ?? '';
-        _pinterestId.text = vp.pinterest ?? '';
-        _moleskineId.text = vp.moleskine ?? '';
-        _tiktokId.text = vp.tiktok ?? '';
+      _twitterId.text = vp.twitter ?? '';
+      _facebookId.text = vp.facebook ?? '';
+      _instagramId.text = vp.instagram ?? '';
+      _youtubeId.text = vp.youtube ?? '';
+      _vimeoId.text = vp.vimeo ?? '';
+      _pinterestId.text = vp.pinterest ?? '';
+      _moleskineId.text = vp.moleskine ?? '';
+      _tiktokId.text = vp.tiktok ?? '';
 
-        _twitterEnabled = _twitterId.text.isNotEmpty;
-        _facebookEnabled = _facebookId.text.isNotEmpty;
-        _instagramEnabled = _instagramId.text.isNotEmpty;
-        _youtubeEnabled = _youtubeId.text.isNotEmpty;
-        _vimeoEnabled = _vimeoId.text.isNotEmpty;
-        _pinterestEnabled = _pinterestId.text.isNotEmpty;
-        _moleskineEnabled = _moleskineId.text.isNotEmpty;
-        _tiktokEnabled = _tiktokId.text.isNotEmpty;
+      _twitterEnabled = _twitterId.text.isNotEmpty;
+      _facebookEnabled = _facebookId.text.isNotEmpty;
+      _instagramEnabled = _instagramId.text.isNotEmpty;
+      _youtubeEnabled = _youtubeId.text.isNotEmpty;
+      _vimeoEnabled = _vimeoId.text.isNotEmpty;
+      _pinterestEnabled = _pinterestId.text.isNotEmpty;
+      _moleskineEnabled = _moleskineId.text.isNotEmpty;
+      _tiktokEnabled = _tiktokId.text.isNotEmpty;
 
-        _returnPolicy.text = vp.returnPolicy ?? '';
-        _shippingPolicy.text = vp.shippingPolicy ?? '';
-        _privacyPolicy.text = vp.privacyPolicy ?? '';
+      _returnPolicy.text = vp.returnPolicy ?? '';
+      _shippingPolicy.text = vp.shippingPolicy ?? '';
+      _privacyPolicy.text = vp.privacyPolicy ?? '';
 
-        _metaKeywords.text = vp.metaKeywords ?? '';
-        _metaDescription.text = vp.metaDescription ?? '';
-        _googleAnalyticId.text = vp.googleAnalyticsId ?? '';
+      _metaKeywords.text = vp.metaKeywords ?? '';
+      _metaDescription.text = vp.metaDescription ?? '';
+      _googleAnalyticId.text = vp.googleAnalyticsId ?? '';
 
-        _profilePageRequestUrlPath.text = vp.profilePathReq ?? '';
-        _collectionPageRequestUrlPath.text = vp.collectionPathReq ?? '';
-        _reviewPageRequestUrlPath.text = vp.reviewPathReq ?? '';
-        _locationPageRequestUrlPath.text = vp.locationPathReq ?? '';
-        _privacyPolicyRequestUrlPath.text = vp.privacyPathReq ?? '';
+      _profilePageRequestUrlPath.text = vp.profilePathReq ?? '';
+      _collectionPageRequestUrlPath.text = vp.collectionPathReq ?? '';
+      _reviewPageRequestUrlPath.text = vp.reviewPathReq ?? '';
+      _locationPageRequestUrlPath.text = vp.locationPathReq ?? '';
+      _privacyPolicyRequestUrlPath.text = vp.privacyPathReq ?? '';
 
-        // Images
-        _logoUrl = vp.logoUrl;
-        _bannerUrl = vp.bannerUrl;
-        if (vp.logoBase64?.isNotEmpty == true) {
-          _logoBytes = base64Decode(vp.logoBase64!.split(',').last);
-        }
-        if (vp.bannerBase64?.isNotEmpty == true) {
-          _bannerBytes = base64Decode(vp.bannerBase64!.split(',').last);
-        }
+      _logoUrl = vp.logoUrl;
+      _bannerUrl = vp.bannerUrl;
+      if (vp.logoBase64?.isNotEmpty == true) {
+        _logoBytes = base64Decode(vp.logoBase64!.split(',').last);
       }
-    } catch (e) {
+      if (vp.bannerBase64?.isNotEmpty == true) {
+        _bannerBytes = base64Decode(vp.bannerBase64!.split(',').last);
+      }
+        } catch (e) {
       _snack('Failed to load profile: $e', error: true);
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -215,7 +212,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         if (isLogo) {
           _logoBytes = file.bytes;
-          _logoUrl = null; // prefer picked bytes over previous URL
+          _logoUrl = null;
         } else {
           _bannerBytes = file.bytes;
           _bannerUrl = null;
@@ -263,7 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         locationPathReq: _locationPageRequestUrlPath.text.trim(),
         privacyPathReq: _privacyPolicyRequestUrlPath.text.trim(),
         // images:
-        logoUrl: _logoUrl,         // if you have a media uploader, set this instead of base64
+        logoUrl: _logoUrl,
         bannerUrl: _bannerUrl,
         logoBase64: _logoBytes != null ? 'data:image/*;base64,${base64Encode(_logoBytes!)}' : null,
         bannerBase64: _bannerBytes != null ? 'data:image/*;base64,${base64Encode(_bannerBytes!)}' : null,
@@ -332,14 +329,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
                           child: Column(
                             children: [
-                              // Profile Information
                               _sectionCard(title: l10n.sec_profile_information, children: [
-                                // Company Logo
                                 _label(l10n.lbl_company_logo, help: l10n.help_company_logo),
                                 _buildLogoPicker(l10n),
                                 const SizedBox(height: 20),
 
-                                // Company Banner
                                 _label(l10n.lbl_company_banner, help: l10n.help_company_banner),
                                 _buildBannerPicker(l10n),
                                 const SizedBox(height: 20),
@@ -482,7 +476,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 const SizedBox(height: 20),
 
-                                // URL Paths
                                 _label(l10n.lbl_profile_target, help: l10n.help_profile_target),
                                 TextFormField(
                                   initialValue: 'marketplace/seller/profile/shop/comp',
@@ -806,7 +799,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Helpers
   String _localizeCountry(String raw, AppLocalizations l10n) {
     switch (raw) {
       case 'United Arab Emirates':

@@ -3,8 +3,6 @@ import 'package:app_vendor/main.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../services/api_client.dart';
-
 const Color primaryPink = Color(0xFFE51742);
 const Color inputFill = Color(0xFFF4F4F4);
 const Color lightBorder = Color(0xFFDDDDDD);

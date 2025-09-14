@@ -8,7 +8,6 @@ class GraphQLQueries {
     }
   ''';
 
-  // Get vendor profile
   static const String getVendorProfile = r'''
     query {
       customer {
@@ -22,7 +21,6 @@ class GraphQLQueries {
     }
   ''';
 
-  // Get vendor products (drafts)
   static const String getVendorProducts = r'''
     query GetVendorProducts($vendorId: Int!, $pageSize: Int, $currentPage: Int, $status: String) {
       products(
@@ -67,8 +65,7 @@ class GraphQLQueries {
       }
     }
   ''';
-
-  // Get vendor orders
+  
   static const String getVendorOrders = r'''
     query GetVendorOrders($vendorId: Int!, $pageSize: Int, $currentPage: Int) {
       orders(

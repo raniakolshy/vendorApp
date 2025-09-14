@@ -190,7 +190,6 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
   List<_CustomerSummaryDto> get _filteredCustomers {
     final q = _searchCtrl.text.trim().toLowerCase();
     final customersFromOrders = _aggByEmail.keys.map((email) {
-      // Find a corresponding order to get other customer details
       final order = _allVendorOrders.firstWhere((o) => o['customer_email'] == email, orElse: () => {});
       return _CustomerSummaryDto.fromOrder(order, email);
     }).toList();
@@ -558,8 +557,6 @@ class _CustomerSummaryDto {
   });
 
   factory _CustomerSummaryDto.fromOrder(Map<String, dynamic> o, String email) {
-    // This is a simplified way to get customer details from an order.
-    // In a real app, you might fetch full customer details separately.
     final first = (o['customer_firstname'] ?? '').toString();
     final last = (o['customer_lastname'] ?? '').toString();
 
@@ -568,9 +565,9 @@ class _CustomerSummaryDto {
     return _CustomerSummaryDto(
       email: email,
       name: nameCombined.isEmpty ? email : nameCombined,
-      gender: null, // Gender is not available in vendor orders
-      telephone: null, // Telephone is not available in vendor orders
-      prettyAddress: null, // Address is not available in vendor orders
+      gender: null,
+      telephone: null,
+      prettyAddress: null,
     );
   }
 }

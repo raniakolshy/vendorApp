@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/api_client.dart';
-import 'order_model.dart' hide MagentoOrder;
 import 'order_utils.dart';
-import 'order_widgets.dart';
 
 void main() => runApp(const OrdersApp());
 
@@ -124,7 +122,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
         _searchCtrl.text.trim(),
         status: statusFilter,
         pageSize: _pageSize,
-        currentPage: 1, // Start search from the first page
+        currentPage: 1,
       );
 
       final convertedOrders = await Future.wait(
@@ -152,8 +150,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
       case FilterOption.cancelled:
         return 'canceled';
       case FilterOption.all:
-      default:
-        return null;
+      return null;
     }
   }
 
@@ -172,8 +169,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
       case FilterOption.cancelled:
         return byText.where((o) => o.status == OrderStatus.cancelled).toList();
       case FilterOption.all:
-      default:
-        return byText.toList();
+      return byText.toList();
     }
   }
 
@@ -238,7 +234,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final _localizations = AppLocalizations.of(context)!;
+    final localizations = AppLocalizations.of(context)!;
     final visible = _filtered;
     final canLoadMore = !_loadingMore && _allOrders.length % _pageSize == 0 && _allOrders.isNotEmpty;
 
@@ -303,7 +299,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                       children: [
                         Expanded(
                           flex: 3,
-                          child: Container(), // Replaced InputSurface with a simple container
+                          child: Container(),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -330,7 +326,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                             items: FilterOption.values
                                 .map((e) => DropdownMenuItem(
                               value: e,
-                              child: Text(_localizeFilter(e, _localizations)),
+                              child: Text(_localizeFilter(e, localizations)),
                             ))
                                 .toList(),
                             onChanged: _onFilterChanged,
@@ -357,7 +353,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                           padding: EdgeInsets.symmetric(vertical: 16),
                           child: Divider(height: 1, thickness: 1, color: Color(0x11000000)),
                         ),
-                        itemBuilder: (context, i) => Container(), // Replaced OrderRow with a simple container
+                        itemBuilder: (context, i) => Container(),
                       ),
 
                     const SizedBox(height: 24),
@@ -440,8 +436,6 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
 enum FilterOption { all, delivered, processing, cancelled }
 
-/// Keep OrderStatus in a non-UI place (order_utils.dart exports it)
-/// (no enum here)
 class Order {
   Order({
     required this.thumbnailAsset,

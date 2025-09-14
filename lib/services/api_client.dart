@@ -16,7 +16,7 @@ class VendorApiClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': 'Bearer 87igct1wbbphdok6dk1roju4i83kyub9', // Add admin token here
+        'Authorization': 'Bearer 87igct1wbbphdok6dk1roju4i83kyub9',
       },
     ),
   );
@@ -71,7 +71,7 @@ class VendorApiClient {
     _vendorId = profile.customerId;
     return _vendorId!;
   }
-  // Centralized error parsing (also exposed via parseMagentoError)
+
   String _handleDioError(DioException e) {
     if (e.response != null) {
       final data = e.response!.data;
@@ -91,7 +91,6 @@ class VendorApiClient {
   // ==========================
   Future<String> loginVendor(String email, String password) async {
     try {
-      // Use customer login endpoint
       final response = await _dio.post(
         'integration/customer/token',
         data: {"username": email, "password": password},
@@ -194,13 +193,10 @@ class VendorApiClient {
 
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
-      // Get vendor ID first
       final vendorProfile = await getVendorProfile();
       final vendorId = vendorProfile.customerId;
 
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
-
-      // Get orders for this specific vendor
       final ordersResponse = await _dio.get(
         'orders',
         queryParameters: {
@@ -214,14 +210,11 @@ class VendorApiClient {
 
       final orders = ordersResponse.data['items'] ?? [];
       final totalOrders = ordersResponse.data['total_count'] ?? 0;
-
-      // Calculate total revenue for this vendor
       double totalRevenue = 0;
       for (var order in orders) {
         totalRevenue += double.tryParse(order['grand_total']?.toString() ?? '0') ?? 0;
       }
 
-      // Get products for this vendor
       final productsResponse = await _dio.get(
         'products',
         queryParameters: {
@@ -232,8 +225,6 @@ class VendorApiClient {
         },
       );
       final totalProducts = productsResponse.data['total_count'] ?? 0;
-
-      // Get pending orders for this vendor
       final pendingOrdersResponse = await _dio.get(
         'orders',
         queryParameters: {
@@ -283,7 +274,6 @@ class VendorApiClient {
 
       final orders = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
 
-      // Group sales by date
       final salesByDate = <String, double>{};
       for (var order in orders) {
         final date = order['created_at']?.toString().split(' ')[0] ?? '';
@@ -296,7 +286,6 @@ class VendorApiClient {
         }
       }
 
-      // Convert to list format
       return salesByDate.entries.map((entry) => {
         'date': entry.key,
         'amount': entry.value,
@@ -320,8 +309,6 @@ class VendorApiClient {
       );
 
       final customers = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
-
-      // Simple breakdown - you can enhance this based on customer attributes
       return {
         'total_customers': customers.length,
         'new_customers': customers.where((c) {
@@ -364,7 +351,7 @@ class VendorApiClient {
         'sku': product['sku'],
         'price': product['price'],
         'image': product['media_gallery_entries']?[0]?['file'] ?? '',
-        'qty_sold': 0, // Magento doesn't provide this directly
+        'qty_sold': 0,
       }).toList();
     } on DioException catch (e) {
       return [];
@@ -404,8 +391,6 @@ class VendorApiClient {
       );
 
       final reviews = List<Map<String, dynamic>>.from(response.data['items'] ?? []);
-
-      // Calculate average ratings per product
       final productRatings = <String, List<int>>{};
       for (var review in reviews) {
         final productSku = review['extension_attributes']?['sku'] ?? review['product_sku'];
@@ -489,7 +474,6 @@ class VendorApiClient {
     int currentPage = 1,
   }) async {
     try {
-      // First get vendor profile to get the vendor ID
       final vendorProfile = await getVendorProfile();
 
       _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
@@ -1102,7 +1086,6 @@ class MagentoProduct {
   }
 }
 
-/// Minimal product used by getProductLiteBySku
 class MagentoProductLite {
   final String sku;
   final String name;
@@ -1176,9 +1159,6 @@ class MagentoReview {
     );
   }
 }
-
-
-/// Typed vendor profile so you can do vp.customerId, vp.companyName, etc.
 class VendorProfile {
   final int? customerId;
   final String? firstname;

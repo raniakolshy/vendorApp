@@ -3,9 +3,8 @@ import 'package:app_vendor/presentation/auth/register/register_screen.dart';
 import 'package:app_vendor/presentation/dashboard/dashboard_screen.dart'; // New import for the DashboardScreen
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:app_vendor/main.dart'; // Make sure this path is correct for your Home() widget
+import 'package:app_vendor/main.dart';
 
-// Page d'accueil (welcome) – style basé sur la maquette fournie.
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
@@ -65,7 +64,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 25),
-                  // Gros titre en haut à gauche
                   Text(
                     "Manage Your Business,\nAnytime, Anywhere",
                     style: theme.textTheme.headlineMedium?.copyWith(

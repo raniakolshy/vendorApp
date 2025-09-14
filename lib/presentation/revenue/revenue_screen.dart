@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
@@ -18,11 +17,7 @@ class RevenueScreen extends StatefulWidget {
 }
 
 class _RevenueScreenState extends State<RevenueScreen> {
-
-  static const String _ADMIN_TOKEN = '87igct1wbbphdok6dk1roju4i83kyub9';
-
   static const double _COMMISSION_RATE = 0.0;
-
   static const int _pageSize = 10;
   int _shown = 0;
   bool _isLoadingMore = false;
@@ -116,11 +111,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
           _buildChartFromOrders(await _fetchOrdersForLast(days: 30), period: _Period.day);
       _chartCacheByFilter['thisYear'] =
           _buildChartFromOrders(await _fetchOrdersForThisYear(), period: _Period.month);
-
-      // Set the visible chart based on current filter
       _chartData = _chartCacheByFilter[_selectedFilter] ?? const [];
-
-      // Initialize first page of history list
       _shown = _historyData.isEmpty ? 0 : (_historyData.length >= _pageSize ? _pageSize : _historyData.length);
     } on DioException catch (e) {
       _loadError = VendorApiClient().parseMagentoError(e);
@@ -179,18 +170,16 @@ class _RevenueScreenState extends State<RevenueScreen> {
     );
   }
 
-  // ----- LOAD MORE HISTORY -----
   Future<void> _loadMore() async {
     if (_isLoadingMore) return;
     setState(() => _isLoadingMore = true);
-    await Future.delayed(const Duration(milliseconds: 300)); // smooth UX
+    await Future.delayed(const Duration(milliseconds: 300));
     setState(() {
       _shown = (_shown + _pageSize).clamp(0, _historyData.length);
       _isLoadingMore = false;
     });
   }
 
-  // ----- DOWNLOAD CHART (kept as-is) -----
   Future<void> _downloadChart() async {
     await Future.delayed(Duration.zero);
     final l10n = AppLocalizations.of(context)!;
@@ -230,7 +219,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
     }
   }
 
-  // ----- UI (UNCHANGED LAYOUT) -----
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -253,9 +241,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
           return '';
       }
     }
-
-    // react to filter change by swapping cached chart data
-    void _onFilterChanged(String v) {
+    void onFilterChanged(String v) {
       setState(() {
         _selectedFilter = v;
         _chartData = _chartCacheByFilter[_selectedFilter] ?? const [];
@@ -298,11 +284,10 @@ class _RevenueScreenState extends State<RevenueScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Metrics — values come from Magento
             _buildMetricCard(
               label: l10n.earning,
               value: _fmtCurrency(_totalRevenue),
-              change: l10n.positiveChangeThisWeek(0), // if you want, compute WoW delta from orders
+              change: l10n.positiveChangeThisWeek(0),
               isPositive: true,
               iconPath: 'assets/icons/trending_up.png',
               backgroundColor: const Color(0xFFD6F6E6),
@@ -328,14 +313,12 @@ class _RevenueScreenState extends State<RevenueScreen> {
 
             const SizedBox(height: 24),
 
-            // Product views card (chart fed by Magento orders)
             Container(
               decoration: _boxDecoration(),
               padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header row with title + filter + download
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -389,7 +372,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
                                   )
                                       .toList(),
                                   onChanged: (v) {
-                                    if (v != null) _onFilterChanged(v);
+                                    if (v != null) onFilterChanged(v);
                                   },
                                   icon: const Icon(Icons.expand_more),
                                 ),
@@ -413,8 +396,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
-                  // Chart wrapped with RepaintBoundary for export
                   RepaintBoundary(
                     key: _chartKey,
                     child: SizedBox(
@@ -443,7 +424,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
                             dataSource: _chartData,
                             xValueMapper: (ChartData d, _) => d.x,
                             yValueMapper: (ChartData d, _) => d.y1,
-                            name: l10n.lifetimeValue, // revenue
+                            name: l10n.lifetimeValue,
                             color: const Color(0xFF4285F4),
                             width: 0.6,
                             spacing: 0.1,
@@ -453,7 +434,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
                             dataSource: _chartData,
                             xValueMapper: (ChartData d, _) => d.x,
                             yValueMapper: (ChartData d, _) => d.y2,
-                            name: l10n.customerCost, // discounts as "cost"
+                            name: l10n.customerCost,
                             color: const Color(0xFFFBBC05),
                             width: 0.6,
                             spacing: 0.1,
@@ -475,7 +456,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
 
             const SizedBox(height: 24),
 
-            // Earning History Card (orders)
             Container(
               decoration: _boxDecoration(),
               padding: const EdgeInsets.all(18),
@@ -521,7 +501,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
     ],
   );
 
-  // ----- UI helpers (UNCHANGED) -----
   Widget _buildHistoryItem(Map<String, String> item, AppLocalizations l10n) {
     return Column(
       children: [
@@ -605,7 +584,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
     );
   }
 
-  // ----- helpers -----
   String _fmtCurrency(num v) => NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(v);
 
   String _fmtPercentFromAbs(double discountAbs, {required double base}) {
@@ -614,14 +592,11 @@ class _RevenueScreenState extends State<RevenueScreen> {
     return '${pct.toStringAsFixed(0)}%';
   }
 
-  // stable sort key for chart axis labels
   int _syntheticKeyOrder(String key) {
-    // Try "MMM d"
     try {
       final dt = DateFormat('MMM d').parse(key);
       return dt.month * 100 + dt.day;
     } catch (_) {}
-    // Try "MMM"
     try {
       final dt = DateFormat('MMM').parse(key);
       return dt.month * 100;
@@ -696,7 +671,7 @@ class _LoadMoreButton extends StatelessWidget {
 
 class ChartData {
   const ChartData(this.x, this.y1, this.y2);
-  final String x;   // label (day/month)
-  final double y1;  // revenue (sum grand_total)
-  final double y2;  // cost (sum discount_amount abs)
+  final String x;
+  final double y1;
+  final double y2;
 }

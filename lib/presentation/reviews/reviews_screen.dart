@@ -1,4 +1,3 @@
-// lib/presentation/reviews/reviews_screen.dart
 import 'package:flutter/material.dart';
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:app_vendor/services/api_client.dart' as api;
@@ -97,7 +96,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
       }
       _page += 1;
 
-      _shown = (_shown.clamp(0, _filtered.length)) as int;
+      _shown = (_shown.clamp(0, _filtered.length));
       if (_shown == 0 && _filtered.isNotEmpty) {
         _shown = _pageSizeClient;
       }
@@ -165,7 +164,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
             ? (v['value'] as num).toDouble()
             : null;
         final double? stars =
-        percent != null ? (percent / 20.0) : (val != null ? val : null);
+        percent != null ? (percent / 20.0) : (val);
         if (name.contains('price')) price = stars;
         if (name.contains('value')) value = stars;
         if (name.contains('quality')) quality = stars;
@@ -217,7 +216,6 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
     );
   }
 
-  // client-side filter
   List<Review> get _filtered {
     final q = _searchCtrl.text.trim().toLowerCase();
     final all =
@@ -239,7 +237,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   }
 
   void _loadMoreClient() {
-    _shown = (_shown + _pageSizeClient).clamp(0, _filtered.length) as int;
+    _shown = (_shown + _pageSizeClient).clamp(0, _filtered.length);
     setState(() {});
   }
 
@@ -443,7 +441,6 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   }
 }
 
-// --- small UI pieces ---
 class _ReviewRow extends StatelessWidget {
   const _ReviewRow({required this.review});
   final Review review;

@@ -1,34 +1,26 @@
-// lib/presentation/dashboard/dashboard_screen.dart
 import 'dart:math' show min, max, pi, atan2;
 import 'package:app_vendor/l10n/app_localizations.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-
 import '../../services/api_client.dart';
 
 
-/// =============================================================
-/// Constants / Colors
-/// =============================================================
+
 const double kHeaderHeight   = 200;
 const double kStatCardWidth  = 140;
 const double kStatCardHeight = 92;
 const double kStatOverlap    = kStatCardHeight / 2;
 
-const Color kPrimaryLine  = Color(0xFF97ADFF); // 97ADFF
-const Color kCompareLine  = Color(0xFFFFC879); // FFC879
+const Color kPrimaryLine  = Color(0xFF97ADFF);
+const Color kCompareLine  = Color(0xFFFFC879);
 const Color kPageBg       = Color(0xFFF6F7FB);
 const Color kHeaderColor  = Color(0xFF222222);
 
-/// =============================================================
-/// Models for UI
-/// =============================================================
 class ProductTileData {
   final String name;
   final double price;
   final int sold;
-  final Widget? thumb; // e.g. Image.network(...)
+  final Widget? thumb;
   ProductTileData({required this.name, required this.price, required this.sold, this.thumb});
 }
 
@@ -48,9 +40,6 @@ class Review {
   Review({required this.user, required this.rating, required this.timeAgo, required this.comment, this.product});
 }
 
-/// =============================================================
-/// Ranges: internal keys + localized labels
-/// =============================================================
 const String kRangeAll   = 'all';
 const String kRange30    = 'last30';
 const String kRange7     = 'last7';
@@ -82,7 +71,6 @@ List<String> xLabelsForRangeKey(BuildContext context, String key) {
   }
 }
 
-/// Convert website daily map into FL spots according to selected range.
 List<FlSpot> spotsFromSiteByKey(Map<DateTime, double> daily, String key) {
   final entries = daily.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
 
@@ -125,7 +113,6 @@ List<FlSpot> spotsFromSiteByKey(Map<DateTime, double> daily, String key) {
     return List.generate(7, (i) => FlSpot(i.toDouble(), arr[i]));
   }
 
-  // All time (by year, averaged)
   final years = entries.map((e) => e.key.year).toSet().toList()..sort();
   final byYear = <int, double>{};
   final counts = <int, int>{};
@@ -137,7 +124,6 @@ List<FlSpot> spotsFromSiteByKey(Map<DateTime, double> daily, String key) {
   return List.generate(years.length, (i) => FlSpot(i.toDouble(), vals[i]));
 }
 
-/// Compute tight Y bounds with padding so nothing clips.
 ({double minY, double maxY}) yBounds(List<FlSpot> a, [List<FlSpot>? b]) {
   final all = [...a, if (b != null) ...b];
   if (all.isEmpty) return (minY: 0, maxY: 1);
@@ -154,9 +140,6 @@ List<FlSpot> spotsFromSiteByKey(Map<DateTime, double> daily, String key) {
   return (minY: minY, maxY: maxY);
 }
 
-/// =============================================================
-/// Dashboard Screen
-/// =============================================================
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
   @override
@@ -199,7 +182,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
-              // ---------- Top ----------
               SizedBox(
                 height: kHeaderHeight + kStatOverlap + 16,
                 child: Stack(
@@ -275,7 +257,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 12),
 
-              // ---------- Content ----------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
@@ -288,7 +269,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Customers donut + AOV
                     _TwoUpGrid(children: [
                       SectionCard(
                         title: l10n.totalCustomers,
@@ -296,18 +276,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       SectionCard(
                         title: l10n.averageOrderValue,
-                        child: AOVSection(rangeKey: _aovRangeKey, salesHistory: _salesHistory),
                         trailing: _RangeDropDown(
                           value: _aovRangeKey,
                           items: rangeKeys().map((k) => DropdownMenuItem(value: k, child: Text(rangeLabel(context, k)))).toList(),
                           onChanged: (v) => setState(() => _aovRangeKey = v!),
                         ),
+                        child: AOVSection(rangeKey: _aovRangeKey, salesHistory: _salesHistory),
                       ),
                     ]),
 
                     const SizedBox(height: 20),
-
-                    // Carousels
                     _TwoUpGrid(children: [
                       SectionCard(
                         title: l10n.topSellingProducts,
@@ -320,8 +298,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ]),
 
                     const SizedBox(height: 20),
-
-                    // Ratings
                     SectionCard(
                       title: l10n.ratings,
                       child: RatingsPanel(
@@ -332,8 +308,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     const SizedBox(height: 20),
-
-                    // Reviews
                     SectionCard(
                       title: l10n.latestCommentsReviews,
                       child: LatestReviewsList(reviews: _convertReviewsToModel(_latestReviews)),
@@ -419,7 +393,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       }
     } catch (e) {
-      // ignore
       setState(() => _userName = 'Guest');
     }
   }
@@ -435,7 +408,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final topCategories = await vendorApi.getTopCategories();
       final productRatings = await vendorApi.getProductRatings();
       final latestReviews = await vendorApi.getLatestReviews();
-      final customerInfo = await vendorApi.getCustomerInfo();
 
       setState(() {
         _dashboardStats     = stats;
@@ -463,7 +435,6 @@ Map<String, double> _convertToSalesHistory(dynamic salesData) {
   if (salesData is Map<String, double>) {
     return salesData;
   } else if (salesData is List<Map<String, dynamic>>) {
-    // Convert list of maps to date->amount mapping
     for (var item in salesData) {
       if (item['date'] != null && item['amount'] != null) {
         final date = item['date'].toString();
@@ -482,7 +453,6 @@ Map<String, int> _convertToCustomerBreakdown(dynamic breakdownData) {
   if (breakdownData is Map<String, int>) {
     return breakdownData;
   } else if (breakdownData is Map<String, dynamic>) {
-    // Convert dynamic values to int
     breakdownData.forEach((key, value) {
       if (value is int) {
         result[key] = value;
@@ -494,7 +464,6 @@ Map<String, int> _convertToCustomerBreakdown(dynamic breakdownData) {
     });
   }
 
-  // Ensure we have the expected keys with default values
   result['old'] = result['old'] ?? result['old_customers'] ?? 0;
   result['new'] = result['new'] ?? result['new_customers'] ?? 0;
   result['returning'] = result['returning'] ?? result['returning_customers'] ?? 0;
@@ -508,7 +477,6 @@ Map<String, Map<int, double>> _convertToProductRatings(dynamic ratingsData) {
   if (ratingsData is Map<String, Map<int, double>>) {
     return ratingsData;
   } else if (ratingsData is Map<String, dynamic>) {
-    // Convert nested dynamic values to the expected format
     ratingsData.forEach((category, ratingMap) {
       if (ratingMap is Map<int, double>) {
         result[category] = ratingMap;
@@ -527,7 +495,6 @@ Map<String, Map<int, double>> _convertToProductRatings(dynamic ratingsData) {
       }
     });
   } else if (ratingsData is List<Map<String, dynamic>>) {
-    // Handle list format - convert to expected structure
     final priceRatings = <int, double>{};
     final valueRatings = <int, double>{};
     final qualityRatings = <int, double>{};
@@ -557,11 +524,6 @@ Map<String, Map<int, double>> _convertToProductRatings(dynamic ratingsData) {
   return result;
 }
 
-// =============================================================
-// All of the nested classes moved outside of the State class
-// =============================================================
-
-/// Little dropdown used in cards (modern popup)
 class _RangeDropDown extends StatelessWidget {
   final String value;
   final List<DropdownMenuItem<String>> items;
@@ -574,7 +536,6 @@ class _RangeDropDown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Subtle, clean popup theme
     final popupTheme = Theme.of(context).copyWith(
       dialogTheme: const DialogThemeData(surfaceTintColor: Colors.transparent),
       canvasColor: Colors.white,
@@ -784,7 +745,6 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
 
-    // Convert sales history to the format expected by spotsFromSiteByKey
     final Map<DateTime, double> salesData = {};
     if (widget.salesHistory != null) {
       for (var entry in widget.salesHistory!.entries) {
@@ -798,8 +758,6 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
     final labels  = xLabelsForRangeKey(context, widget.rangeKey);
     final primary = spotsFromSiteByKey(salesData, widget.rangeKey);
     final bounds  = yBounds(primary);
-
-    // Calculate total sales
     final totalSales = salesData.values.fold<double>(0, (sum, value) => sum + value);
 
     return Container(
@@ -856,7 +814,7 @@ class _TotalSalesCardState extends State<TotalSalesCard> {
                     interval: 0.2,
                     getTitlesWidget: (v, _) => SizedBox(
                       width: 42,
-                      child: Text('${v.toStringAsFixed(1)}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                      child: Text(v.toStringAsFixed(1), textAlign: TextAlign.right, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
                     ),
                   ),
                 ),
@@ -999,17 +957,16 @@ class _CustomersCard extends StatefulWidget {
 }
 
 class _CustomersCardState extends State<_CustomersCard> {
-  // UI knobs (keep in sync with painter)
   final double _size = 170;
   final double _stroke = 18;
 
-  int? _hovered; // null = nothing active
+  int? _hovered;
   late List<_DonutSegment> segments;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _rebuildSegments(); // build once for initial paint
+    _rebuildSegments();
   }
 
   void _rebuildSegments() {
@@ -1115,7 +1072,6 @@ class _CustomersCardState extends State<_CustomersCard> {
   }
 }
 
-/// Format percentage properly
 String _formatCount(double part, double total) {
   if (total == 0) return '0%';
   final pct = (part / total * 100).toStringAsFixed(1);
@@ -1391,7 +1347,7 @@ class _EmptyStripe extends StatelessWidget {
 /// Ratings triple
 /// =============================================================
 class RatingsPanel extends StatelessWidget {
-  final Map<int, double> price;   // 5..1 -> percent 0..100
+  final Map<int, double> price;
   final Map<int, double> value;
   final Map<int, double> quality;
 
@@ -1401,12 +1357,12 @@ class RatingsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     return _ThreeUp(
+      series: [price, value, quality],
       children: [
         _RatingCard(title: l.priceRating),
         _RatingCard(title: l.valueRating),
         _RatingCard(title: l.qualityRating),
       ],
-      series: [price, value, quality],
     );
   }
 }
@@ -1437,7 +1393,7 @@ class _ThreeUp extends StatelessWidget {
 
 class _RatingCard extends StatelessWidget {
   final String title;
-  final Map<int, double>? data; // optional to allow default
+  final Map<int, double>? data;
   const _RatingCard({required this.title, this.data});
 
   @override
@@ -1528,11 +1484,9 @@ class _ModernReviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with user info and rating
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // User avatar with gradient background
               Container(
                 width: 40,
                 height: 40,
@@ -1566,7 +1520,6 @@ class _ModernReviewCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    // Star rating
                     Row(
                       children: [
                         Wrap(
@@ -1590,7 +1543,6 @@ class _ModernReviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Product name if available
           if (r.product != null) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1609,7 +1561,6 @@ class _ModernReviewCard extends StatelessWidget {
             const SizedBox(height: 12),
           ],
 
-          // Review comment
           Text(
             r.comment,
             style: textTheme.bodyMedium?.copyWith(
@@ -1619,7 +1570,6 @@ class _ModernReviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Interactive buttons
           Row(
             children: [
               _InteractiveButton(
@@ -1711,15 +1661,12 @@ class _DonutSegment {
   const _DonutSegment({required this.label, required this.value, required this.color});
 }
 
-/// Converts a global position into the local coordinates of [context].
 Offset _localFromGlobal(BuildContext context, Offset global) {
   final box = context.findRenderObject() as RenderBox?;
   if (box == null) return Offset.zero;
   return box.globalToLocal(global);
 }
 
-/// Hit-test which donut slice is under [localPos].
-/// Returns the segment index or null if outside of the ring.
 int? _hitTestDonut({
   required Offset localPos,
   required Size size,
@@ -1757,7 +1704,6 @@ int? _hitTestDonut({
   return values.isNotEmpty ? values.length - 1 : null;
 }
 
-/// Animated donut that paints proportions of [values] with [colors].
 class AnimatedDonut extends StatelessWidget {
   final List<double> values;
   final List<Color> colors;
@@ -1805,7 +1751,7 @@ class _DonutPainter extends CustomPainter {
   final List<Color> colors;
   final double strokeWidth;
   final int? highlightedIndex;
-  final double t; // 0..1 animation progress
+  final double t;
 
   _DonutPainter({
     required this.values,
@@ -1824,7 +1770,7 @@ class _DonutPainter extends CustomPainter {
     final radius = size.shortestSide / 2 - strokeWidth / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    double acc = -pi / 2; // start at top
+    double acc = -pi / 2;
     for (int i = 0; i < values.length; i++) {
       final frac = (values[i] / total);
       final sweep = frac * 2 * pi * t;

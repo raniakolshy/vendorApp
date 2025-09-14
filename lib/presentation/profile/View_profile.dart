@@ -28,17 +28,13 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
   Future<void> _loadAll() async {
     setState(() => _loading = true);
     try {
-      final p = await api.VendorApiClient().getVendorProfileMe(); // returns VendorProfile
+      final p = await api.VendorApiClient().getVendorProfileMe();
       _profile = p;
-
-      // customerId is int? — only load products if it’s non-null
       if (p.customerId != null) {
         final raw = await api.VendorApiClient()
-            .getProductsByVendor(vendorId: p.customerId!, pageSize: 50); // <-- non-null now
-
-        // Convert List<dynamic> -> List<Map<String, dynamic>>
+            .getProductsByVendor(vendorId: p.customerId!, pageSize: 50);
         final items = raw
-            .whereType<Map>() // drop non-maps safely
+            .whereType<Map>()
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
 
@@ -47,8 +43,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
         _products = [];
       }
     } catch (e) {
-      // optionally show a snackbar
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -132,7 +127,6 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Logo
                       Container(
                         width: 80,
                         height: 80,
@@ -220,8 +214,6 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                         itemCount: _products.length,
                         itemBuilder: (context, index) {
                           final product = _products[index];
-
-                          // Try to extract an image path from media_gallery_entries or image attr
                           String imagePath = '';
                           final mg = product['media_gallery_entries'];
                           if (mg is List && mg.isNotEmpty) {

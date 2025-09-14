@@ -19,7 +19,7 @@ enum NavKey {
   askadmin,
 }
 
-// central colors (same as before)
+
 const kDrawerActive = Color(0xFFF5EBEB);
 const kDividerGray = Color(0xFFE6E6E6);
 const kDarkGray = Color(0xFF333333);
