@@ -36,17 +36,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _maxQty = TextEditingController(text: '0');
   final _stock = TextEditingController();
   final _weight = TextEditingController();
-  final _cities = TextEditingController();
   final _url = TextEditingController();
   final _metaTitle = TextEditingController();
   final _metaKeywords = TextEditingController();
   final _metaDesc = TextEditingController();
 
   final _tagInput = TextEditingController();
-  List<String> _tags = [];
+  final List<String> _tags = [];
 
-  List<Uint8List> _images = [];
-  List<String> _imageNames = [];
+  final List<Uint8List> _images = [];
+  final List<String> _imageNames = [];
   DropzoneViewController? _dzCtrl;
 
   bool _hasSpecial = false;
@@ -55,7 +54,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
   String _visibility = 'Invisible';
   bool _submitting = false;
 
-  // ===== Magento categories (real, no mock) =====
   List<Map<String, dynamic>> _mgCategories = [];
   bool _mgCatsLoading = true;
   String? _selectedCategoryId;

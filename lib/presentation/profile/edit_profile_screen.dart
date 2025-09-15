@@ -12,6 +12,9 @@ import '../../services/api_client.dart';
 import '../common/description_markdown_field.dart';
 import 'View_profile.dart';
 import 'package:kolshy_vendor/services/api_client.dart' as api;
+import 'dart:io' show Platform;
+
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -359,7 +362,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 IntlPhoneField(
                                   controller: _phoneNumber,
                                   decoration: _dec(context, hint: l10n.hint_phone),
-                                  initialCountryCode: _countryCodeMap[_selectedCountry] ?? 'TN',
+                                  initialCountryCode: Platform.localeName.split('_').last.toUpperCase(),
                                 ),
                                 const SizedBox(height: 20),
 
@@ -814,18 +817,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return raw;
     }
   }
-
-  final Map<String, String> _countryCodeMap = const {
-    'United Arab Emirates': 'AE',
-    'United States': 'US',
-    'Canada': 'CA',
-    'United Kingdom': 'GB',
-    'Germany': 'DE',
-    'France': 'FR',
-    'Japan': 'JP',
-    'Australia': 'AU',
-    'Brazil': 'BR',
-    'India': 'IN',
-    'China': 'CN',
-  };
 }

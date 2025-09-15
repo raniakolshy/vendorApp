@@ -21,6 +21,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final RegExp emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
 
   bool _isChecked = false;
+  bool _isLoading = false;
 
   void _submit() async {
     final email = _emailController.text.trim();
@@ -34,18 +35,30 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
+    setState(() => _isLoading = true);
+
     try {
-      await VendorApiClient().forgotPassword(email);
-      _showSnackbar(AppLocalizations.of(context)?.mailSent ?? 'Reset email sent', isError: false);
+      final success = await VendorApiClient().forgotPassword(email);
+
+      if (success) {
+        _showSnackbar(AppLocalizations.of(context)?.mailSent ?? 'Reset email sent', isError: false);
+
+        // Only navigate if the email was sent successfully
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VerificationCodeScreen(email: _emailController.text.trim()),
+          ),
+        );
+      } else {
+        _showSnackbar('Failed to send reset email. Please try again.', isError: true);
+      }
     } catch (e) {
-      _showSnackbar(e.toString().replaceFirst('Exception: ', ''), isError: true);
+      final errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _showSnackbar(errorMessage, isError: true);
+    } finally {
+      setState(() => _isLoading = false);
     }
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => VerificationCodeScreen(email: _emailController.text.trim()),
-      ),
-    );
   }
 
   void _showSnackbar(String msg, {bool isError = true}) {
@@ -53,7 +66,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       SnackBar(
         content: Text(msg),
         backgroundColor: isError ? Colors.red : Colors.green,
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -130,7 +143,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _submit,
+                  onPressed: _isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryPink,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -138,7 +151,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(
+                  child: _isLoading
+                      ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(Colors.white),
+                    ),
+                  )
+                      : Text(
                     AppLocalizations.of(context)?.submit ?? "Submit",
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                   ),

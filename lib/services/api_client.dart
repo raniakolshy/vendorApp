@@ -164,6 +164,80 @@ class VendorApiClient {
     _token = null;
     _setAuthHeader(null);
   }
+  Future<List<dynamic>> getVendorNotifications() async {
+    try {
+      final response = await _dio.get(
+        'vendor/notifications',
+        options: Options(headers: {"Authorization": "Bearer $_adminToken"}),
+      );
+      return response.data['items'] ?? [];
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  Future<List<dynamic>> getAdminNews() async {
+    try {
+      _dio.options.headers['Authorization'] = 'Bearer $_adminToken';
+      final response = await _dio.get(
+        'notifications',
+        queryParameters: {
+          'searchCriteria[pageSize]': 20,
+          'searchCriteria[sortOrders][0][field]': 'created_at',
+          'searchCriteria[sortOrders][0][direction]': 'DESC',
+        },
+      );
+      return response.data['items'] ?? [];
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    } finally {
+      _setAuthHeader(_adminToken);
+    }
+  }
+
+  Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      await _dio.post(
+        'vendor/notifications/$notificationId/read',
+        options: Options(headers: {"Authorization": "Bearer $_adminToken"}),
+      );
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  Future<void> markAllNotificationsAsRead() async {
+    try {
+      await _dio.post(
+        'vendor/notifications/read-all',
+        options: Options(headers: {"Authorization": "Bearer $_adminToken"}),
+      );
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      await _dio.delete(
+        'vendor/notifications/$notificationId',
+        options: Options(headers: {"Authorization": "Bearer $_adminToken"}),
+      );
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  Future<void> clearAllNotifications() async {
+    try {
+      await _dio.delete(
+        'vendor/notifications',
+        options: Options(headers: {"Authorization": "Bearer $_adminToken"}),
+      );
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
 
   // ==========================
   // 👤 VENDOR PROFILE (Customer endpoints)
