@@ -9,181 +9,184 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
-  String get hello => 'hello';
+  String get hello => 'bonjour';
 
   @override
-  String get welcome => 'Welcome';
+  String get welcome => 'Bienvenue';
 
   @override
-  String get logout => 'Log out';
+  String get logout => 'Déconnexion';
 
   @override
-  String get settings => 'Settings';
+  String get settings => 'Paramètres';
 
   @override
-  String get language => 'Language';
+  String get language => 'Langue';
 
   @override
-  String get oneStopShopDescription => 'We are your one-stop online shop for everything you need. Fast delivery , great prices, and trusted brands all in one place.';
+  String get oneStopShopDescription =>
+      'Nous sommes votre boutique en ligne unique pour tout ce dont vous avez besoin. Livraison rapide, prix compétitifs et marques de confiance, le tout en un seul endroit.';
 
   @override
-  String get login => 'Login';
+  String get login => 'Connexion';
 
   @override
-  String get create => 'create';
+  String get create => 'créer';
 
   @override
-  String get back => 'Back';
+  String get back => 'Retour';
 
   @override
-  String get usernameOrEmail => 'Username or Email';
+  String get usernameOrEmail => 'Nom d\'utilisateur ou e-mail';
 
   @override
-  String get password => 'Password';
+  String get password => 'Mot de passe';
 
   @override
-  String get forgotPwd => 'Forgot Password';
+  String get forgotPwd => 'Mot de passe oublié';
 
   @override
-  String get continueWith => '- OR Continue with -';
+  String get continueWith => '- OU Continuer avec -';
 
   @override
-  String get createAnAccount => 'Create An Account';
+  String get createAnAccount => 'Créer un compte';
 
   @override
-  String get signUp => 'Sign Up';
+  String get signUp => 'S\'inscrire';
 
   @override
-  String get createAccount => 'create an account';
+  String get createAccount => 'créer un compte';
 
   @override
-  String get anAccount => 'an account';
+  String get anAccount => 'un compte';
 
   @override
-  String get welcomeBack => 'Welcome back';
+  String get welcomeBack => 'Bienvenue';
 
   @override
-  String get firstName => 'First Name';
+  String get firstName => 'Prénom';
 
   @override
-  String get lastName => 'Last Name';
+  String get lastName => 'Nom de famille';
 
   @override
-  String get createSimple => 'Create';
+  String get createSimple => 'Créer';
 
   @override
-  String get createAnAccountLogin => 'create an account';
+  String get createAnAccountLogin => 'créer un compte';
 
   @override
-  String get email => 'Email';
+  String get email => 'E-mail';
 
   @override
-  String get phone => 'Phone';
+  String get phone => 'Téléphone';
 
   @override
-  String get passworConfirmation => 'Confirm Password';
+  String get passworConfirmation => 'Confirmer le mot de passe';
 
   @override
-  String get becomeASeller => 'Do you wanna become a Seller / Vendor ?';
+  String get becomeASeller => 'Voulez-vous devenir Vendeur / Fournisseur ?';
 
   @override
-  String get yes => 'Yes';
+  String get yes => 'Oui';
 
   @override
-  String get no => 'No';
+  String get no => 'Non';
 
   @override
-  String get byClickingThe => 'By clicking the';
+  String get byClickingThe => 'En cliquant sur le';
 
   @override
-  String get publicOffer => 'button,you agree to the public offer';
+  String get publicOffer => 'bouton, vous acceptez l\'offre publique';
 
   @override
-  String get newsletter => 'Sign up for newsletter';
+  String get newsletter => 'S\'inscrire à la newsletter';
 
   @override
-  String get enableremoteshoppinghelp => 'Enable remote shopping help';
+  String get enableremoteshoppinghelp =>
+      'Activer l\'aide à l\'achat à distance';
 
   @override
-  String get alreadyHaveAnAccount => 'I Already Have an Account ';
+  String get alreadyHaveAnAccount => 'J\'ai déjà un compte';
 
   @override
-  String get enterEmail => 'Enter your email';
+  String get enterEmail => 'Entrez votre e-mail';
 
   @override
-  String get resetPwd => 'I want to reset my password';
+  String get resetPwd => 'Je veux réinitialiser mon mot de passe';
 
   @override
-  String get submit => 'Submit';
+  String get submit => 'Soumettre';
 
   @override
-  String get verificationCode => 'Verification\ncode';
+  String get verificationCode => 'Code\nde vérification';
 
   @override
-  String get sentTheVerificationCode => 'We have sent the verification code to';
+  String get sentTheVerificationCode =>
+      'Nous avons envoyé le code de vérification à';
 
   @override
-  String get noCode => 'Didn’t receive the code ?';
+  String get noCode => 'Vous n\'avez pas reçu le code ?';
 
   @override
-  String get resend => 'Resend';
+  String get resend => 'Renvoyer';
 
   @override
-  String get general => 'General';
+  String get general => 'Général';
 
   @override
-  String get editProfile => 'Edit Profile';
+  String get editProfile => 'Modifier le profil';
 
   @override
   String get notification => 'Notification';
 
   @override
-  String get favourites => 'Favourites';
+  String get favourites => 'Favoris';
 
   @override
-  String get myOrders => 'My Orders';
+  String get myOrders => 'Mes commandes';
 
   @override
   String get performances => 'Performances';
 
   @override
-  String get legalAndPolicies => 'Legal And Policies';
+  String get legalAndPolicies => 'Légal et politiques';
 
   @override
-  String get helpSupport => 'Help & Support';
+  String get helpSupport => 'Aide et support';
 
   @override
-  String get trailLanguage => 'English';
+  String get trailLanguage => 'Français';
 
   @override
-  String get personalInfo => 'Personal Info';
+  String get personalInfo => 'Informations personnelles';
 
   @override
-  String get paymentMethod => 'Payment Method';
+  String get paymentMethod => 'Méthode de paiement';
 
   @override
-  String get shippingAddress => 'Shipping Address';
+  String get shippingAddress => 'Adresse de livraison';
 
   @override
-  String get streetAddress => 'Street Address';
+  String get streetAddress => 'Adresse';
 
   @override
-  String get city => 'City';
+  String get city => 'Ville';
 
   @override
-  String get zipPostalCode => 'ZIP / Postal Code';
+  String get zipPostalCode => 'Code ZIP / Postal';
 
   @override
-  String get required => 'Required';
+  String get required => 'Requis';
 
   @override
-  String get invalidCode => 'Invalid Code';
+  String get invalidCode => 'Code invalide';
 
   @override
-  String get country => 'Country';
+  String get country => 'Pays';
 
   @override
-  String get card => 'Card';
+  String get card => 'Carte';
 
   @override
   String get payPal => 'PayPal';
@@ -192,145 +195,148 @@ class AppLocalizationsFr extends AppLocalizations {
   String get applePay => 'Apple Pay';
 
   @override
-  String get cardholderName => 'card holder name';
+  String get cardholderName => 'Nom du titulaire de la carte';
 
   @override
-  String get cardNumber => 'Card Number';
+  String get cardNumber => 'Numéro de carte';
 
   @override
-  String get expiry => 'Expiry (MM/YY)';
+  String get expiry => 'Expiration (MM/AA)';
 
   @override
-  String get next => 'Next';
+  String get next => 'Suivant';
 
   @override
-  String get save => 'Save';
+  String get save => 'Enregistrer';
 
   @override
-  String get passwordChangedSuccessfully => 'Password Changed Successfully';
+  String get passwordChangedSuccessfully => 'Mot de passe changé avec succès';
 
   @override
-  String get changePassword => 'Change Password';
+  String get changePassword => 'Changer le mot de passe';
 
   @override
-  String get oldPassword => 'Old Password';
+  String get oldPassword => 'Ancien mot de passe';
 
   @override
-  String get enteryourcurrentpassword => 'Enter Your Current Password';
+  String get enteryourcurrentpassword => 'Entrez votre mot de passe actuel';
 
   @override
-  String get reenternewpassword => 'Re-enter New Password';
+  String get reenternewpassword => 'Ré-entrez le nouveau mot de passe';
 
   @override
-  String get confirmPassword => 'Confirm Password';
+  String get confirmPassword => 'Confirmer le mot de passe';
 
   @override
-  String get changeNow => 'Change Now';
+  String get changeNow => 'Changer maintenant';
 
   @override
-  String get newPassword => 'New Password';
+  String get newPassword => 'Nouveau mot de passe';
 
   @override
-  String get enternewpassword => 'Enter your new password';
+  String get enternewpassword => 'Entrez votre nouveau mot de passe';
 
   @override
-  String get purchaseCompleted => 'Purchase Completed';
+  String get purchaseCompleted => 'Achat terminé';
 
   @override
-  String get orderPacked => 'Order Packed';
+  String get orderPacked => 'Commande emballée';
 
   @override
-  String get minago => 'min ago';
+  String get minago => 'il y a min';
 
   @override
-  String get today => 'Today';
+  String get today => 'Aujourd\'hui';
 
   @override
-  String get yesterday => 'Yesterday';
+  String get yesterday => 'Hier';
 
   @override
-  String get discountApplied => 'Discount Applied';
+  String get discountApplied => 'Réduction appliquée';
 
   @override
-  String get newFeatureUpdate => 'New Feature Update';
+  String get newFeatureUpdate => 'Mise à jour de la nouvelle fonctionnalité';
 
   @override
-  String get searchFavorites => 'Search favorites';
+  String get searchFavorites => 'Rechercher des favoris';
 
   @override
-  String get productDescription => 'Sample description for the product goes here.';
+  String get productDescription =>
+      'Exemple de description pour le produit ici.';
 
   @override
-  String get currentPrice => 'AED 499';
+  String get currentPrice => '499 AED';
 
   @override
-  String get originalPrice => 'AED 999';
+  String get originalPrice => '999 AED';
 
   @override
-  String get discount => '50% Off';
+  String get discount => '50% de réduction';
 
   @override
-  String get product0Name => 'Nike Running Shoes';
+  String get product0Name => 'Chaussures de course Nike';
 
   @override
-  String get product1Name => 'Adidas Sports Sneakers';
+  String get product1Name => 'Baskets de sport Adidas';
 
   @override
-  String get product2Name => 'Puma Casual Shoes';
+  String get product2Name => 'Chaussures décontractées Puma';
 
   @override
-  String get product3Name => 'Reebok Gym Trainers';
+  String get product3Name => 'Baskets de gym Reebok';
 
   @override
-  String get product4Name => 'New Balance Walkers';
+  String get product4Name => 'Chaussures de marche New Balance';
 
   @override
-  String get product5Name => 'ASICS Marathon Shoes';
+  String get product5Name => 'Chaussures de marathon ASICS';
 
   @override
-  String get search => 'Search';
+  String get search => 'Rechercher';
 
   @override
-  String get english => 'English';
+  String get english => 'Anglais';
 
   @override
-  String get arabic => 'Arabic';
+  String get arabic => 'Arabe';
 
   @override
-  String get privacyPolicy => 'Privacy Policy';
+  String get privacyPolicy => 'Politique de confidentialité';
 
   @override
-  String get humanFriendly => 'Introduction and overview';
+  String get humanFriendly => 'Introduction et aperçu';
 
   @override
-  String get legalMumboJumbo => 'Details of our policy';
+  String get legalMumboJumbo => 'Détails de notre politique';
 
   @override
-  String get privacyDescription => 'Our human-friendly Terms of Service for the platform prevails over the detailed one, which specifies all rights and obligations in more complex legalese.\n\nIn case of contradiction between the two documents, the human-friendly Terms shall prevail. That means no nasty surprises if you read only the human-friendly version.';
+  String get privacyDescription =>
+      'Nos conditions d\'utilisation conviviales pour la plateforme prévalent sur celles plus détaillées, qui spécifient tous les droits et obligations dans un jargon juridique plus complexe.\n\nEn cas de contradiction entre les deux documents, les conditions conviviales prévaudront. Cela signifie qu\'il n\'y a pas de mauvaises surprises si vous ne lisez que la version conviviale.';
 
   @override
-  String get lastUpdated => 'Last updated';
+  String get lastUpdated => 'Dernière mise à jour';
 
   @override
-  String get helpAndSupport => 'Help & Support';
+  String get helpAndSupport => 'Aide et support';
 
   @override
-  String get searchTopics => 'Search for topics...';
+  String get searchTopics => 'Rechercher des sujets...';
 
   @override
-  String get helpTopic0 => 'How to create a profile on kolshy website?';
+  String get helpTopic0 =>
+      'Comment créer un profil sur le site web de kolshy ?';
 
   @override
-  String get helpTopic1 => 'Payment Methods ?';
+  String get helpTopic1 => 'Méthodes de paiement ?';
 
   @override
-  String get helpTopic2 => 'Track the order from the seller ?';
+  String get helpTopic2 => 'Suivre la commande du vendeur ?';
 
   @override
-  String get helpTopic3 => 'Tracking For Customer?';
+  String get helpTopic3 => 'Suivi pour le client ?';
 
   @override
-  String get helpTopic4 => 'What is your return policy?';
+  String get helpTopic4 => 'Quelle est votre politique de retour ?';
 
   @override
   String get helpTopicContent => ' ';
@@ -339,544 +345,560 @@ class AppLocalizationsFr extends AppLocalizations {
   String get messages => 'Messages';
 
   @override
-  String get sendHint => 'Send a message here...';
+  String get sendHint => 'Envoyer un message ici...';
 
   @override
-  String get presetFasterDelivery => 'Faster Delivery time';
+  String get presetFasterDelivery => 'Délai de livraison plus rapide';
 
   @override
-  String get presetProductIssue => 'Trouble with a product';
+  String get presetProductIssue => 'Problème avec un produit';
 
   @override
-  String get presetOther => 'Something else...';
+  String get presetOther => 'Autre chose...';
 
   @override
-  String get thankYouTitle => 'Thank you for\nshopping with us!';
+  String get thankYouTitle => 'Merci d\'avoir\nacheté chez nous !';
 
   @override
-  String get thankYouSubtitle => 'Your order number 16 is confirmed\nand in processing';
+  String get thankYouSubtitle =>
+      'Votre commande numéro 16 est confirmée\net en cours de traitement';
 
   @override
-  String get thankYouDescription => 'Porem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.';
+  String get thankYouDescription =>
+      'Porem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.';
 
   @override
-  String get orderDetails => 'Order Details';
+  String get orderDetails => 'Détails de la commande';
 
   @override
-  String get done => 'Done';
+  String get done => 'Terminé';
 
   @override
-  String get orderSummary => 'Order Summary';
+  String get orderSummary => 'Résumé de la commande';
 
   @override
-  String get orderNumber => 'Order Number';
+  String get orderNumber => 'Numéro de commande';
 
   @override
   String get orderDate => 'Date';
 
   @override
-  String get orderStatus => 'Status';
+  String get orderStatus => 'Statut';
 
   @override
-  String get statusConfirmed => 'Confirmed';
+  String get statusConfirmed => 'Confirmé';
 
   @override
-  String get customerInfo => 'Customer Info';
+  String get customerInfo => 'Informations client';
 
   @override
-  String get items => 'items';
+  String get items => 'articles';
 
   @override
-  String get sneakers => 'Sneakers';
+  String get sneakers => 'Baskets';
 
   @override
-  String get orderTotal => 'Order Total';
+  String get orderTotal => 'Total de la commande';
 
   @override
-  String get subtotal => 'Subtotal';
+  String get subtotal => 'Sous-total';
 
   @override
-  String get shipping => 'Shipping';
+  String get shipping => 'Livraison';
 
   @override
-  String get free => 'Free';
+  String get free => 'Gratuit';
 
   @override
   String get total => 'Total';
 
   @override
-  String get checkoutTitle => 'Checkout';
+  String get checkoutTitle => 'Paiement';
 
   @override
-  String get editDetails => 'Edit Details';
+  String get editDetails => 'Modifier les détails';
 
   @override
-  String get placeOrder => 'Place Order';
+  String get placeOrder => 'Passer la commande';
 
   @override
-  String get myCart => 'My Cart';
+  String get myCart => 'Mon panier';
 
   @override
-  String get cartEmpty => 'Your cart is empty';
+  String get cartEmpty => 'Votre panier est vide';
 
   @override
-  String get addCoupon => 'Add coupon code';
+  String get addCoupon => 'Ajouter un code promo';
 
   @override
-  String get couponApplied => 'Coupon applied: 10% off!';
+  String get couponApplied => 'Coupon appliqué : 10% de réduction !';
 
   @override
-  String get invalidCoupon => 'Invalid coupon code';
+  String get invalidCoupon => 'Code promo invalide';
 
   @override
-  String get earnPointsFreeShipping => 'You’ll earn 34 points · Free shipping';
+  String get earnPointsFreeShipping =>
+      'Vous gagnerez 34 points · Livraison gratuite';
 
   @override
-  String get proceedToCheckout => 'Proceed to Checkout';
+  String get proceedToCheckout => 'Passer à la caisse';
 
   @override
-  String get productTitle => 'Product';
+  String get productTitle => 'Produit';
 
   @override
-  String get productBrand => 'By Day Dissolve';
+  String get productBrand => 'Par Day Dissolve';
 
   @override
   String get description => 'Description';
 
   @override
-  String get descriptionContent => 'Corem ipsum dolor sit amet, consectetur adipiscing elit...';
+  String get descriptionContent =>
+      'Corem ipsum dolor sit amet, consectetur adipiscing elit...';
 
   @override
-  String get ingredients => 'Ingredients';
+  String get ingredients => 'Ingrédients';
 
   @override
-  String get ingredientsContent => 'Water, Glycerin, Aloe Vera...';
+  String get ingredientsContent => 'Eau, Glycérine, Aloe Vera...';
 
   @override
-  String get howToUse => 'How to use';
+  String get howToUse => 'Comment utiliser';
 
   @override
-  String get howToUseContent => 'Apply a small amount...';
+  String get howToUseContent => 'Appliquer une petite quantité...';
 
   @override
-  String get inStock => 'In Stock';
+  String get inStock => 'En stock';
 
   @override
-  String get freeDelivery => 'Free delivery';
+  String get freeDelivery => 'Livraison gratuite';
 
   @override
-  String get availableInStore => 'Available in the nearest store';
+  String get availableInStore => 'Disponible dans le magasin le plus proche';
 
   @override
-  String get customerReviews => 'Customer Reviews';
+  String get customerReviews => 'Avis des clients';
 
   @override
-  String get recommendedProducts => 'Products you may also like';
+  String get recommendedProducts =>
+      'Produits que vous pourriez également aimer';
 
   @override
-  String get addToCart => 'Add To Cart';
+  String get addToCart => 'Ajouter au panier';
 
   @override
-  String get all => 'All';
+  String get all => 'Tout';
 
   @override
-  String get electronics => 'Electronics';
+  String get electronics => 'Électronique';
 
   @override
-  String get computerSoftware => 'Computer & Software';
+  String get computerSoftware => 'Informatique et logiciels';
 
   @override
-  String get fashion => 'Fashion';
+  String get fashion => 'Mode';
 
   @override
-  String get homeKitchen => 'Home & Kitchen';
+  String get homeKitchen => 'Maison et cuisine';
 
   @override
-  String get healthBeauty => 'Health & Beauty';
+  String get healthBeauty => 'Santé et beauté';
 
   @override
-  String get groceriesFood => 'Groceries & Food';
+  String get groceriesFood => 'Épicerie et alimentation';
 
   @override
-  String get childrenToys => 'Children & Toys';
+  String get childrenToys => 'Enfants et jouets';
 
   @override
-  String get carsAccessories => 'Cars & Accessories';
+  String get carsAccessories => 'Voitures et accessoires';
 
   @override
-  String get books => 'Books';
+  String get books => 'Livres';
 
   @override
-  String get sportsFitness => 'Sports & Fitness';
+  String get sportsFitness => 'Sports et fitness';
 
   @override
   String hiUser(Object user) {
-    return 'Hi $user';
+    return 'Bonjour $user';
   }
 
   @override
   String get promo => 'Promo';
 
   @override
-  String get exploreProducts => 'Explore thousands of products';
+  String get exploreProducts => 'Découvrez des milliers de produits';
 
   @override
-  String get fastDelivery => 'Fast delivery across the Middle East';
+  String get fastDelivery => 'Livraison rapide à travers le Moyen-Orient';
 
   @override
-  String get summerSale => 'Summer sale 50% OFF';
+  String get summerSale => 'Soldes d\'été 50% de réduction';
 
   @override
-  String get selectedItems => 'On selected items, limited time!';
+  String get selectedItems => 'Sur une sélection d\'articles, durée limitée !';
 
   @override
-  String get newArrivalsBanner => 'New arrivals are here!';
+  String get newArrivalsBanner => 'Les nouveautés sont arrivées !';
 
   @override
-  String get freshestStyles => 'Check the freshest styles now';
+  String get freshestStyles =>
+      'Découvrez les styles les plus récents maintenant';
 
   @override
-  String get bestSeller => 'Best Seller';
+  String get bestSeller => 'Meilleure vente';
 
   @override
-  String get shopByCategory => 'Shop by Category';
+  String get shopByCategory => 'Acheter par catégorie';
 
   @override
-  String get newArrivals => 'New Arrivals';
+  String get newArrivals => 'Nouveautés';
 
   @override
   String get productName => 'Forem ipsum';
 
   @override
-  String get discountBanner => '50–40% OFF';
+  String get discountBanner => '50–40% de réduction';
 
   @override
-  String get shopNowText => 'On selected products\nShop now with big discounts!';
+  String get shopNowText =>
+      'Sur une sélection de produits\nAchetez maintenant avec de grosses réductions !';
 
   @override
-  String get shopNow => 'Shop Now';
+  String get shopNow => 'Acheter maintenant';
 
   @override
-  String get home => 'Home';
+  String get home => 'Accueil';
 
   @override
-  String get cart => 'Cart';
+  String get cart => 'Panier';
 
   @override
   String get chat => 'Chat';
 
   @override
-  String get howtocontactus => 'How to contact us ?';
+  String get howtocontactus => 'Comment nous contacter ?';
 
   @override
-  String get setting => 'Setting';
+  String get setting => 'Paramètre';
 
   @override
-  String get buyNow => 'Buy Now';
+  String get buyNow => 'Acheter maintenant';
 
   @override
-  String get humanFriendlyPolicyText => 'Introduction\nWe at Kolshy E-Commerce Solutions, a platform fully owned by Kolshy E-Commerce LLC, officially registered in the United Arab Emirates under license number 1401296 and solely owned by Mr. Ahmed Mohamed El-Farmawy, operate with our headquarters located at Office No. 43, Building 44, Dubai – UAE.\nWe place great importance on respecting your privacy and strive to protect all personal data collected when you use our website\nwww.kolshy.ae\nor the associated mobile application.\nFor any inquiries, you can contact us via:\n• Email: info@kolshy.ae\n• Phone / WhatsApp: +971551228825\n• Privacy Policy\nThis policy (\"Privacy Policy\") explains the basis on which we collect and use your personal data, whether collected directly from you or from other sources, in the context of accessing the platform or using any of the services we provide, including but not limited to: promotional messages, and integrated social media features (collectively referred to as \"services\").\nWe fully understand the importance of protecting your personal data and are committed to respecting and safeguarding your privacy.\nPlease read this policy carefully to understand how we handle your personal data.\nBy using the platform or services, you acknowledge and agree to the collection and use of your personal data as described in this policy.\nFor the purposes of this policy, \"personal data\" refers to all types of data mentioned in Clause (2) of this document.\nTerms such as \"user,\" \"you,\" or similar refer to the natural or legal person using the platform or services, as applicable.\nOur platform may contain links to third-party websites, plugins, or applications provided by third parties.\nWhen you click on any of these links or activate such plugins, third parties may be able to collect or share information about you.\nPlease note that we have no control over, and are not responsible for, the privacy policies or practices of such external sites.\nWhen you leave our platform, we strongly recommend that you review the privacy policy of each website you visit to ensure you fully understand how they handle your data.';
+  String get humanFriendlyPolicyText =>
+      'Introduction\nNous, Kolshy E-Commerce Solutions, une plateforme entièrement détenue par Kolshy E-Commerce LLC, officiellement enregistrée aux Émirats Arabes Unis sous le numéro de licence 1401296 et uniquement détenue par M. Ahmed Mohamed El-Farmawy, opérons avec notre siège social situé au Bureau n° 43, Immeuble 44, Dubaï – EAU.\nNous accordons une grande importance au respect de votre vie privée et nous nous efforçons de protéger toutes les données personnelles collectées lorsque vous utilisez notre site web\nwww.kolshy.ae\nou l\'application mobile associée.\nPour toute question, vous pouvez nous contacter via :\n• E-mail : info@kolshy.ae\n• Téléphone / WhatsApp : +971551228825\n• Politique de confidentialité\nCette politique (\"Politique de confidentialité\") explique la base sur laquelle nous collectons et utilisons vos données personnelles, qu\'elles soient collectées directement auprès de vous ou d\'autres sources, dans le cadre de l\'accès à la plateforme ou de l\'utilisation de l\'un des services que nous fournissons, y compris, mais sans s\'y limiter : les messages promotionnels et les fonctionnalités intégrées des médias sociaux (collectivement dénommés \"services\").\nNous comprenons pleinement l\'importance de la protection de vos données personnelles et nous nous engageons à respecter et à préserver votre vie privée.\nVeuillez lire attentivement cette politique pour comprendre comment nous traitons vos données personnelles.\nEn utilisant la plateforme ou les services, vous reconnaissez et acceptez la collecte et l\'utilisation de vos données personnelles telles que décrites dans cette politique.\nAux fins de cette politique, \"données personnelles\" désigne tous les types de données mentionnés dans la clause (2) de ce document.\nDes termes tels que \"utilisateur\", \"vous\" ou similaires se réfèrent à la personne physique ou morale utilisant la plateforme ou les services, selon le cas.\nNotre plateforme peut contenir des liens vers des sites web, des plugins ou des applications tiers fournis par des tiers.\nLorsque vous cliquez sur l\'un de ces liens ou activez de tels plugins, des tiers peuvent être en mesure de collecter ou de partager des informations vous concernant.\nVeuillez noter que nous n\'avons aucun contrôle sur, et ne sommes pas responsables de, les politiques ou pratiques de confidentialité de ces sites externes.\nLorsque vous quittez notre plateforme, nous vous recommandons fortement de consulter la politique de confidentialité de chaque site web que vous visitez pour vous assurer de bien comprendre comment ils traitent vos données.';
 
   @override
-  String get legalMumboJumboPolicyText => '• 1. No collection of children\'s data\nThis platform is intended for adults only, in accordance with applicable laws defining the age of majority.\nThe platform is not in any way targeted at individuals under the legal age.\nHowever, we cannot always prevent some users, including minors, from providing false information about their age to access the platform.\nIf you are a parent or legal guardian and believe that we have inadvertently collected personal information about your child, please contact us immediately using the contact methods specified in Clause 12 of this Privacy Policy.\n\n• 2. What personal data do we collect from or about you?\nWe collect your personal data to continuously provide and improve our services and platform.\n\"Personal data\" means any information that can be used to identify you as an individual through direct or indirect identifiers.\nPersonal data does not include information that has been anonymized (where all identifiers have been removed).\nWe collect, store, use, and transfer various types of personal data, which can be classified as follows:\n1. Identity data: first name, middle name, last name, username or similar identifiers, gender, title, nationality, and date of birth.\n2. Contact data: residential address, email address, and phone number.\n3. Transaction data: details of payments received or made, payment methods used, and data about products or services purchased from us.\n4. Technical data: IP address, login information, browser type and version, operating system, mobile app version, time zone settings, location data, device type, advertising identifiers (e.g., in iOS), and other internet usage information. This may be collected using cookies, sessions, web beacons, and other tracking tools.\n5. Profile data: username, password, your interests and preferences, comments, preferred language, and responses to surveys.\n6. Purchase data: all previous orders, account purchases, refund information, fulfillment details, and browsing records of products and services.\n7. Interaction data: related to how you interact with our website, products, and services.\n8. Marketing and communication data: preferences for receiving promotional offers or marketing messages from us or third parties, and your preferred communication method.\nAdditionally, we may collect, use, and share statistical or demographic data known as \"aggregated data.\" These are derived from your personal data but do not reveal your identity after removing all identifiers.\nExample: we may use aggregated browsing data to analyze the percentage of users engaging with a specific feature on the platform.\n\n3. How do we collect your personal data?\nWe collect your personal data through three main methods:\n1. Directly from you:\nWe collect your data directly when you:\n- Register on the platform or log in via social media or any other registration method.\n- Make payments, request refunds, or select your preferred payment method.\n- Participate in competitions, promotions, or special programs.\n- Provide comments, reviews, or testimonials.\n- Submit support requests or complaints related to services.\n- Communicate with us via phone, email, or other channels (where correspondence is recorded).\n- Browse or engage in any activity within the platform.\n2. Indirectly:\nWe may obtain your personal data from third parties or related parties, such as:\n- Friends or relatives making purchases for you or on your behalf.\n- Partner vendors or service providers, such as logistics and fulfillment partners, marketing providers, and payment processors.\n- Interactions via platforms like Facebook, Google, etc.\nIf you share personal data about others (e.g., friends or family), you confirm you have their consent to share it under this Privacy Policy.\n3. Automatically:\nWe collect some data automatically while you use the platform, using technologies such as:\n- Log files: including IP address, browser type, pages visited, operating system, timestamps, and other technical details.\n- Cookies & sessions: small files stored on your device to improve your experience by enabling platform features, remembering your preferences, understanding your interactions, showing personalized ads, and analyzing traffic.\nIf you do not agree to the use of cookies, you may disable them in your browser settings or stop using the platform. However, disabling some data types may affect your full experience of our services.\n\n4. Why do we collect your personal data?\nWe collect and use your personal data to enhance your experience with us, including:\n1. Providing information and services.\n2. Location-based services.\n3. Fulfilling contractual obligations.\n4. Improving services and communication.\n5. Optimizing content display.\n6. Offering personalized services for special occasions.\n7. Notifying you about updates.\n8. Improving your overall experience.\n9. Managing reward programs.\n10. Improving technical performance.\n11. Complying with local laws.\n12. Preventing fraud and ensuring security.\n\n5. How do we use your personal data?\nWe use your personal data only when necessary, including:\n1. Contract execution.\n2. Legal compliance.\n3. Legitimate interests.\n4. Marketing and communication (with opt-out options).\n\n6. Who do we share your personal data with?\n1. Affiliates and service providers.\n2. Third parties for specific purposes.\n3. In case of merger or transfer of ownership.\n4. Legal compliance and protection of rights.\n\n7. How do we store your personal data and for how long?\nWe store your data only for as long as necessary for the purposes stated or as required by law. Factors considered include data sensitivity, risk level, purpose achievement, and legal requirements.\nWe may anonymize data for indefinite research or statistical use.\n\n8. What security measures do we apply?\nWe use commercially reasonable technical, administrative, and physical safeguards, such as encryption, firewalls, restricted access, and PCI DSS compliance.\nYou are also responsible for protecting your account information.\n\n9. Your rights regarding your personal data:\n1. Right to information.\n2. Right to access.\n3. Right to request deletion.\n4. Right to withdraw consent or object.\n5. Right to correct data.\n6. No fee for exercising rights (unless legally required).\n\n10. How do we update our Privacy Policy?\nWe may update it to reflect changes in our operations. Updates will be posted on the platform and become effective upon posting (or a stated effective date).\n\n11. Contact us:\nFor any inquiries:\n• WhatsApp: +971551228825\n• Email: info@kolshy.ae\nPlease include details in your message for faster assistance.';
+  String get legalMumboJumboPolicyText =>
+      '• 1. Aucune collecte de données d\'enfants\nCette plateforme est destinée aux adultes uniquement, conformément aux lois applicables définissant l\'âge de la majorité.\nLa plateforme n\'est en aucun cas destinée aux personnes de moins de l\'âge légal.\nCependant, nous ne pouvons pas toujours empêcher certains utilisateurs, y compris les mineurs, de fournir de fausses informations sur leur âge pour accéder à la plateforme.\nSi vous êtes un parent ou un tuteur légal et que vous pensez que nous avons involontairement collecté des informations personnelles sur votre enfant, veuillez nous contacter immédiatement en utilisant les méthodes de contact spécifiées dans la clause 12 de cette politique de confidentialité.\n\n• 2. Quelles données personnelles collectons-nous auprès de vous ou à votre sujet ?\nNous collectons vos données personnelles pour fournir et améliorer continuellement nos services et notre plateforme.\nLes \"données personnelles\" désignent toute information pouvant être utilisée pour vous identifier en tant qu\'individu par des identifiants directs ou indirects.\nLes données personnelles ne comprennent pas les informations qui ont été anonymisées (où tous les identifiants ont été supprimés).\nNous collectons, stockons, utilisons et transférons divers types de données personnelles, qui peuvent être classées comme suit :\n1. Données d\'identité : prénom, deuxième prénom, nom de famille, nom d\'utilisateur ou identifiants similaires, sexe, titre, nationalité et date de naissance.\n2. Données de contact : adresse de résidence, adresse e-mail et numéro de téléphone.\n3. Données de transaction : détails des paiements reçus ou effectués, des méthodes de paiement utilisées et des données sur les produits ou services achetés chez nous.\n4. Données techniques : adresse IP, informations de connexion, type et version de navigateur, système d\'exploitation, version de l\'application mobile, paramètres de fuseau horaire, données de localisation, type d\'appareil, identifiants publicitaires (par exemple, dans iOS) et autres informations d\'utilisation d\'Internet. Cela peut être collecté à l\'aide de cookies, de sessions, de balises web et d\'autres outils de suivi.\n5. Données de profil : nom d\'utilisateur, mot de passe, vos intérêts et préférences, commentaires, langue préférée et réponses aux sondages.\n6. Données d\'achat : toutes les commandes précédentes, les achats de compte, les informations de remboursement, les détails d\'exécution et les enregistrements de navigation des produits et services.\n7. Données d\'interaction : relatives à la façon dont vous interagissez avec notre site web, nos produits et nos services.\n8. Données de marketing et de communication : préférences pour la réception d\'offres promotionnelles ou de messages marketing de notre part ou de tiers, et votre méthode de communication préférée.\nDe plus, nous pouvons collecter, utiliser et partager des données statistiques ou démographiques connues sous le nom de \"données agrégées\". Celles-ci sont dérivées de vos données personnelles mais ne révèlent pas votre identité après la suppression de tous les identifiants.\nExemple : nous pouvons utiliser des données de navigation agrégées pour analyser le pourcentage d\'utilisateurs qui interagissent avec une fonctionnalité spécifique sur la plateforme.\n\n3. Comment collectons-nous vos données personnelles ?\nNous collectons vos données personnelles par trois méthodes principales :\n1. Directement de vous :\nNous collectons vos données directement lorsque vous :\n- Vous inscrivez sur la plateforme ou vous connectez via les médias sociaux ou toute autre méthode d\'inscription.\n- Effectuez des paiements, demandez des remboursements ou sélectionnez votre méthode de paiement préférée.\n- Participez à des concours, des promotions ou des programmes spéciaux.\n- Fournissez des commentaires, des avis ou des témoignages.\n- Soumettez des demandes de support ou des plaintes relatives aux services.\n- Communiquez avec nous par téléphone, e-mail ou d\'autres canaux (où la correspondance est enregistrée).\n- Naviguez ou participez à toute activité au sein de la plateforme.\n2. Indirectement :\nNous pouvons obtenir vos données personnelles auprès de tiers ou de parties liées, tels que :\n- Des amis ou des proches effectuant des achats pour vous ou en votre nom.\n- Des fournisseurs partenaires ou des prestataires de services, tels que des partenaires de logistique et d\'exécution, des fournisseurs de marketing et des processeurs de paiement.\n- Des interactions via des plateformes comme Facebook, Google, etc.\nSi vous partagez des données personnelles sur d\'autres personnes (par exemple, des amis ou de la famille), vous confirmez que vous avez leur consentement pour les partager en vertu de cette politique de confidentialité.\n3. Automatiquement :\nNous collectons certaines données automatiquement pendant que vous utilisez la plateforme, en utilisant des technologies telles que :\n- Fichiers journaux : y compris l\'adresse IP, le type de navigateur, les pages visitées, le système d\'exploitation, les horodatages et d\'autres détails techniques.\n- Cookies & sessions : petits fichiers stockés sur votre appareil pour améliorer votre expérience en activant les fonctionnalités de la plateforme, en mémorisant vos préférences, en comprenant vos interactions, en affichant des publicités personnalisées et en analysant le trafic.\nSi vous n\'êtes pas d\'accord avec l\'utilisation de cookies, vous pouvez les désactiver dans les paramètres de votre navigateur ou cesser d\'utiliser la plateforme. Cependant, la désactivation de certains types de données peut affecter votre expérience complète de nos services.\n\n4. Pourquoi collectons-nous vos données personnelles ?\nNous collectons et utilisons vos données personnelles pour améliorer votre expérience avec nous, notamment pour :\n1. Fournir des informations et des services.\n2. Services basés sur la localisation.\n3. Remplir les obligations contractuelles.\n4. Améliorer les services et la communication.\n5. Optimiser l\'affichage du contenu.\n6. Offrir des services personnalisés pour des occasions spéciales.\n7. Vous informer des mises à jour.\n8. Améliorer votre expérience globale.\n9. Gérer les programmes de récompenses.\n10. Améliorer les performances techniques.\n11. Se conformer aux lois locales.\n12. Prévenir la fraude et assurer la sécurité.\n\n5. Comment utilisons-nous vos données personnelles ?\nNous utilisons vos données personnelles uniquement lorsque cela est nécessaire, notamment pour :\n1. Exécution du contrat.\n2. Conformité légale.\n3. Intérêts légitimes.\n4. Marketing et communication (avec des options de désinscription).\n\n6. Qui partageons-nous vos données personnelles avec ?\n1. Affiliés et prestataires de services.\n2. Tiers à des fins spécifiques.\n3. En cas de fusion ou de transfert de propriété.\n4. Conformité légale et protection des droits.\n\n7. Comment stockons-nous vos données personnelles et pendant combien de temps ?\nNous stockons vos données uniquement aussi longtemps que nécessaire aux fins indiquées ou tel que requis par la loi. Les facteurs pris en compte sont la sensibilité des données, le niveau de risque, la réalisation de l\'objectif et les exigences légales.\nNous pouvons anonymiser les données pour une recherche ou une utilisation statistique indéfinie.\n\n8. Quelles mesures de sécurité appliquons-nous ?\nNous utilisons des mesures de sécurité techniques, administratives et physiques commercialement raisonnables, telles que le cryptage, les pare-feu, l\'accès restreint et la conformité PCI DSS.\nVous êtes également responsable de la protection des informations de votre compte.\n\n9. Vos droits concernant vos données personnelles :\n1. Droit à l\'information.\n2. Droit d\'accès.\n3. Droit de demander la suppression.\n4. Droit de retirer le consentement ou de s\'y opposer.\n5. Droit de corriger les données.\n6. Aucun frais pour l\'exercice des droits (sauf si requis par la loi).\n\n10. Comment mettons-nous à jour notre politique de confidentialité ?\nNous pouvons la mettre à jour pour refléter les changements dans nos opérations. Les mises à jour seront publiées sur la plateforme et entreront en vigueur dès leur publication (ou à une date d\'entrée en vigueur indiquée).\n\n11. Contactez-nous :\nPour toute demande :\n• WhatsApp : +971551228825\n• E-mail : info@kolshy.ae\nVeuillez inclure des détails dans votre message pour une assistance plus rapide.';
 
   @override
-  String get adminNews => 'Admin News';
+  String get adminNews => 'Actualités de l\'administrateur';
 
   @override
-  String get recentUpdates => 'Recent Updates';
+  String get recentUpdates => 'Mises à jour récentes';
 
   @override
-  String get refreshNews => 'Refresh news';
+  String get refreshNews => 'Actualiser les actualités';
 
   @override
-  String get noNews => 'No news available';
+  String get noNews => 'Aucune actualité disponible';
 
   @override
-  String get newsRefreshed => 'News refreshed';
+  String get newsRefreshed => 'Actualités actualisées';
 
   @override
-  String get newsDeleted => 'News deleted';
+  String get newsDeleted => 'Actualité supprimée';
 
   @override
-  String get undo => 'Undo';
+  String get undo => 'Annuler';
 
   @override
-  String get issueFixed => 'Issue Fixed';
+  String get issueFixed => 'Problème résolu';
 
   @override
-  String get issueFixedContent => 'The reported issue has been fixed successfully.';
+  String get issueFixedContent =>
+      'Le problème signalé a été résolu avec succès.';
 
   @override
-  String get newFeature => 'New Feature';
+  String get newFeature => 'Nouvelle fonctionnalité';
 
   @override
-  String get newFeatureContent => 'A new feature has been added.';
+  String get newFeatureContent => 'Une nouvelle fonctionnalité a été ajoutée.';
 
   @override
-  String get serverMaintenance => 'Server Maintenance';
+  String get serverMaintenance => 'Maintenance du serveur';
 
   @override
-  String get serverMaintenanceContent => 'Scheduled maintenance is in progress.';
+  String get serverMaintenanceContent =>
+      'La maintenance planifiée est en cours.';
 
   @override
-  String get deliveryIssues => 'Delivery Issues';
+  String get deliveryIssues => 'Problèmes de livraison';
 
   @override
-  String get deliveryIssuesContent => 'Some deliveries are delayed.';
+  String get deliveryIssuesContent => 'Certaines livraisons sont retardées.';
 
   @override
-  String get paymentUpdate => 'Payment Update';
+  String get paymentUpdate => 'Mise à jour du paiement';
 
   @override
-  String get paymentUpdateContent => 'Payment system updated.';
+  String get paymentUpdateContent => 'Le système de paiement a été mis à jour.';
 
   @override
-  String get securityAlert => 'Security Alert';
+  String get securityAlert => 'Alerte de sécurité';
 
   @override
-  String get securityAlertContent => 'Please update your password.';
+  String get securityAlertContent =>
+      'Veuillez mettre à jour votre mot de passe.';
 
   @override
-  String get refreshed1 => 'Content Refreshed';
+  String get refreshed1 => 'Contenu actualisé';
 
   @override
-  String get refreshed1Content => 'The content has been refreshed.';
+  String get refreshed1Content => 'Le contenu a été actualisé.';
 
   @override
-  String get deliveryImproved => 'Delivery Improved';
+  String get deliveryImproved => 'Livraison améliorée';
 
   @override
-  String get deliveryImprovedContent => 'Delivery times have been optimized.';
+  String get deliveryImprovedContent =>
+      'Les délais de livraison ont été optimisés.';
 
   @override
-  String get paymentGatewayUpdated => 'Payment Gateway Updated';
+  String get paymentGatewayUpdated => 'Passerelle de paiement mise à jour';
 
   @override
-  String get paymentGatewayUpdatedContent => 'The payment gateway has been updated.';
+  String get paymentGatewayUpdatedContent =>
+      'La passerelle de paiement a été mise à jour.';
 
   @override
-  String get bugFixes => 'Bug Fixes';
+  String get bugFixes => 'Corrections de bugs';
 
   @override
-  String get bugFixesContent => 'Minor bugs have been fixed.';
+  String get bugFixesContent => 'Des bugs mineurs ont été corrigés.';
 
   @override
-  String get time2mAgo => '2 minutes ago';
+  String get time2mAgo => 'Il y a 2 minutes';
 
   @override
-  String get time10mAgo => '10 minutes ago';
+  String get time10mAgo => 'Il y a 10 minutes';
 
   @override
-  String get time1hAgo => '1 hour ago';
+  String get time1hAgo => 'Il y a 1 heure';
 
   @override
-  String get time3hAgo => '3 hours ago';
+  String get time3hAgo => 'Il y a 3 heures';
 
   @override
-  String get time5hAgo => '5 hours ago';
+  String get time5hAgo => 'Il y a 5 heures';
 
   @override
-  String get time1dAgo => '1 day ago';
+  String get time1dAgo => 'Il y a 1 jour';
 
   @override
-  String get timeJustNow => 'Just now';
+  String get timeJustNow => 'À l\'instant';
 
   @override
-  String get askQuestionTitle => 'Ask Question to Admin';
+  String get askQuestionTitle => 'Poser une question à l\'administrateur';
 
   @override
-  String get subject => 'Subject';
+  String get subject => 'Sujet';
 
   @override
-  String get subjectTooltip => 'Enter a clear and concise subject for your request.';
+  String get subjectTooltip =>
+      'Entrez un sujet clair et concis pour votre demande.';
 
   @override
-  String get inputHint => 'Input your text';
+  String get inputHint => 'Saisissez votre texte';
 
   @override
-  String get yourQuery => 'Your Query';
+  String get yourQuery => 'Votre requête';
 
   @override
-  String get enterSubject => 'Please enter a subject.';
+  String get enterSubject => 'Veuillez entrer un sujet.';
 
   @override
-  String get enterQuery => 'Please enter your query.';
+  String get enterQuery => 'Veuillez entrer votre requête.';
 
   @override
-  String get requestSent => 'Request sent successfully!';
+  String get requestSent => 'Demande envoyée avec succès !';
 
   @override
-  String get send => 'Send';
+  String get send => 'Envoyer';
 
   @override
-  String get askQuestion => 'Ask Question to Admin';
+  String get askQuestion => 'Poser une question à l\'administrateur';
 
   @override
-  String get errorSubject => 'Please enter a subject.';
+  String get errorSubject => 'Veuillez entrer un sujet.';
 
   @override
-  String get errorQuery => 'Please enter your query.';
+  String get errorQuery => 'Veuillez entrer votre requête.';
 
   @override
-  String get successMessage => 'Request sent successfully!';
+  String get successMessage => 'Demande envoyée avec succès !';
 
   @override
-  String get customerAnalytics => 'Customer Analytics';
+  String get customerAnalytics => 'Analyses des clients';
 
   @override
-  String get customers => 'Customer';
+  String get customers => 'Client';
 
   @override
-  String get allTime => 'All time';
+  String get allTime => 'Tout le temps';
 
   @override
-  String get last7days => 'Last 7 days';
+  String get last7days => '7 derniers jours';
 
   @override
-  String get last30days => 'Last 30 days';
+  String get last30days => '30 derniers jours';
 
   @override
-  String get lastYear => 'Last year';
+  String get lastYear => 'L\'année dernière';
 
   @override
-  String get searchCustomer => 'Search customer';
+  String get searchCustomer => 'Rechercher un client';
 
   @override
-  String get loadMore => 'Load more';
+  String get loadMore => 'Charger plus';
 
   @override
-  String get noCustomers => 'No customers match your search.';
+  String get noCustomers => 'Aucun client ne correspond à votre recherche.';
 
   @override
-  String get name => 'Name';
+  String get name => 'Nom';
 
   @override
   String get contact => 'Contact';
 
   @override
-  String get address => 'Address';
+  String get address => 'Adresse';
 
   @override
-  String get appTitle => 'Store Dashboard';
+  String get appTitle => 'Tableau de bord de la boutique';
 
   @override
   String helloUser(Object name) {
-    return 'Hello, $name';
+    return 'Bonjour, $name';
   }
 
   @override
-  String get letsCheckYourStore => 'Let\'s check your store!';
+  String get letsCheckYourStore => 'Vérifions votre boutique !';
 
   @override
-  String get rangeAllTime => 'All time';
+  String get rangeAllTime => 'Tout le temps';
 
   @override
-  String get rangeLast30Days => 'Last 30 days';
+  String get rangeLast30Days => '30 derniers jours';
 
   @override
-  String get rangeLast7Days => 'Last 7 days';
+  String get rangeLast7Days => '7 derniers jours';
 
   @override
-  String get rangeThisYear => 'This year';
+  String get rangeThisYear => 'Cette année';
 
   @override
-  String get statRevenue => 'Revenue';
+  String get statRevenue => 'Revenus';
 
   @override
-  String get statOrder => 'Order';
+  String get statOrder => 'Commande';
 
   @override
-  String get statCustomer => 'Customer';
+  String get statCustomer => 'Client';
 
   @override
   String currencyAmount(Object currency, Object amount) {
-    return '$currency $amount';
+    return '$amount $currency';
   }
 
   @override
   String deltaSinceLastWeek(String delta) {
-    return '$delta Last Week';
+    return '$delta la semaine dernière';
   }
 
   @override
-  String get totalSalesTitle => 'Total Sales';
+  String get totalSalesTitle => 'Ventes totales';
 
   @override
   String kpiTotalSales(String pct) {
-    return '$pct Total Sales';
+    return '$pct des ventes totales';
   }
 
   @override
   String legendYearRange(String year) {
-    return 'Jan 1–Dec 31, $year';
+    return '1er janv. - 31 déc., $year';
   }
 
   @override
-  String get totalCustomers => 'Total customers';
+  String get totalCustomers => 'Total des clients';
 
   @override
-  String get averageOrderValue => 'Average Order Value';
+  String get averageOrderValue => 'Valeur moyenne de la commande';
 
   @override
-  String get aovLegend => 'Average Order Value';
+  String get aovLegend => 'Valeur moyenne de la commande';
 
   @override
-  String get topSellingProducts => 'Top Selling Products';
+  String get topSellingProducts => 'Meilleurs produits vendus';
 
   @override
-  String get topCategories => 'Top Categories';
+  String get topCategories => 'Meilleures catégories';
 
   @override
-  String get ratings => 'Ratings';
+  String get ratings => 'Évaluations';
 
   @override
-  String get latestCommentsAndReviews => 'Latest Comments and Reviews';
+  String get latestCommentsAndReviews => 'Derniers commentaires et avis';
 
   @override
-  String get noProductFound => 'No product found';
+  String get noProductFound => 'Aucun produit trouvé';
 
   @override
-  String get noCategoryFound => 'No Category found';
+  String get noCategoryFound => 'Aucune catégorie trouvée';
 
   @override
   String priceWithCurrency(String currency, double price) {
-    return '$currency $price';
+    return '$price $currency';
   }
 
   @override
   String soldCount(Object count) {
-    return 'Sold $count';
+    return '{count} vendus';
   }
 
   @override
-  String get helpful => 'Helpful';
+  String get helpful => 'Utile';
 
   @override
-  String get oldCustomer => 'Old customer';
+  String get oldCustomer => 'Ancien client';
 
   @override
-  String get newCustomer => 'New customer';
+  String get newCustomer => 'Nouveau client';
 
   @override
-  String get returningCustomer => 'Returning customer';
+  String get returningCustomer => 'Client récurrent';
 
   @override
-  String get welcomePrefix => 'Welcome ';
+  String get welcomePrefix => 'Bienvenue ';
 
   @override
   String welcomeCount(String count) {
-    return '$count customers';
+    return '$count clients';
   }
 
   @override
-  String get welcomeSuffix => ' with a personal message 🥳';
+  String get welcomeSuffix => ' avec un message personnel 🥳';
 
   @override
-  String get monthsShort => 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec';
+  String get monthsShort =>
+      'Janv.,Févr.,Mars,Avr.,Mai,Juin,Juil.,Août,Sept.,Oct.,Nov.,Déc.';
 
   @override
-  String get weekShort => 'Mon,Tue,Wed,Thu,Fri,Sat,Sun';
+  String get weekShort => 'Lun,Mar,Mer,Jeu,Ven,Sam,Dim';
 
   @override
   String get days30Anchor => '1,5,10,15,20,25,30';
@@ -886,41 +908,41 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String kpiAov(String pct) {
-    return '$pct Average Order Value';
+    return '$pct de la valeur moyenne de la commande';
   }
 
   @override
-  String get priceRating => 'Price Rating';
+  String get priceRating => 'Évaluation du prix';
 
   @override
-  String get valueRating => 'Value Rating';
+  String get valueRating => 'Évaluation de la valeur';
 
   @override
-  String get qualityRating => 'Quality Rating';
+  String get qualityRating => 'Évaluation de la qualité';
 
   @override
-  String get checkStore => 'Let\'s Check Your Store!';
+  String get checkStore => 'Vérifions votre boutique !';
 
   @override
-  String get last30Days => 'Last 30 days';
+  String get last30Days => '30 derniers jours';
 
   @override
-  String get last7Days => 'Last 7 days';
+  String get last7Days => '7 derniers jours';
 
   @override
-  String get thisYear => 'This year';
+  String get thisYear => 'Cette année';
 
   @override
-  String get latestReviews => 'Latest Comments and Reviews';
+  String get latestReviews => 'Derniers commentaires et avis';
 
   @override
-  String get checkBoxMsg => 'Please check the box to proceed.';
+  String get checkBoxMsg => 'Veuillez cocher la case pour continuer.';
 
   @override
-  String get invalidEmail => 'Invalid email format';
+  String get invalidEmail => 'Format d\'e-mail invalide';
 
   @override
-  String get mailSent => 'Mail sent';
+  String get mailSent => 'Mail envoyé';
 
   @override
   String get menu => 'Menu';
@@ -932,110 +954,110 @@ class AppLocalizationsFr extends AppLocalizations {
   String get notifications => 'Notifications';
 
   @override
-  String get inputYourText => 'Input your text';
+  String get inputYourText => 'Saisissez votre texte';
 
   @override
-  String get bold => 'Bold';
+  String get bold => 'Gras';
 
   @override
-  String get italic => 'Italic';
+  String get italic => 'Italique';
 
   @override
-  String get underline => 'Underline';
+  String get underline => 'Souligné';
 
   @override
-  String get bulletedList => 'Bulleted list';
+  String get bulletedList => 'Liste à puces';
 
   @override
-  String get numberedList => 'Numbered list';
+  String get numberedList => 'Liste numérotée';
 
   @override
-  String get dashboard => 'Dashboard';
+  String get dashboard => 'Tableau de bord';
 
   @override
-  String get orders => 'Order';
+  String get orders => 'Commande';
 
   @override
-  String get product => 'Product';
+  String get product => 'Produit';
 
   @override
-  String get addProduct => 'Add product';
+  String get addProduct => 'Ajouter un produit';
 
   @override
-  String get myProductList => 'My product list';
+  String get myProductList => 'Ma liste de produits';
 
   @override
-  String get draftProduct => 'Draft Product';
+  String get draftProduct => 'Produit brouillon';
 
   @override
   String get transactions => 'Transactions';
 
   @override
-  String get revenue => 'Revenue';
+  String get revenue => 'Revenus';
 
   @override
-  String get review => 'Review';
+  String get review => 'Avis';
 
   @override
-  String get installMainApp => 'Install main application';
+  String get installMainApp => 'Installer l\'application principale';
 
   @override
-  String get profileSettings => 'Profile Settings';
+  String get profileSettings => 'Paramètres du profil';
 
   @override
-  String get printPdf => 'Print PDF';
+  String get printPdf => 'Imprimer en PDF';
 
   @override
-  String get askSupport => 'Ask for support';
+  String get askSupport => 'Demander de l\'aide';
 
   @override
-  String get productAdd => 'Add Product';
+  String get productAdd => 'Ajouter un produit';
 
   @override
-  String get productList => 'Product List';
+  String get productList => 'Liste de produits';
 
   @override
-  String get productDrafts => 'Product Drafts';
+  String get productDrafts => 'Brouillons de produits';
 
   @override
-  String get analytics => 'Analytics';
+  String get analytics => 'Analyses';
 
   @override
-  String get payouts => 'Payouts';
+  String get payouts => 'Paiements';
 
   @override
-  String get customerDashboard => 'Customer Dashboard';
+  String get customerDashboard => 'Tableau de bord client';
 
   @override
-  String get askAdmin => 'Ask Admin';
+  String get askAdmin => 'Demander à l\'administrateur';
 
   @override
-  String get installMainApplication => 'Install main application';
+  String get installMainApplication => 'Installer l\'application principale';
 
   @override
-  String get askForSupport => 'Ask for support';
+  String get askForSupport => 'Demander de l\'aide';
 
   @override
-  String get printPDF => 'Print PDF';
+  String get printPDF => 'Imprimer en PDF';
 
   @override
-  String get askforsupport => 'Ask for support';
+  String get askforsupport => 'Demander de l\'aide';
 
   @override
-  String get installmainapplication => 'Install main application';
+  String get installmainapplication => 'Installer l\'application principale';
 
   @override
-  String get letsCheckStore => 'Let\'s Check Your Store!';
+  String get letsCheckStore => 'Vérifions votre boutique !';
 
   @override
-  String get lastWeek => 'Last Week';
+  String get lastWeek => 'La semaine dernière';
 
   @override
-  String get totalSales => 'Total Sales';
+  String get totalSales => 'Ventes totales';
 
   @override
   String percentTotalSales(Object percent) {
-    return '$percent% Total Sales';
+    return '$percent% des ventes totales';
   }
 
   @override
@@ -1043,335 +1065,355 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String legendRangeYear(Object year) {
-    return 'Jan 1–Dec 31, $year';
+    return '1er janv. - 31 déc., $year';
   }
 
   @override
-  String get catHeadphones => 'Headphones';
+  String get catHeadphones => 'Écouteurs';
 
   @override
-  String get catWatches => 'Watches';
+  String get catWatches => 'Montres';
 
   @override
-  String get catCameras => 'Cameras';
+  String get catCameras => 'Caméras';
 
   @override
-  String get catAccessories => 'Accessories';
+  String get catAccessories => 'Accessoires';
 
   @override
   String itemsCount(Object count) {
-    return '$count items';
+    return '$count articles';
   }
 
   @override
-  String get latestCommentsReviews => 'Latest Comments and Reviews';
+  String get latestCommentsReviews => 'Derniers commentaires et avis';
 
   @override
   String customersCount(Object count) {
-    return '$count customers';
+    return '$count clients';
   }
 
   @override
-  String get withPersonalMessage => 'with a personal message';
+  String get withPersonalMessage => 'avec un message personnel';
 
   @override
   String percentAov(Object percent) {
-    return '$percent Average Order Value';
+    return '$percent de la valeur moyenne de la commande';
   }
 
   @override
-  String get weekMon => 'Mon';
+  String get weekMon => 'Lun';
 
   @override
-  String get weekTue => 'Tue';
+  String get weekTue => 'Mar';
 
   @override
-  String get weekWed => 'Wed';
+  String get weekWed => 'Mer';
 
   @override
-  String get weekThu => 'Thu';
+  String get weekThu => 'Jeu';
 
   @override
-  String get weekFri => 'Fri';
+  String get weekFri => 'Ven';
 
   @override
-  String get weekSat => 'Sat';
+  String get weekSat => 'Sam';
 
   @override
-  String get weekSun => 'Sun';
+  String get weekSun => 'Dim';
 
   @override
-  String get monthJan => 'Jan';
+  String get monthJan => 'Janv.';
 
   @override
-  String get monthFeb => 'Feb';
+  String get monthFeb => 'Févr.';
 
   @override
-  String get monthMar => 'Mar';
+  String get monthMar => 'Mars';
 
   @override
-  String get monthApr => 'Apr';
+  String get monthApr => 'Avr.';
 
   @override
-  String get monthMay => 'May';
+  String get monthMay => 'Mai';
 
   @override
-  String get monthJun => 'Jun';
+  String get monthJun => 'Juin';
 
   @override
-  String get monthJul => 'Jul';
+  String get monthJul => 'Juil.';
 
   @override
-  String get monthAug => 'Aug';
+  String get monthAug => 'Août';
 
   @override
-  String get monthSep => 'Sep';
+  String get monthSep => 'Sept.';
 
   @override
-  String get monthOct => 'Oct';
+  String get monthOct => 'Octobre';
 
   @override
-  String get monthNov => 'Nov';
+  String get monthNov => 'Novembre';
 
   @override
-  String get monthDec => 'Dec';
+  String get monthDec => 'Décembre';
 
   @override
-  String get r1 => 'Super comfy and the battery life is crazy good.';
+  String get r1 => 'Super confortable et la batterie dure une éternité.';
 
   @override
-  String get r2 => 'Does everything I need. Wish the strap was softer.';
+  String get r2 =>
+      'Fait tout ce dont j\'ai besoin. J\'aimerais que la sangle soit plus douce.';
 
   @override
-  String get ordersDetails => 'Orders Details';
+  String get ordersDetails => 'Détails de la commande';
 
   @override
-  String get searchProduct => 'Search product';
+  String get searchProduct => 'Rechercher un produit';
 
   @override
-  String get allOrders => 'All Orders';
+  String get allOrders => 'Toutes les commandes';
 
   @override
-  String get delivered => 'Delivered';
+  String get delivered => 'Livré';
 
   @override
-  String get processing => 'Processing';
+  String get processing => 'En traitement';
 
   @override
-  String get cancelled => 'Cancelled';
+  String get cancelled => 'Annulé';
 
   @override
-  String get noOrders => 'No orders match your search.';
+  String get noOrders => 'Aucune commande ne correspond à votre recherche.';
 
   @override
-  String get status => 'Status';
+  String get status => 'Statut';
 
   @override
-  String get orderId => 'Order ID';
+  String get orderId => 'ID de commande';
 
   @override
-  String get purchasedOn => 'Purchased on';
+  String get purchasedOn => 'Acheté le';
 
   @override
-  String get baseTotal => 'Base Total';
+  String get baseTotal => 'Total de base';
 
   @override
-  String get purchasedTotal => 'Purchased Total';
+  String get purchasedTotal => 'Total acheté';
 
   @override
-  String get customer => 'Customer';
+  String get customer => 'Client';
 
   @override
-  String get onHold => 'On Hold';
+  String get onHold => 'En attente';
 
   @override
-  String get closed => 'Closed';
+  String get closed => 'Fermé';
 
   @override
-  String get pending => 'Pending';
+  String get pending => 'En attente';
 
   @override
-  String get printPdfTitle => 'Print PDF';
+  String get printPdfTitle => 'Imprimer en PDF';
 
   @override
-  String get invoiceDetailsTitle => 'Invoice and Packing Slip Details';
+  String get invoiceDetailsTitle =>
+      'Détails de la facture et du bordereau d\'expédition';
 
   @override
-  String get invoiceDetailsSubtitle => 'Add your address, VAT, and tax information for PDF documents';
+  String get invoiceDetailsSubtitle =>
+      'Ajoutez votre adresse, votre TVA et vos informations fiscales pour les documents PDF';
 
   @override
-  String get invoiceDetailsHint => 'Enter your company address, VAT number, tax information...';
+  String get invoiceDetailsHint =>
+      'Entrez l\'adresse de votre entreprise, le numéro de TVA, les informations fiscales...';
 
   @override
-  String get saveInfoButton => 'Save Information';
+  String get saveInfoButton => 'Enregistrer les informations';
 
   @override
-  String get saveInfoEmpty => 'Please enter information before saving';
+  String get saveInfoEmpty =>
+      'Veuillez entrer des informations avant d\'enregistrer';
 
   @override
-  String get saveInfoSuccess => 'Information saved successfully!';
+  String get saveInfoSuccess => 'Informations enregistrées avec succès !';
 
   @override
-  String get invoiceDetailsFooter => 'This information will be included in all your PDF invoices and packing slips.';
+  String get invoiceDetailsFooter =>
+      'Ces informations seront incluses dans toutes vos factures et bordereaux d\'expédition PDF.';
 
   @override
-  String get nameAndDescriptionTitle => 'Name & Description';
+  String get nameAndDescriptionTitle => 'Nom et description';
 
   @override
-  String get productTitleLabel => 'Product Title';
+  String get productTitleLabel => 'Titre du produit';
 
   @override
-  String get productTitleHelp => 'Enter the full product name (e.g., Apple iPhone 14 Pro).';
+  String get productTitleHelp =>
+      'Entrez le nom complet du produit (par exemple, Apple iPhone 14 Pro).';
 
   @override
-  String get requiredField => 'Required';
+  String get requiredField => 'Requis';
 
   @override
-  String get categoryLabel => 'Category';
+  String get categoryLabel => 'Catégorie';
 
   @override
-  String get categoryHelp => 'Select the category that best fits your product.';
+  String get categoryHelp =>
+      'Sélectionnez la catégorie qui correspond le mieux à votre produit.';
 
   @override
-  String get categoryFood => 'Food';
+  String get categoryFood => 'Alimentation';
 
   @override
-  String get categoryElectronics => 'Electronics';
+  String get categoryElectronics => 'Électronique';
 
   @override
-  String get categoryApparel => 'Apparel';
+  String get categoryApparel => 'Vêtements';
 
   @override
-  String get categoryBeauty => 'Beauty';
+  String get categoryBeauty => 'Beauté';
 
   @override
-  String get categoryHome => 'Home';
+  String get categoryHome => 'Maison';
 
   @override
-  String get categoryOther => 'Other';
+  String get categoryOther => 'Autre';
 
   @override
-  String get tagsLabel => 'Tags';
+  String get tagsLabel => 'Mots-clés';
 
   @override
-  String get tagsHelp => 'Add keywords that describe your product.';
+  String get tagsHelp => 'Ajoutez des mots-clés qui décrivent votre produit.';
 
   @override
   String get descriptionLabel => 'Description';
 
   @override
-  String get descriptionHelp => 'Detailed description of features, materials, sizing, etc.';
+  String get descriptionHelp =>
+      'Description détaillée des fonctionnalités, des matériaux, des tailles, etc.';
 
   @override
-  String get shortDescriptionLabel => 'Short Description';
+  String get shortDescriptionLabel => 'Description courte';
 
   @override
-  String get shortDescriptionHelp => 'Short summary (1–2 sentences) for listings/search results.';
+  String get shortDescriptionHelp =>
+      'Résumé court (1 à 2 phrases) pour les listes/résultats de recherche.';
 
   @override
   String get skuLabel => 'SKU';
 
   @override
-  String get skuHelp => 'Unique stock keeping unit (e.g., SKU-12345).';
+  String get skuHelp =>
+      'Unité de gestion des stocks unique (par exemple, SKU-12345).';
 
   @override
-  String get priceTitle => 'Price';
+  String get priceTitle => 'Prix';
 
   @override
-  String get amountLabel => 'Amount';
+  String get amountLabel => 'Montant';
 
   @override
-  String get amountHelp => 'Base selling price without discounts.';
+  String get amountHelp => 'Prix de vente de base sans les réductions.';
 
   @override
-  String get validNumber => 'Enter a valid number';
+  String get validNumber => 'Entrez un nombre valide';
 
   @override
-  String get specialPriceLabel => 'Special Price';
+  String get specialPriceLabel => 'Prix spécial';
 
   @override
-  String get specialPriceHelp => 'Turn on to add a promotional/sale price.';
+  String get specialPriceHelp =>
+      'Activez pour ajouter un prix promotionnel/de solde.';
 
   @override
-  String get specialPriceError => 'Special price must be less than Amount';
+  String get specialPriceError =>
+      'Le prix spécial doit être inférieur au montant';
 
   @override
-  String get specialPriceLabel2 => 'Special price';
+  String get specialPriceLabel2 => 'Prix spécial';
 
   @override
-  String get specialPriceHelp2 => 'Discounted price that overrides the regular amount.';
+  String get specialPriceHelp2 =>
+      'Prix réduit qui remplace le montant régulier.';
 
   @override
-  String get priceExample => 'e.g., 24.99';
+  String get priceExample => 'par exemple, 24.99';
 
   @override
-  String get minAmountLabel => 'Minimum amount';
+  String get minAmountLabel => 'Montant minimum';
 
   @override
-  String get minAmountHelp => 'Minimum quantity a customer is allowed to purchase.';
+  String get minAmountHelp =>
+      'Quantité minimale qu\'un client est autorisé à acheter.';
 
   @override
-  String get maxAmountLabel => 'Maximum amount';
+  String get maxAmountLabel => 'Montant maximum';
 
   @override
-  String get maxAmountHelp => 'Maximum quantity a customer is allowed to purchase.';
+  String get maxAmountHelp =>
+      'Quantité maximale qu\'un client est autorisé à acheter.';
 
   @override
   String get taxesLabel => 'Taxes';
 
   @override
-  String get taxesHelp => 'Apply taxes to this product at checkout.';
+  String get taxesHelp =>
+      'Appliquer des taxes à ce produit au moment du paiement.';
 
   @override
-  String get stockAndAvailabilityTitle => 'Stock & Availability';
+  String get stockAndAvailabilityTitle => 'Stock et disponibilité';
 
   @override
   String get stockLabel => 'Stock';
 
   @override
-  String get stockHelp => 'Number of units available.';
+  String get stockHelp => 'Nombre d\'unités disponibles.';
 
   @override
-  String get stockExample => 'e.g., 100';
+  String get stockExample => 'par exemple, 100';
 
   @override
-  String get weightLabel => 'Weight';
+  String get weightLabel => 'Poids';
 
   @override
-  String get weightHelp => 'Weight in kilograms (used for shipping).';
+  String get weightHelp => 'Poids en kilogrammes (utilisé pour l\'expédition).';
 
   @override
-  String get weightExample => 'e.g., 0.50';
+  String get weightExample => 'par exemple, 0.50';
 
   @override
-  String get allowedQuantityLabel => 'Allowed Quantity per Customer';
+  String get allowedQuantityLabel => 'Quantité autorisée par client';
 
   @override
-  String get allowedQuantityHelp => 'Optional: maximum number of units a single customer can buy for this product.';
+  String get allowedQuantityHelp =>
+      'Facultatif : nombre maximum d\'unités qu\'un seul client peut acheter pour ce produit.';
 
   @override
-  String get allowedQuantityExample => 'e.g., 5';
+  String get allowedQuantityExample => 'par exemple, 5';
 
   @override
-  String get nonNegativeNumber => 'Enter a non-negative number';
+  String get nonNegativeNumber => 'Entrez un nombre non négatif';
 
   @override
-  String get stockAvailabilityLabel => 'Stock Availability';
+  String get stockAvailabilityLabel => 'Disponibilité du stock';
 
   @override
-  String get stockAvailabilityHelp => 'Choose current availability status.';
+  String get stockAvailabilityHelp =>
+      'Choisissez le statut de disponibilité actuel.';
 
   @override
-  String get stockInStock => 'In Stock';
+  String get stockInStock => 'En stock';
 
   @override
-  String get stockOutOfStock => 'Out of Stock';
+  String get stockOutOfStock => 'Rupture de stock';
 
   @override
-  String get visibilityLabel => 'Visibility';
+  String get visibilityLabel => 'Visibilité';
 
   @override
-  String get visibilityHelp => 'Invisible products are hidden from the storefront.';
+  String get visibilityHelp =>
+      'Les produits invisibles sont cachés sur la vitrine.';
 
   @override
   String get visibilityInvisible => 'Invisible';
@@ -1380,265 +1422,273 @@ class AppLocalizationsFr extends AppLocalizations {
   String get visibilityVisible => 'Visible';
 
   @override
-  String get metaInfosTitle => 'Meta Infos';
+  String get metaInfosTitle => 'Infos Meta';
 
   @override
-  String get urlKeyLabel => 'Url Key';
+  String get urlKeyLabel => 'Clé URL';
 
   @override
-  String get urlKeyHelp => 'SEO-friendly slug used in the product URL.';
+  String get urlKeyHelp =>
+      'Nom convivial pour le référencement utilisé dans l\'URL du produit.';
 
   @override
-  String get urlKeyExample => 'e.g., apple-iphone-14-pro';
+  String get urlKeyExample => 'par exemple, apple-iphone-14-pro';
 
   @override
-  String get metaTitleLabel => 'Meta Title';
+  String get metaTitleLabel => 'Titre Meta';
 
   @override
-  String get metaTitleHelp => 'Title shown in search engine results.';
+  String get metaTitleHelp =>
+      'Titre affiché dans les résultats des moteurs de recherche.';
 
   @override
-  String get metaTitleExample => 'e.g., Buy the iPhone 14 Pro';
+  String get metaTitleExample => 'par exemple, Acheter l\'iPhone 14 Pro';
 
   @override
-  String get metaKeywordsLabel => 'Meta Keywords';
+  String get metaKeywordsLabel => 'Mots-clés Meta';
 
   @override
-  String get metaKeywordsHelp => 'Optional: comma-separated keywords.';
+  String get metaKeywordsHelp =>
+      'Facultatif : mots-clés séparés par des virgules.';
 
   @override
-  String get metaDescriptionLabel => 'Meta Description';
+  String get metaDescriptionLabel => 'Description Meta';
 
   @override
-  String get metaDescriptionHelp => 'Short paragraph for search engines (150–160 chars).';
+  String get metaDescriptionHelp =>
+      'Court paragraphe pour les moteurs de recherche (150-160 caractères).';
 
   @override
-  String get coverImagesLabel => 'Cover images';
+  String get coverImagesLabel => 'Images de couverture';
 
   @override
-  String get coverImagesHelp => 'Upload a clear, high-resolution product image.';
+  String get coverImagesHelp =>
+      'Téléchargez une image de produit claire et en haute résolution.';
 
   @override
-  String get clickOrDropImage => 'Click or drop Image';
+  String get clickOrDropImage => 'Cliquer ou déposer une image';
 
   @override
-  String get saveDraftButton => 'Save Draft';
+  String get saveDraftButton => 'Enregistrer le brouillon';
 
   @override
-  String get publishNowButton => 'Publish now';
+  String get publishNowButton => 'Publier maintenant';
 
   @override
-  String get deleteButton => 'Delete';
+  String get deleteButton => 'Supprimer';
 
   @override
-  String get draftSaved => 'Draft saved';
+  String get draftSaved => 'Brouillon enregistré';
 
   @override
-  String get productPublished => 'Product published';
+  String get productPublished => 'Produit publié';
 
   @override
   String productDeleted(Object name) {
-    return '\"$name\" has been deleted';
+    return '\"$name\" a été supprimé';
   }
 
   @override
-  String get draftsTitle => 'Drafts';
+  String get draftsTitle => 'Brouillons';
 
   @override
-  String get searchDraft => 'Search draft';
+  String get searchDraft => 'Rechercher un brouillon';
 
   @override
-  String get allDrafts => 'All Drafts';
+  String get allDrafts => 'Tous les brouillons';
 
   @override
-  String get drafts => 'Drafts';
+  String get drafts => 'Brouillons';
 
   @override
-  String get pendingReview => 'Pending Review';
+  String get pendingReview => 'En attente de révision';
 
   @override
-  String get noDraftsMatchSearch => 'No drafts match your search.';
+  String get noDraftsMatchSearch =>
+      'Aucun brouillon ne correspond à votre recherche.';
 
   @override
-  String get deleteDraftQuestion => 'Delete draft?';
+  String get deleteDraftQuestion => 'Supprimer le brouillon ?';
 
   @override
   String deleteDraftConfirmation(Object name) {
-    return 'This will delete \"$name\".';
+    return 'Cela supprimera \"$name\".';
   }
 
   @override
-  String get cancelButton => 'Cancel';
+  String get cancelButton => 'Annuler';
 
   @override
-  String get quantityLabel => 'Quantity';
+  String get quantityLabel => 'Quantité';
 
   @override
-  String get createdLabel => 'Created at';
+  String get createdLabel => 'Créé le';
 
   @override
-  String get statusLabel => 'Status';
+  String get statusLabel => 'Statut';
 
   @override
   String get actionLabel => 'Action';
 
   @override
-  String get editButton => 'Edit';
+  String get editButton => 'Modifier';
 
   @override
-  String get editProduct => 'Edit Product';
+  String get editProduct => 'Modifier le produit';
 
   @override
-  String get productsTitle => 'List of Products';
+  String get productsTitle => 'Liste des produits';
 
   @override
-  String get allProducts => 'All Products';
+  String get allProducts => 'Tous les produits';
 
   @override
-  String get enabledProducts => 'Enabled Products';
+  String get enabledProducts => 'Produits activés';
 
   @override
-  String get disabledProducts => 'Disabled Products';
+  String get disabledProducts => 'Produits désactivés';
 
   @override
-  String get lowStock => 'Low Stock';
+  String get lowStock => 'Faible stock';
 
   @override
-  String get outOfStock => 'Out of Stock';
+  String get outOfStock => 'Rupture de stock';
 
   @override
-  String get deniedProduct => 'Denied Product';
+  String get deniedProduct => 'Produit refusé';
 
   @override
-  String get noProductsMatchSearch => 'No products match your search.';
+  String get noProductsMatchSearch =>
+      'Aucun produit ne correspond à votre recherche.';
 
   @override
-  String get deleteProduct => 'Delete Product';
+  String get deleteProduct => 'Supprimer le produit';
 
   @override
   String deleteProductConfirmation(Object name) {
-    return 'Are you sure you want to delete \"$name\"?';
+    return 'Êtes-vous sûr de vouloir supprimer \"$name\" ?';
   }
 
   @override
   String get idLabel => 'ID';
 
   @override
-  String get quantityPerSourceLabel => 'Quantity Per Source';
+  String get quantityPerSourceLabel => 'Quantité par source';
 
   @override
-  String get salableQuantityLabel => 'Salable Quantity';
+  String get salableQuantityLabel => 'Quantité vendable';
 
   @override
-  String get quantitySoldLabel => 'Quantity Sold';
+  String get quantitySoldLabel => 'Quantité vendue';
 
   @override
-  String get quantityConfirmedLabel => 'Quantity Confirmed';
+  String get quantityConfirmedLabel => 'Quantité confirmée';
 
   @override
-  String get quantityPendingLabel => 'Quantity Pending';
+  String get quantityPendingLabel => 'Quantité en attente';
 
   @override
-  String get priceLabel => 'Price';
+  String get priceLabel => 'Prix';
 
   @override
-  String get statusActive => 'Active';
+  String get statusActive => 'Actif';
 
   @override
-  String get statusDisabled => 'Disabled';
+  String get statusDisabled => 'Désactivé';
 
   @override
-  String get statusLowStock => 'Low Stock';
+  String get statusLowStock => 'Faible stock';
 
   @override
-  String get statusOutOfStock => 'Out of Stock';
+  String get statusOutOfStock => 'Rupture de stock';
 
   @override
-  String get statusDenied => 'Denied';
+  String get statusDenied => 'Refusé';
 
   @override
-  String get visibilityCatalogSearch => 'Catalog / Search';
+  String get visibilityCatalogSearch => 'Catalogue / Recherche';
 
   @override
-  String get visibilityCatalogOnly => 'Catalog Only';
+  String get visibilityCatalogOnly => 'Catalogue uniquement';
 
   @override
-  String get visibilitySearchOnly => 'Search Only';
+  String get visibilitySearchOnly => 'Recherche uniquement';
 
   @override
-  String get visibilityNotVisible => 'Not Visible';
+  String get visibilityNotVisible => 'Non visible';
 
   @override
-  String get editProductScreen => 'Edit Product Screen';
+  String get editProductScreen => 'Écran de modification de produit';
 
   @override
-  String get customerAnalyticsTitle => 'Customer Analytics';
+  String get customerAnalyticsTitle => 'Analyses des clients';
 
   @override
-  String get customersLabel => 'Customers';
+  String get customersLabel => 'Clients';
 
   @override
-  String get incomeLabel => 'Income';
+  String get incomeLabel => 'Revenus';
 
   @override
-  String get searchCustomerHint => 'Search customer';
+  String get searchCustomerHint => 'Rechercher un client';
 
   @override
-  String get loadMoreButton => 'Load more';
+  String get loadMoreButton => 'Charger plus';
 
   @override
-  String get noCustomersMatch => 'No customers match your search.';
+  String get noCustomersMatch =>
+      'Aucun client ne correspond à votre recherche.';
 
   @override
   String get contactLabel => 'Contact';
 
   @override
-  String get genderLabel => 'Gender';
+  String get genderLabel => 'Genre';
 
   @override
-  String get addressLabel => 'Address';
+  String get addressLabel => 'Adresse';
 
   @override
-  String get baseTotalLabel => 'Base Total';
+  String get baseTotalLabel => 'Total de base';
 
   @override
-  String get ordersLabel => 'Orders';
+  String get ordersLabel => 'Commandes';
 
   @override
-  String get maleLabel => 'Male';
+  String get maleLabel => 'Homme';
 
   @override
-  String get femaleLabel => 'Female';
+  String get femaleLabel => 'Femme';
 
   @override
-  String get inputYourTextHint => 'Input your text';
+  String get inputYourTextHint => 'Saisissez votre texte';
 
   @override
-  String get addTagHint => 'Add tag';
+  String get addTagHint => 'Ajouter un mot-clé';
 
   @override
-  String get skuHint => 'Ex: SKU-12345';
+  String get skuHint => 'Ex : SKU-12345';
 
   @override
-  String get enterValidNumber => 'Enter a valid number';
+  String get enterValidNumber => 'Entrez un nombre valide';
 
   @override
-  String get specialPriceHint => 'e.g., 24.99';
+  String get specialPriceHint => 'par exemple, 24.99';
 
   @override
-  String get stockAvailabilityTitle => 'Stock & Availability';
+  String get stockAvailabilityTitle => 'Stock et disponibilité';
 
   @override
-  String get stockHint => 'e.g., 100';
+  String get stockHint => 'par exemple, 100';
 
   @override
-  String get weightHint => 'e.g., 0.50';
+  String get weightHint => 'par exemple, 0.50';
 
   @override
-  String get maxQuantityHint => 'e.g., 5';
+  String get maxQuantityHint => 'par exemple, 5';
 
   @override
-  String get enterNonNegativeNumber => 'Enter a non-negative number';
+  String get enterNonNegativeNumber => 'Entrez un nombre non négatif';
 
   @override
   String get invisible => 'Invisible';
@@ -1647,361 +1697,387 @@ class AppLocalizationsFr extends AppLocalizations {
   String get visible => 'Visible';
 
   @override
-  String get metaInfoTitle => 'Meta Infos';
+  String get metaInfoTitle => 'Infos Meta';
 
   @override
-  String get urlKeyHint => 'e.g., apple-iphone-14-pro';
+  String get urlKeyHint => 'par exemple, apple-iphone-14-pro';
 
   @override
-  String get metaTitleHint => 'e.g., Buy the iPhone 14 Pro';
+  String get metaTitleHint => 'par exemple, Acheter l\'iPhone 14 Pro';
 
   @override
-  String get productImagesLabel => 'Product Images';
+  String get productImagesLabel => 'Images du produit';
 
   @override
-  String get productImagesHelp => 'It is preferable to upload 3 images of the product.';
+  String get productImagesHelp =>
+      'Il est préférable de télécharger 3 images du produit.';
 
   @override
-  String get threeImagesWarning => '⚠️ Preferably upload at least 3 images';
+  String get threeImagesWarning =>
+      '⚠️ Il est préférable de télécharger au moins 3 images';
 
   @override
-  String get linkedProductsTitle => 'Linked Products';
+  String get linkedProductsTitle => 'Produits liés';
 
   @override
-  String get deleteTooltip => 'Delete';
+  String get deleteTooltip => 'Supprimer';
 
   @override
-  String get sec_name_description => 'Name & description';
+  String get sec_name_description => 'Nom et description';
 
   @override
-  String get lbl_product_title => 'Product title';
+  String get lbl_product_title => 'Titre du produit';
 
   @override
-  String get help_product_title => 'Enter the full product name (e.g., Apple iPhone 14 Pro).';
+  String get help_product_title =>
+      'Entrez le nom complet du produit (par exemple, Apple iPhone 14 Pro).';
 
   @override
-  String get hint_input_text => 'Input your text';
+  String get hint_input_text => 'Saisissez votre texte';
 
   @override
-  String get v_required => 'Required';
+  String get v_required => 'Requis';
 
   @override
-  String get lbl_category => 'Category';
+  String get lbl_category => 'Catégorie';
 
   @override
-  String get help_category => 'Select the category that best fits your product.';
+  String get help_category =>
+      'Sélectionnez la catégorie qui correspond le mieux à votre produit.';
 
   @override
-  String get lbl_tags => 'Tags';
+  String get lbl_tags => 'Mots-clés';
 
   @override
-  String get help_tags => 'Add keywords that describe your product.';
+  String get help_tags => 'Ajoutez des mots-clés qui décrivent votre produit.';
 
   @override
-  String get hint_add_tag => 'Add tag';
+  String get hint_add_tag => 'Ajouter un mot-clé';
 
   @override
   String get lbl_description => 'Description';
 
   @override
-  String get help_description => 'Detailed description of features, materials, sizing, etc.';
+  String get help_description =>
+      'Description détaillée des fonctionnalités, des matériaux, des tailles, etc.';
 
   @override
-  String get lbl_short_description => 'Short Description';
+  String get lbl_short_description => 'Description courte';
 
   @override
-  String get help_short_description => 'Short summary (1–2 sentences) for listings/search results.';
+  String get help_short_description =>
+      'Résumé court (1 à 2 phrases) pour les listes/résultats de recherche.';
 
   @override
   String get lbl_sku => 'SKU';
 
   @override
-  String get help_sku => 'Unique stock keeping unit (e.g., SKU-12345).';
+  String get help_sku =>
+      'Unité de gestion des stocks unique (par exemple, SKU-12345).';
 
   @override
-  String get hint_sku => 'Ex: SKU-12345';
+  String get hint_sku => 'Ex : SKU-12345';
 
   @override
-  String get sec_price => 'Price';
+  String get sec_price => 'Prix';
 
   @override
-  String get lbl_amount => 'Amount';
+  String get lbl_amount => 'Montant';
 
   @override
-  String get help_amount => 'Base selling price without discounts.';
+  String get help_amount => 'Prix de vente de base sans les réductions.';
 
   @override
   String get hint_amount_default => '8';
 
   @override
-  String get v_number => 'Enter a valid number';
+  String get v_number => 'Entrez un nombre valide';
 
   @override
-  String get lbl_special_toggle => 'Special Price';
+  String get lbl_special_toggle => 'Prix spécial';
 
   @override
-  String get help_special_toggle => 'Turn on to add a promotional/sale price.';
+  String get help_special_toggle =>
+      'Activez pour ajouter un prix promotionnel/de solde.';
 
   @override
-  String get lbl_special_price => 'Special price';
+  String get lbl_special_price => 'Prix spécial';
 
   @override
-  String get help_special_price => 'Discounted price that overrides the regular amount.';
+  String get help_special_price =>
+      'Prix réduit qui remplace le montant régulier.';
 
   @override
-  String get hint_price_example => 'e.g., 24.99';
+  String get hint_price_example => 'par exemple, 24.99';
 
   @override
-  String get lbl_min_qty => 'Minimum amount';
+  String get lbl_min_qty => 'Montant minimum';
 
   @override
-  String get help_min_qty => 'Minimum quantity a customer is allowed to purchase.';
+  String get help_min_qty =>
+      'Quantité minimale qu\'un client est autorisé à acheter.';
 
   @override
-  String get lbl_max_qty => 'Maximum amount';
+  String get lbl_max_qty => 'Montant maximum';
 
   @override
-  String get help_max_qty => 'Maximum quantity a customer is allowed to purchase.';
+  String get help_max_qty =>
+      'Quantité maximale qu\'un client est autorisé à acheter.';
 
   @override
   String get lbl_taxes => 'Taxes';
 
   @override
-  String get help_taxes => 'Apply taxes to this product at checkout.';
+  String get help_taxes =>
+      'Appliquer des taxes à ce produit au moment du paiement.';
 
   @override
-  String get sec_stock_availability => 'Stock & Availability';
+  String get sec_stock_availability => 'Stock et disponibilité';
 
   @override
   String get lbl_stock => 'Stock';
 
   @override
-  String get help_stock => 'Number of units available.';
+  String get help_stock => 'Nombre d\'unités disponibles.';
 
   @override
-  String get hint_stock => 'e.g., 100';
+  String get hint_stock => 'par exemple, 100';
 
   @override
-  String get lbl_weight => 'Weight';
+  String get lbl_weight => 'Poids';
 
   @override
-  String get help_weight => 'Weight in kilograms (used for shipping).';
+  String get help_weight =>
+      'Poids en kilogrammes (utilisé pour l\'expédition).';
 
   @override
-  String get hint_weight => 'e.g., 0.50';
+  String get hint_weight => 'par exemple, 0.50';
 
   @override
-  String get lbl_allowed_qty_per_customer => 'Allowed Quantity per Customer';
+  String get lbl_allowed_qty_per_customer => 'Quantité autorisée par client';
 
   @override
-  String get help_allowed_qty_per_customer => 'Optional: maximum number of units a single customer can buy for this product.';
+  String get help_allowed_qty_per_customer =>
+      'Facultatif : nombre maximum d\'unités qu\'un seul client peut acheter pour ce produit.';
 
   @override
-  String get hint_allowed_qty => 'e.g., 5';
+  String get hint_allowed_qty => 'par exemple, 5';
 
   @override
-  String get v_non_negative => 'Enter a non-negative number';
+  String get v_non_negative => 'Entrez un nombre non négatif';
 
   @override
-  String get lbl_stock_availability => 'Stock Availability';
+  String get lbl_stock_availability => 'Disponibilité du stock';
 
   @override
-  String get help_stock_availability => 'Choose current availability status.';
+  String get help_stock_availability =>
+      'Choisissez le statut de disponibilité actuel.';
 
   @override
-  String get lbl_visibility => 'Visibility';
+  String get lbl_visibility => 'Visibilité';
 
   @override
-  String get help_visibility => 'Invisible products are hidden from the storefront.';
+  String get help_visibility =>
+      'Les produits invisibles sont cachés sur la vitrine.';
 
   @override
-  String get sec_meta_infos => 'Meta Infos';
+  String get sec_meta_infos => 'Infos Meta';
 
   @override
-  String get lbl_url_key => 'Url Key';
+  String get lbl_url_key => 'Clé URL';
 
   @override
-  String get help_url_key => 'SEO-friendly slug used in the product URL.';
+  String get help_url_key =>
+      'Nom convivial pour le référencement utilisé dans l\'URL du produit.';
 
   @override
-  String get hint_url_key => 'e.g., apple-iphone-14-pro';
+  String get hint_url_key => 'par exemple, apple-iphone-14-pro';
 
   @override
-  String get lbl_meta_title => 'Meta Title';
+  String get lbl_meta_title => 'Titre Meta';
 
   @override
-  String get help_meta_title => 'Title shown in search engine results.';
+  String get help_meta_title =>
+      'Titre affiché dans les résultats des moteurs de recherche.';
 
   @override
-  String get hint_meta_title => 'e.g., Buy the iPhone 14 Pro';
+  String get hint_meta_title => 'par exemple, Acheter l\'iPhone 14 Pro';
 
   @override
-  String get lbl_meta_keywords => 'Meta Keywords';
+  String get lbl_meta_keywords => 'Mots-clés Meta';
 
   @override
-  String get help_meta_keywords => 'Optional: comma-separated keywords.';
+  String get help_meta_keywords =>
+      'Facultatif : mots-clés séparés par des virgules.';
 
   @override
-  String get lbl_meta_description => 'Meta Description';
+  String get lbl_meta_description => 'Description Meta';
 
   @override
-  String get help_meta_description => 'Short paragraph for search engines (150–160 chars).';
+  String get help_meta_description =>
+      'Court paragraphe pour les moteurs de recherche (150-160 caractères).';
 
   @override
-  String get lbl_product_images => 'Product Images';
+  String get lbl_product_images => 'Images du produit';
 
   @override
-  String get help_product_images => 'It is preferable to upload 3 images of the product.';
+  String get help_product_images =>
+      'Il est préférable de télécharger 3 images du produit.';
 
   @override
-  String get btn_click_or_drop_image => 'Click or drop image';
+  String get btn_click_or_drop_image => 'Cliquer ou déposer une image';
 
   @override
-  String get warn_prefer_three_images => '⚠️ Preferably upload at least 3 images';
+  String get warn_prefer_three_images =>
+      '⚠️ Il est préférable de télécharger au moins 3 images';
 
   @override
-  String get sec_linked_products => 'Linked Products';
+  String get sec_linked_products => 'Produits liés';
 
   @override
-  String get title_product_relationships => 'Product Relationships';
+  String get title_product_relationships => 'Relations entre les produits';
 
   @override
-  String get tab_related => 'Related';
+  String get tab_related => 'Associés';
 
   @override
-  String get tab_upsell => 'Up-Sell';
+  String get tab_upsell => 'Vente incitative';
 
   @override
-  String get tab_crosssell => 'Cross-Sell';
+  String get tab_crosssell => 'Vente croisée';
 
   @override
-  String get related_products => 'Related Products';
+  String get related_products => 'Produits associés';
 
   @override
-  String get upsell_products => 'Up-Sell Products';
+  String get upsell_products => 'Produits de vente incitative';
 
   @override
-  String get crosssell_products => 'Cross-Sell Products';
+  String get crosssell_products => 'Produits de vente croisée';
 
   @override
-  String get filters => 'Filters';
+  String get filters => 'Filtres';
 
   @override
-  String get btn_reset => 'Reset';
+  String get btn_reset => 'Réinitialiser';
 
   @override
-  String get btn_apply => 'Apply';
+  String get btn_apply => 'Appliquer';
 
   @override
-  String get status_enabled => 'Enabled';
+  String get status_enabled => 'Activé';
 
   @override
-  String get status_disabled => 'Disabled';
+  String get status_disabled => 'Désactivé';
 
   @override
-  String get btn_filters => 'Filters';
+  String get btn_filters => 'Filtres';
 
   @override
-  String get btn_filters_on => 'Filters • On';
+  String get btn_filters_on => 'Filtres • Activés';
 
   @override
-  String get filters_showing_enabled_only => 'Showing: Enabled only';
+  String get filters_showing_enabled_only => 'Affichage : Activé uniquement';
 
   @override
-  String get filters_showing_disabled_only => 'Showing: Disabled only';
+  String get filters_showing_disabled_only =>
+      'Affichage : Désactivé uniquement';
 
   @override
-  String get filters_custom => 'Custom filters';
+  String get filters_custom => 'Filtres personnalisés';
 
   @override
-  String get empty_no_linked_products => 'No linked products yet';
+  String get empty_no_linked_products => 'Aucun produit lié pour le moment';
 
   @override
-  String get empty_no_linked_products_desc => 'Add related, up-sell or cross-sell products to improve discovery and increase AOV.';
+  String get empty_no_linked_products_desc =>
+      'Ajoutez des produits associés, de vente incitative ou de vente croisée pour améliorer la découverte et augmenter la valeur moyenne des commandes.';
 
   @override
-  String get btn_add_product => 'Add Product';
+  String get btn_add_product => 'Ajouter un produit';
 
   @override
-  String get btn_browse_catalog => 'Browse Catalog';
+  String get btn_browse_catalog => 'Parcourir le catalogue';
 
   @override
-  String get btn_save_draft => 'Save Draft';
+  String get btn_save_draft => 'Enregistrer le brouillon';
 
   @override
-  String get btn_publish_now => 'Publish now';
+  String get btn_publish_now => 'Publier maintenant';
 
   @override
-  String get btn_edit => 'Edit';
+  String get btn_edit => 'Modifier';
 
   @override
-  String get btn_delete => 'Delete';
+  String get btn_delete => 'Supprimer';
 
   @override
-  String get tt_delete => 'Delete';
+  String get tt_delete => 'Supprimer';
 
   @override
-  String get lbl_price => 'Price';
+  String get lbl_price => 'Prix';
 
   @override
   String id_with_value(String value) {
-    return 'ID: $value';
+    return 'ID : $value';
   }
 
   @override
   String inventory_with_value(String value) {
-    return 'Inventory: $value';
+    return 'Inventaire : $value';
   }
 
   @override
   String price_with_currency(String value) {
-    return '\$$value';
+    return '$value \$';
   }
 
   @override
-  String get err_add_three_images => 'Please add at least 3 product images';
+  String get err_add_three_images =>
+      'Veuillez ajouter au moins 3 images de produit';
 
   @override
-  String get err_special_lower_than_amount => 'Special price must be less than Amount';
+  String get err_special_lower_than_amount =>
+      'Le prix spécial doit être inférieur au montant';
 
   @override
-  String get toast_draft_saved => 'Draft saved';
+  String get toast_draft_saved => 'Brouillon enregistré';
 
   @override
-  String get toast_product_published => 'Product published';
+  String get toast_product_published => 'Produit publié';
 
   @override
-  String get toast_product_deleted => 'Product deleted';
+  String get toast_product_deleted => 'Produit supprimé';
 
   @override
   String get curr_symbol => '\$';
 
   @override
-  String get cat_food => 'Food';
+  String get cat_food => 'Alimentation';
 
   @override
-  String get cat_electronics => 'Electronics';
+  String get cat_electronics => 'Électronique';
 
   @override
-  String get cat_apparel => 'Apparel';
+  String get cat_apparel => 'Vêtements';
 
   @override
-  String get cat_beauty => 'Beauty';
+  String get cat_beauty => 'Beauté';
 
   @override
-  String get cat_home => 'Home';
+  String get cat_home => 'Maison';
 
   @override
-  String get cat_home_appliances => 'Home Appliances';
+  String get cat_home_appliances => 'Appareils électroménagers';
 
   @override
-  String get cat_other => 'Other';
+  String get cat_other => 'Autre';
 
   @override
-  String get stock_in => 'In Stock';
+  String get stock_in => 'En stock';
 
   @override
-  String get stock_out => 'Out of Stock';
+  String get stock_out => 'Rupture de stock';
 
   @override
   String get visibility_invisible => 'Invisible';
@@ -2010,471 +2086,497 @@ class AppLocalizationsFr extends AppLocalizations {
   String get visibility_visible => 'Visible';
 
   @override
-  String get hint_search_name_sku => 'Search name, SKU…';
+  String get hint_search_name_sku => 'Rechercher un nom, un SKU...';
 
   @override
-  String get inv_in_stock_label => 'In Stock';
+  String get inv_in_stock_label => 'En stock';
 
   @override
-  String get inv_low_stock_label => 'Low Stock';
+  String get inv_low_stock_label => 'Faible stock';
 
   @override
-  String get inv_out_stock_label => 'Out of Stock';
+  String get inv_out_stock_label => 'Rupture de stock';
 
   @override
-  String get demo_mouse_name => 'Wireless Ergonomic Mouse';
+  String get demo_mouse_name => 'Souris ergonomique sans fil';
 
   @override
-  String get demo_tshirt_name => 'Organic Cotton T-Shirt';
+  String get demo_tshirt_name => 'T-shirt en coton biologique';
 
   @override
-  String get demo_espresso_name => 'Espresso Coffee Machine';
+  String get demo_espresso_name => 'Machine à café expresso';
 
   @override
-  String get profile_settings => 'Profile settings';
+  String get profile_settings => 'Paramètres du profil';
 
   @override
-  String get sec_profile_information => 'Profile Information';
+  String get sec_profile_information => 'Informations du profil';
 
   @override
-  String get lbl_company_logo => 'Company Logo';
+  String get lbl_company_logo => 'Logo de l\'entreprise';
 
   @override
-  String get help_company_logo => 'Upload your company logo';
+  String get help_company_logo => 'Téléchargez le logo de votre entreprise';
 
   @override
-  String get lbl_company_banner => 'Company Banner';
+  String get lbl_company_banner => 'Bannière de l\'entreprise';
 
   @override
-  String get help_company_banner => 'Upload your company banner';
+  String get help_company_banner =>
+      'Téléchargez la bannière de votre entreprise';
 
   @override
-  String get lbl_display_name => 'Display name';
+  String get lbl_display_name => 'Nom d\'affichage';
 
   @override
-  String get help_display_name => 'The name that will be displayed on your vendor profile';
+  String get help_display_name =>
+      'Le nom qui sera affiché sur votre profil de vendeur';
 
   @override
-  String get hint_company => 'Company';
+  String get hint_company => 'Entreprise';
 
   @override
-  String get lbl_location => 'Location';
+  String get lbl_location => 'Emplacement';
 
   @override
-  String get help_location => 'The physical location of your business';
+  String get help_location => 'L\'emplacement physique de votre entreprise';
 
   @override
-  String get lbl_phone_number => 'Phone Number';
+  String get lbl_phone_number => 'Numéro de téléphone';
 
   @override
-  String get help_phone_number => 'Your company\'s contact phone number';
+  String get help_phone_number =>
+      'Le numéro de téléphone de contact de votre entreprise';
 
   @override
-  String get hint_phone => 'Enter phone number';
+  String get hint_phone => 'Entrez le numéro de téléphone';
 
   @override
   String get lbl_bio => 'Bio';
 
   @override
-  String get help_bio => 'A short description of your company.';
+  String get help_bio => 'Une courte description de votre entreprise.';
 
   @override
-  String get lbl_low_stock_qty => 'Low Stock Quantity';
+  String get lbl_low_stock_qty => 'Quantité de stock faible';
 
   @override
-  String get help_low_stock_qty => 'Set the threshold for low stock warnings';
+  String get help_low_stock_qty =>
+      'Définissez le seuil pour les avertissements de stock faible';
 
   @override
-  String get lbl_tax_vat => 'Tax/VAT Number';
+  String get lbl_tax_vat => 'Numéro de taxe/TVA';
 
   @override
-  String get help_tax_vat => 'Your official tax or VAT identification number';
+  String get help_tax_vat =>
+      'Votre numéro d\'identification fiscale ou de TVA officiel';
 
   @override
-  String get lbl_payment_details => 'Payment Details';
+  String get lbl_payment_details => 'Détails de paiement';
 
   @override
-  String get help_payment_details => 'Details on how customers can pay for products.';
+  String get help_payment_details =>
+      'Détails sur la façon dont les clients peuvent payer les produits.';
 
   @override
-  String get lbl_social_ids => 'Social Media IDs';
+  String get lbl_social_ids => 'Identifiants des médias sociaux';
 
   @override
-  String get help_social_ids => 'Link your social media profiles';
+  String get help_social_ids => 'Liez vos profils de médias sociaux';
 
   @override
-  String get sm_twitter => 'Twitter ID';
+  String get sm_twitter => 'ID Twitter';
 
   @override
-  String get sm_facebook => 'Facebook ID';
+  String get sm_facebook => 'ID Facebook';
 
   @override
-  String get sm_instagram => 'Instagram ID';
+  String get sm_instagram => 'ID Instagram';
 
   @override
-  String get sm_youtube => 'Youtube ID';
+  String get sm_youtube => 'ID Youtube';
 
   @override
-  String get sm_vimeo => 'Vimeo ID';
+  String get sm_vimeo => 'ID Vimeo';
 
   @override
-  String get sm_pinterest => 'Pinterest ID';
+  String get sm_pinterest => 'ID Pinterest';
 
   @override
-  String get sm_moleskine => 'Moleskine ID';
+  String get sm_moleskine => 'ID Moleskine';
 
   @override
-  String get sm_tiktok => 'Tiktok ID';
+  String get sm_tiktok => 'ID Tiktok';
 
   @override
-  String get sec_company_policy => 'Company Policy';
+  String get sec_company_policy => 'Politique de l\'entreprise';
 
   @override
-  String get lbl_return_policy => 'Return Policy';
+  String get lbl_return_policy => 'Politique de retour';
 
   @override
-  String get help_return_policy => 'Describe your company’s return policy.';
+  String get help_return_policy =>
+      'Décrivez la politique de retour de votre entreprise.';
 
   @override
-  String get lbl_shipping_policy => 'Shipping Policy';
+  String get lbl_shipping_policy => 'Politique d\'expédition';
 
   @override
-  String get help_shipping_policy => 'Describe your company’s shipping policy.';
+  String get help_shipping_policy =>
+      'Décrivez la politique d\'expédition de votre entreprise.';
 
   @override
-  String get lbl_privacy_policy => 'Privacy Policy';
+  String get lbl_privacy_policy => 'Politique de confidentialité';
 
   @override
-  String get help_privacy_policy => 'Describe your company’s privacy policy.';
+  String get help_privacy_policy =>
+      'Décrivez la politique de confidentialité de votre entreprise.';
 
   @override
-  String get sec_meta_information => 'Meta Information';
+  String get sec_meta_information => 'Informations méta';
 
   @override
-  String get help_meta_keywords_profile => 'Add your company’s meta keywords.';
+  String get help_meta_keywords_profile =>
+      'Ajoutez les mots-clés méta de votre entreprise.';
 
   @override
-  String get help_meta_description_profile => 'A short description of your company for search engines.';
+  String get help_meta_description_profile =>
+      'Une courte description de votre entreprise pour les moteurs de recherche.';
 
   @override
-  String get lbl_google_analytics => 'Google Analytic ID';
+  String get lbl_google_analytics => 'ID Google Analytics';
 
   @override
-  String get help_google_analytics => 'Your Google Analytics tracking ID';
+  String get help_google_analytics => 'Votre ID de suivi Google Analytics';
 
   @override
-  String get lbl_profile_target => 'Profile Page Target Url Path';
+  String get lbl_profile_target =>
+      'Chemin de l\'URL cible de la page de profil';
 
   @override
-  String get help_profile_target => 'This is the final URL of your profile page.';
+  String get help_profile_target =>
+      'Ceci est l\'URL finale de votre page de profil.';
 
   @override
-  String get lbl_profile_request => 'Profile Page Request Url Path';
+  String get lbl_profile_request => 'Chemin de l\'URL de la page de profil';
 
   @override
-  String get help_profile_request => 'Customize the URL of your profile page.';
+  String get help_profile_request =>
+      'Personnalisez l\'URL de votre page de profil.';
 
   @override
-  String get lbl_collection_target => 'Collection Page Target Url Path';
+  String get lbl_collection_target =>
+      'Chemin de l\'URL cible de la page de collection';
 
   @override
-  String get help_collection_target => 'The final URL for your product collection page.';
+  String get help_collection_target =>
+      'L\'URL finale de votre page de collection de produits.';
 
   @override
-  String get lbl_collection_request => 'Collection Page Request Url Path';
+  String get lbl_collection_request =>
+      'Chemin de l\'URL de la page de collection';
 
   @override
-  String get help_collection_request => 'Customize the URL of your collection page.';
+  String get help_collection_request =>
+      'Personnalisez l\'URL de votre page de collection.';
 
   @override
-  String get lbl_review_target => 'Review Page Target Url Path';
+  String get lbl_review_target => 'Chemin de l\'URL cible de la page d\'avis';
 
   @override
-  String get help_review_target => 'The final URL for your reviews page.';
+  String get help_review_target => 'L\'URL finale de votre page d\'avis.';
 
   @override
-  String get lbl_review_request => 'Review Page Request Url Path';
+  String get lbl_review_request => 'Chemin de l\'URL de la page d\'avis';
 
   @override
-  String get help_review_request => 'Customize the URL for your reviews page.';
+  String get help_review_request =>
+      'Personnalisez l\'URL de votre page d\'avis.';
 
   @override
-  String get lbl_location_target => 'Location Page Target Url Path';
+  String get lbl_location_target =>
+      'Chemin de l\'URL cible de la page d\'emplacement';
 
   @override
-  String get help_location_target => 'The final URL for your location page.';
+  String get help_location_target =>
+      'L\'URL finale de votre page d\'emplacement.';
 
   @override
-  String get lbl_location_request => 'Location Page Request Url Path';
+  String get lbl_location_request =>
+      'Chemin de l\'URL de la page d\'emplacement';
 
   @override
-  String get help_location_request => 'Customize the URL for your location page.';
+  String get help_location_request =>
+      'Personnalisez l\'URL de votre page d\'emplacement.';
 
   @override
-  String get lbl_privacy_request => 'Privacy Policy Page Request Url Path';
+  String get lbl_privacy_request =>
+      'Chemin de l\'URL de la page de politique de confidentialité';
 
   @override
-  String get help_privacy_request => 'Customize the URL for your privacy policy page.';
+  String get help_privacy_request =>
+      'Personnalisez l\'URL de votre page de politique de confidentialité.';
 
   @override
-  String get btn_view_profile => 'View Profile';
+  String get btn_view_profile => 'Voir le profil';
 
   @override
-  String get btn_save => 'Save';
+  String get btn_save => 'Enregistrer';
 
   @override
-  String get btn_replace_logo => 'Replace Logo';
+  String get btn_replace_logo => 'Remplacer le logo';
 
   @override
-  String get lbl_image_selected => 'Image selected';
+  String get lbl_image_selected => 'Image sélectionnée';
 
   @override
-  String get toast_profile_saved => 'Profile saved';
+  String get toast_profile_saved => 'Profil enregistré';
 
   @override
-  String get country_tunisia => 'Tunisia';
+  String get country_tunisia => 'Tunisie';
 
   @override
-  String get country_us => 'United States';
+  String get country_us => 'États-Unis';
 
   @override
   String get country_canada => 'Canada';
 
   @override
-  String get country_uk => 'United Kingdom';
+  String get country_uk => 'Royaume-Uni';
 
   @override
-  String get country_germany => 'Germany';
+  String get country_germany => 'Allemagne';
 
   @override
   String get country_france => 'France';
 
   @override
-  String get country_japan => 'Japan';
+  String get country_japan => 'Japon';
 
   @override
-  String get country_australia => 'Australia';
+  String get country_australia => 'Australie';
 
   @override
-  String get country_brazil => 'Brazil';
+  String get country_brazil => 'Brésil';
 
   @override
-  String get country_india => 'India';
+  String get country_india => 'Inde';
 
   @override
-  String get country_china => 'China';
+  String get country_china => 'Chine';
 
   @override
-  String get sec_about_us => 'About Us';
+  String get sec_about_us => 'À propos de nous';
 
   @override
-  String get sec_our_products => 'Our Products';
+  String get sec_our_products => 'Nos produits';
 
   @override
-  String get btn_edit_profile => 'Edit Profile';
+  String get btn_edit_profile => 'Modifier le profil';
 
   @override
   String social_tooltip(String network) {
-    return 'Open $network';
+    return 'Ouvrir $network';
   }
 
   @override
-  String get cat_accessories => 'Accessories';
+  String get cat_accessories => 'Accessoires';
 
   @override
-  String get earning => 'Earning';
+  String get earning => 'Gain';
 
   @override
-  String get balance => 'Balance';
+  String get balance => 'Solde';
 
   @override
-  String get totalValueOfSales => 'Total value of sales';
+  String get totalValueOfSales => 'Valeur totale des ventes';
 
   @override
-  String get productViews => 'Product views';
+  String get productViews => 'Vues de produits';
 
   @override
-  String get lifetimeValue => 'Lifetime Value';
+  String get lifetimeValue => 'Valeur à vie';
 
   @override
-  String get customerCost => 'Customer Cost';
+  String get customerCost => 'Coût client';
 
   @override
-  String get earningHistory => 'Earning history';
+  String get earningHistory => 'Historique des gains';
 
   @override
-  String get interval => 'Interval';
+  String get interval => 'Intervalle';
 
   @override
-  String get totalAmount => 'Total Amount';
+  String get totalAmount => 'Montant total';
 
   @override
-  String get totalEarning => 'Total Earning';
+  String get totalEarning => 'Gain total';
 
   @override
-  String get discountAmount => 'Discount Amount';
+  String get discountAmount => 'Montant de la réduction';
 
   @override
-  String get adminCommission => 'Admin Commission';
+  String get adminCommission => 'Commission d\'administration';
 
   @override
-  String get loading => 'Loading...';
+  String get loading => 'Chargement...';
 
   @override
   String positiveChangeThisWeek(Object change_percentage) {
-    return '+$change_percentage% this week';
+    return '+$change_percentage% cette semaine';
   }
 
   @override
   String negativeChangeThisWeek(Object change_percentage) {
-    return '-$change_percentage% this week';
+    return '-$change_percentage% cette semaine';
   }
 
   @override
-  String get exportedTo => 'Exported to';
+  String get exportedTo => 'Exporté vers';
 
   @override
-  String get failedToExport => 'Failed to export:';
+  String get failedToExport => 'Échec de l\'exportation :';
 
   @override
-  String get chartNotReady => 'Oops, chart not ready yet.';
+  String get chartNotReady => 'Oups, le graphique n\'est pas encore prêt.';
 
   @override
-  String get reviews => 'Reviews';
+  String get reviews => 'Avis';
 
   @override
-  String get searchReviews => 'Search reviews';
+  String get searchReviews => 'Rechercher des avis';
 
   @override
-  String get allReviews => 'All Reviews';
+  String get allReviews => 'Tous les avis';
 
   @override
-  String get approved => 'Approved';
+  String get approved => 'Approuvé';
 
   @override
-  String get rejected => 'Rejected';
+  String get rejected => 'Rejeté';
 
   @override
-  String get noReviewsFound => 'No reviews match your search.';
+  String get noReviewsFound => 'Aucun avis ne correspond à votre recherche.';
 
   @override
-  String get feedSummary => 'Feed Summary';
+  String get feedSummary => 'Résumé du flux';
 
   @override
-  String get feedReview => 'Feed Review';
+  String get feedReview => 'Avis de flux';
 
   @override
   String reviewStatus(String status) {
     String _temp0 = intl.Intl.selectLogic(
       status,
       {
-        'approved': 'Approved',
-        'pending': 'Pending',
-        'rejected': 'Rejected',
-        'other': 'Unknown',
+        'approved': 'Approuvé',
+        'pending': 'En attente',
+        'rejected': 'Rejeté',
+        'other': 'Inconnu',
       },
     );
     return '$_temp0';
   }
 
   @override
-  String get downloadStarted => 'Download started...';
+  String get downloadStarted => 'Téléchargement démarré...';
 
   @override
-  String get filterByDate => 'Filter by date';
+  String get filterByDate => 'Filtrer par date';
 
   @override
-  String get cancel => 'Cancel';
+  String get cancel => 'Annuler';
 
   @override
-  String get apply => 'Apply';
+  String get apply => 'Appliquer';
 
   @override
   String filtered(Object start, Object end) {
-    return 'Filtered';
+    return 'Filtré';
   }
 
   @override
-  String get currentBalance => 'Current balance';
+  String get currentBalance => 'Solde actuel';
 
   @override
-  String get availableForWithdrawal => 'Available for withdrawal';
+  String get availableForWithdrawal => 'Disponible pour le retrait';
 
   @override
-  String get payoutHistory => 'Payout history';
+  String get payoutHistory => 'Historique des paiements';
 
   @override
   String get id => 'ID';
 
   @override
-  String get transactionId => 'Transaction ID';
+  String get transactionId => 'ID de transaction';
 
   @override
-  String get earnings => 'Earnings';
+  String get earnings => 'Gains';
 
   @override
-  String get paid => 'Paid';
+  String get paid => 'Payé';
 
   @override
-  String get onProcess => 'On process';
+  String get onProcess => 'En cours';
 
   @override
-  String get failed => 'Failed';
+  String get failed => 'Échoué';
 
   @override
   String get transactionIdLabel => 'ID';
 
   @override
-  String get country_uae => 'United Arab Emirates';
+  String get country_uae => 'Émirats arabes unis';
 
   @override
-  String get hiThere => 'Hi there!';
+  String get hiThere => 'Bonjour !';
 
   @override
-  String get download => 'download';
+  String get download => 'télécharger';
 
   @override
-  String get clearFilter => 'clear Filter';
+  String get clearFilter => 'effacer le filtre';
 
   @override
-  String get downloadCompleted => ' Download Completed';
+  String get downloadCompleted => 'Téléchargement terminé';
 
   @override
-  String get noTransactionsForDateRange =>'No transactions tor date range';
+  String get noTransactionsForDateRange =>
+      'Aucune transaction pour la plage de dates';
 
   @override
-  String get noTransactionsAvailable => 'No transactions available';
+  String get noTransactionsAvailable => 'Aucune transaction disponible';
 
   @override
-  String get filterEnabledProducts => 'Enabled Products';
+  String get filterEnabledProducts => 'Produits activés';
 
   @override
-  String get filterDisabledProducts => 'Disabled Products';
+  String get filterDisabledProducts => 'Produits désactivés';
 
   @override
-  String get filterLowStock => 'Low Stock';
+  String get filterLowStock => 'Faible stock';
 
   @override
-  String get filterOutOfStock=> 'Out of Stock';
+  String get filterOutOfStock => 'Rupture de stock';
 
   @override
-  String get filterDeniedProduct => 'Denied Product';
+  String get filterDeniedProduct => 'Produit refusé';
 
   @override
-  String get filterAll => 'All';
+  String get filterAll => 'Tout';
 
   @override
-  String get confirmLogout=> 'Confirm Logout';
+  String get confirmLogout => 'Confirmer la déconnexion';
 
   @override
-  String get logoutSuccessful => 'logout Successful';
+  String get logoutSuccessful => 'Déconnexion réussie';
 
   @override
-  String get logoutFailed => 'Logout Failed';
+  String get logoutFailed => 'Déconnexion échouée';
 
   @override
-  String get noDraftsAvailable => 'No drafts available';
+  String get noDraftsAvailable => 'Aucun brouillon disponible';
 
   @override
-  String get noReviewsAvailable => 'There are no reviews available';
+  String get noReviewsAvailable => 'Il n\'y a pas d\'avis disponibles';
 }
