@@ -1,8 +1,11 @@
+
+
 import 'dart:async';
-import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import '../../services/api_client.dart';
 import 'package:dio/dio.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/services/api_client.dart' as api;
+import 'package:kolshy_vendor/data/models/review_model.dart'; // Correct import for MagentoReview
 
 class AdminNewsScreen extends StatefulWidget {
   const AdminNewsScreen({super.key});
@@ -14,6 +17,7 @@ class AdminNewsScreen extends StatefulWidget {
 class _AdminNewsScreenState extends State<AdminNewsScreen> {
   final List<Map<String, dynamic>> _newsItems = [];
   bool _loading = false;
+  final api.VendorApiClient _apiClient = api.VendorApiClient();
 
   @override
   void initState() {
@@ -22,19 +26,31 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
   }
 
   Future<void> _loadFromMagento() async {
+    if (_loading) return;
     setState(() => _loading = true);
 
     final List<Map<String, dynamic>> aggregated = [];
 
+    // ---------------- ORDERS (Admin) ----------------
     try {
-      final List<Map<String, dynamic>> latestOrders = await VendorApiClient().getOrdersAdmin(
-        pageSize: 5,
-        currentPage: 1,
-      );
+      final dynamic responseData = await _apiClient.getOrdersAdmin();
+      final List<dynamic> latestOrders;
+      if (responseData is Map<String, dynamic>) {
+        final dynamic items = responseData['items'];
+        latestOrders = (items is List) ? items : const [];
+      } else if (responseData is List) {
+        latestOrders = responseData;
+      } else {
+        latestOrders = const [];
+      }
+
       for (final o in latestOrders) {
-        final id = (o['increment_id'] ?? o['entity_id'] ?? '').toString();
-        final total = (o['grand_total'] ?? o['base_grand_total'] ?? 0).toStringAsFixed(2);
-        final created = (o['created_at'] ?? '').toString();
+        final Map<String, dynamic> order = (o is Map) ? o.cast<String, dynamic>() : <String, dynamic>{};
+        final id = (order['increment_id'] ?? order['entity_id'] ?? '').toString();
+        final totalNum = double.tryParse((order['grand_total'] ?? order['base_grand_total'] ?? 0).toString()) ?? 0.0;
+        final total = totalNum.toStringAsFixed(2);
+        final created = (order['created_at'] ?? '').toString();
+
         aggregated.add({
           'title': 'Order #$id',
           'content': 'New order placed • Total: AED $total',
@@ -43,54 +59,36 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
         });
       }
     } on DioException catch (e) {
-      _toastError(context, 'Orders: ${e.response?.data['message'] ?? e.message}');
+      _toastError(context, 'Orders: ${_extractDioMessage(e)}');
     } catch (e) {
       _toastError(context, 'Orders: $e');
     }
 
+    // ---------------- REVIEWS (Admin) ----------------
     try {
-      final List<Map<String, dynamic>> latestProducts = await VendorApiClient().getProductsAdmin(
-        pageSize: 5,
-        currentPage: 1,
-      );
-      for (final p in latestProducts) {
-        final sku = (p['sku'] ?? '').toString();
-        final name = (p['name'] ?? '').toString();
-        final created = (p['created_at'] ?? '').toString();
-        aggregated.add({
-          'title': name.isNotEmpty ? name : 'New product',
-          'content': 'SKU: $sku',
-          'time': _friendlyTime(created),
-          'type': 'feature',
-        });
-      }
-    } on DioException catch (e) {
-      _toastError(context, 'Products: ${e.response?.data['message'] ?? e.message}');
-    } catch (e) {
-      _toastError(context, 'Products: $e');
-    }
+      final api.ReviewPage reviewPage = await _apiClient.getProductReviewsAdmin(currentPage: 1, pageSize: 20);
 
-    try {
-      final ReviewPage reviewPage = await VendorApiClient().getProductReviewsAdmin(
-        pageSize: 5,
-      );
-      for (final r in reviewPage.items) {
-        final title = r.title ?? '';
-        final created = '';
-        final status = r.status?.toString() ?? '';
+      // Explicitly map the dynamic list to MagentoReview objects
+      final List<MagentoReview> reviews = (reviewPage.items as List)
+          .map((json) => MagentoReview.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      for (final r in reviews) {
+        final String title = (r.title ?? '').toString();
+        final int statusId = r.status ?? 0;
         String statusTxt = 'Pending';
-        if (status == '1') statusTxt = 'Approved';
-        if (status == '3') statusTxt = 'Rejected';
+        if (statusId == 1) statusTxt = 'Approved';
+        if (statusId == 3) statusTxt = 'Rejected';
 
         aggregated.add({
           'title': title.isNotEmpty ? title : 'Product review',
           'content': 'Status: $statusTxt',
-          'time': _friendlyTime(created),
+          'time': '—',
           'type': 'fix',
         });
       }
     } on DioException catch (e) {
-      _toastError(context, 'Reviews: ${e.response?.data['message'] ?? e.message}');
+      _toastError(context, 'Reviews: ${_extractDioMessage(e)}');
     } catch (e) {
       _toastError(context, 'Reviews: $e');
     }
@@ -104,10 +102,12 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
     });
   }
 
+  // ---------------- helpers ----------------
+
   String _friendlyTime(String iso) {
     if (iso.isEmpty) return '—';
-    DateTime? t = DateTime.tryParse(iso);
-    if (t == null) return iso;
+    final t = DateTime.tryParse(iso);
+    if (t == null) return '—';
     final diff = DateTime.now().toUtc().difference(t.toUtc());
     if (diff.inMinutes < 1) return 'just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
@@ -115,12 +115,25 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
     return '${diff.inDays}d ago';
   }
 
+  String _extractDioMessage(DioException e) {
+    try {
+      final data = e.response?.data;
+      if (data is Map && data['message'] is String) {
+        return data['message'] as String;
+      }
+      return e.message ?? 'Unknown error';
+    } catch (_) {
+      return e.message ?? 'Unknown error';
+    }
+  }
+
   void _refreshNews() async {
     await _loadFromMagento();
     if (!mounted) return;
+    final loc = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(AppLocalizations.of(context)!.newsRefreshed),
+        content: Text(loc?.newsRefreshed ?? 'News refreshed'),
         backgroundColor: Colors.blue,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
@@ -136,16 +149,17 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
       _newsItems.removeAt(index);
     });
 
+    final loc = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(AppLocalizations.of(context)!.newsDeleted),
+        content: Text(loc?.newsDeleted ?? 'News deleted'),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(8)),
         ),
         action: SnackBarAction(
-          label: AppLocalizations.of(context)!.undo,
+          label: loc?.undo ?? 'Undo',
           textColor: Colors.white,
           onPressed: () {
             setState(() {
@@ -208,7 +222,7 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       body: SafeArea(
@@ -218,7 +232,7 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                loc.adminNews,
+                loc?.adminNews ?? 'Admin News',
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
@@ -228,7 +242,8 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
               const SizedBox(height: 20),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -248,7 +263,7 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            loc.recentUpdates,
+                            loc?.recentUpdates ?? 'Recent Updates',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -258,10 +273,13 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                           IconButton(
                             icon: _loading
                                 ? const SizedBox(
-                                width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                                 : const Icon(Icons.refresh, color: Colors.grey),
                             onPressed: _loading ? null : _refreshNews,
-                            tooltip: loc.refreshNews,
+                            tooltip: loc?.refreshNews ?? 'Refresh news',
                           ),
                         ],
                       ),
@@ -272,7 +290,7 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                             : _newsItems.isEmpty
                             ? Center(
                           child: Text(
-                            loc.noNews,
+                            loc?.noNews ?? 'No news',
                             style: const TextStyle(
                               color: Colors.grey,
                               fontSize: 16,
@@ -296,13 +314,17 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                                   size: 28,
                                 ),
                               ),
-                              onDismissed: (direction) => _deleteNewsItem(index),
+                              onDismissed: (direction) =>
+                                  _deleteNewsItem(index),
                               child: _buildNewsItem(
-                                title: newsItem['title'] as String,
-                                content: newsItem['content'] as String,
-                                time: newsItem['time'] as String,
-                                icon: _getIconForType(newsItem['type'] as String),
-                                color: _getColorForType(newsItem['type'] as String),
+                                title: (newsItem['title'] ?? '').toString(),
+                                content:
+                                (newsItem['content'] ?? '').toString(),
+                                time: (newsItem['time'] ?? '—').toString(),
+                                icon: _getIconForType(
+                                    (newsItem['type'] ?? '').toString()),
+                                color: _getColorForType(
+                                    (newsItem['type'] ?? '').toString()),
                               ),
                             );
                           },
@@ -348,14 +370,19 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF333333),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF333333),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       time,
                       style: const TextStyle(

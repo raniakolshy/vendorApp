@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hello => 'hello';
 
   @override
+  String get hiThere => 'Hi There';
+
+  @override
   String get welcome => 'Welcome';
 
   @override
@@ -24,7 +27,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get language => 'Language';
 
   @override
-  String get oneStopShopDescription => 'We are your one-stop online shop for everything you need. Fast delivery , great prices, and trusted brands all in one place.';
+  String get oneStopShopDescription =>
+      'We are your one-stop online shop for everything you need. Fast delivery , great prices, and trusted brands all in one place.';
 
   @override
   String get login => 'Login';
@@ -70,6 +74,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createSimple => 'Create';
+
+  @override
+  String get appName => 'Kolshy Vendor';
+
+  @override
+  String get draftsTitle => 'Drafts';
+
+  @override
+  String get errorLoadingDrafts => 'Error loading drafts';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get noDraftsFound => 'No drafts found';
+
+  @override
+  String get skuLabel => 'SKU';
+
+  @override
+  String get quantityLabel => 'Quantity';
+
+  @override
+  String get createdLabel => 'Created at';
+
+  @override
+  String get statusLabel => 'Status';
+
+  @override
+  String get actionLabel => 'Action';
+
+  @override
+  String get editButton => 'Edit';
+
+  @override
+  String get deleteButton => 'Delete';
 
   @override
   String get createAnAccountLogin => 'create an account';
@@ -258,7 +298,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchFavorites => 'Search favorites';
 
   @override
-  String get productDescription => 'Sample description for the product goes here.';
+  String get productDescription =>
+      'Sample description for the product goes here.';
 
   @override
   String get currentPrice => 'AED 499';
@@ -306,7 +347,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get legalMumboJumbo => 'Details of our policy';
 
   @override
-  String get privacyDescription => 'Our human-friendly Terms of Service for the platform prevails over the detailed one, which specifies all rights and obligations in more complex legalese.\n\nIn case of contradiction between the two documents, the human-friendly Terms shall prevail. That means no nasty surprises if you read only the human-friendly version.';
+  String get privacyDescription =>
+      'Our human-friendly Terms of Service for the platform prevails over the detailed one, which specifies all rights and obligations in more complex legalese.\n\nIn case of contradiction between the two documents, the human-friendly Terms shall prevail. That means no nasty surprises if you read only the human-friendly version.';
 
   @override
   String get lastUpdated => 'Last updated';
@@ -354,10 +396,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get thankYouTitle => 'Thank you for\nshopping with us!';
 
   @override
-  String get thankYouSubtitle => 'Your order number 16 is confirmed\nand in processing';
+  String get thankYouSubtitle =>
+      'Your order number 16 is confirmed\nand in processing';
 
   @override
-  String get thankYouDescription => 'Porem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.';
+  String get thankYouDescription =>
+      'Porem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.';
 
   @override
   String get orderDetails => 'Order Details';
@@ -444,7 +488,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get description => 'Description';
 
   @override
-  String get descriptionContent => 'Corem ipsum dolor sit amet, consectetur adipiscing elit...';
+  String get descriptionContent =>
+      'Corem ipsum dolor sit amet, consectetur adipiscing elit...';
 
   @override
   String get ingredients => 'Ingredients';
@@ -551,7 +596,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discountBanner => '50–40% OFF';
 
   @override
-  String get shopNowText => 'On selected products\nShop now with big discounts!';
+  String get shopNowText =>
+      'On selected products\nShop now with big discounts!';
 
   @override
   String get shopNow => 'Shop Now';
@@ -575,10 +621,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get buyNow => 'Buy Now';
 
   @override
-  String get humanFriendlyPolicyText => 'Introduction\nWe at Kolshy E-Commerce Solutions, a platform fully owned by Kolshy E-Commerce LLC, officially registered in the United Arab Emirates under license number 1401296 and solely owned by Mr. Ahmed Mohamed El-Farmawy, operate with our headquarters located at Office No. 43, Building 44, Dubai – UAE.\nWe place great importance on respecting your privacy and strive to protect all personal data collected when you use our website\nwww.kolshy.ae\nor the associated mobile application.\nFor any inquiries, you can contact us via:\n• Email: info@kolshy.ae\n• Phone / WhatsApp: +971551228825\n• Privacy Policy\nThis policy (\"Privacy Policy\") explains the basis on which we collect and use your personal data, whether collected directly from you or from other sources, in the context of accessing the platform or using any of the services we provide, including but not limited to: promotional messages, and integrated social media features (collectively referred to as \"services\").\nWe fully understand the importance of protecting your personal data and are committed to respecting and safeguarding your privacy.\nPlease read this policy carefully to understand how we handle your personal data.\nBy using the platform or services, you acknowledge and agree to the collection and use of your personal data as described in this policy.\nFor the purposes of this policy, \"personal data\" refers to all types of data mentioned in Clause (2) of this document.\nTerms such as \"user,\" \"you,\" or similar refer to the natural or legal person using the platform or services, as applicable.\nOur platform may contain links to third-party websites, plugins, or applications provided by third parties.\nWhen you click on any of these links or activate such plugins, third parties may be able to collect or share information about you.\nPlease note that we have no control over, and are not responsible for, the privacy policies or practices of such external sites.\nWhen you leave our platform, we strongly recommend that you review the privacy policy of each website you visit to ensure you fully understand how they handle your data.';
+  String get humanFriendlyPolicyText =>
+      'Introduction\nWe at Kolshy E-Commerce Solutions, a platform fully owned by Kolshy E-Commerce LLC, officially registered in the United Arab Emirates under license number 1401296 and solely owned by Mr. Ahmed Mohamed El-Farmawy, operate with our headquarters located at Office No. 43, Building 44, Dubai – UAE.\nWe place great importance on respecting your privacy and strive to protect all personal data collected when you use our website\nwww.kolshy.ae\nor the associated mobile application.\nFor any inquiries, you can contact us via:\n• Email: info@kolshy.ae\n• Phone / WhatsApp: +971551228825\n• Privacy Policy\nThis policy (\"Privacy Policy\") explains the basis on which we collect and use your personal data, whether collected directly from you or from other sources, in the context of accessing the platform or using any of the services we provide, including but not limited to: promotional messages, and integrated social media features (collectively referred to as \"services\").\nWe fully understand the importance of protecting your personal data and are committed to respecting and safeguarding your privacy.\nPlease read this policy carefully to understand how we handle your personal data.\nBy using the platform or services, you acknowledge and agree to the collection and use of your personal data as described in this policy.\nFor the purposes of this policy, \"personal data\" refers to all types of data mentioned in Clause (2) of this document.\nTerms such as \"user,\" \"you,\" or similar refer to the natural or legal person using the platform or services, as applicable.\nOur platform may contain links to third-party websites, plugins, or applications provided by third parties.\nWhen you click on any of these links or activate such plugins, third parties may be able to collect or share information about you.\nPlease note that we have no control over, and are not responsible for, the privacy policies or practices of such external sites.\nWhen you leave our platform, we strongly recommend that you review the privacy policy of each website you visit to ensure you fully understand how they handle your data.';
 
   @override
-  String get legalMumboJumboPolicyText => '• 1. No collection of children\'s data\nThis platform is intended for adults only, in accordance with applicable laws defining the age of majority.\nThe platform is not in any way targeted at individuals under the legal age.\nHowever, we cannot always prevent some users, including minors, from providing false information about their age to access the platform.\nIf you are a parent or legal guardian and believe that we have inadvertently collected personal information about your child, please contact us immediately using the contact methods specified in Clause 12 of this Privacy Policy.\n\n• 2. What personal data do we collect from or about you?\nWe collect your personal data to continuously provide and improve our services and platform.\n\"Personal data\" means any information that can be used to identify you as an individual through direct or indirect identifiers.\nPersonal data does not include information that has been anonymized (where all identifiers have been removed).\nWe collect, store, use, and transfer various types of personal data, which can be classified as follows:\n1. Identity data: first name, middle name, last name, username or similar identifiers, gender, title, nationality, and date of birth.\n2. Contact data: residential address, email address, and phone number.\n3. Transaction data: details of payments received or made, payment methods used, and data about products or services purchased from us.\n4. Technical data: IP address, login information, browser type and version, operating system, mobile app version, time zone settings, location data, device type, advertising identifiers (e.g., in iOS), and other internet usage information. This may be collected using cookies, sessions, web beacons, and other tracking tools.\n5. Profile data: username, password, your interests and preferences, comments, preferred language, and responses to surveys.\n6. Purchase data: all previous orders, account purchases, refund information, fulfillment details, and browsing records of products and services.\n7. Interaction data: related to how you interact with our website, products, and services.\n8. Marketing and communication data: preferences for receiving promotional offers or marketing messages from us or third parties, and your preferred communication method.\nAdditionally, we may collect, use, and share statistical or demographic data known as \"aggregated data.\" These are derived from your personal data but do not reveal your identity after removing all identifiers.\nExample: we may use aggregated browsing data to analyze the percentage of users engaging with a specific feature on the platform.\n\n3. How do we collect your personal data?\nWe collect your personal data through three main methods:\n1. Directly from you:\nWe collect your data directly when you:\n- Register on the platform or log in via social media or any other registration method.\n- Make payments, request refunds, or select your preferred payment method.\n- Participate in competitions, promotions, or special programs.\n- Provide comments, reviews, or testimonials.\n- Submit support requests or complaints related to services.\n- Communicate with us via phone, email, or other channels (where correspondence is recorded).\n- Browse or engage in any activity within the platform.\n2. Indirectly:\nWe may obtain your personal data from third parties or related parties, such as:\n- Friends or relatives making purchases for you or on your behalf.\n- Partner vendors or service providers, such as logistics and fulfillment partners, marketing providers, and payment processors.\n- Interactions via platforms like Facebook, Google, etc.\nIf you share personal data about others (e.g., friends or family), you confirm you have their consent to share it under this Privacy Policy.\n3. Automatically:\nWe collect some data automatically while you use the platform, using technologies such as:\n- Log files: including IP address, browser type, pages visited, operating system, timestamps, and other technical details.\n- Cookies & sessions: small files stored on your device to improve your experience by enabling platform features, remembering your preferences, understanding your interactions, showing personalized ads, and analyzing traffic.\nIf you do not agree to the use of cookies, you may disable them in your browser settings or stop using the platform. However, disabling some data types may affect your full experience of our services.\n\n4. Why do we collect your personal data?\nWe collect and use your personal data to enhance your experience with us, including:\n1. Providing information and services.\n2. Location-based services.\n3. Fulfilling contractual obligations.\n4. Improving services and communication.\n5. Optimizing content display.\n6. Offering personalized services for special occasions.\n7. Notifying you about updates.\n8. Improving your overall experience.\n9. Managing reward programs.\n10. Improving technical performance.\n11. Complying with local laws.\n12. Preventing fraud and ensuring security.\n\n5. How do we use your personal data?\nWe use your personal data only when necessary, including:\n1. Contract execution.\n2. Legal compliance.\n3. Legitimate interests.\n4. Marketing and communication (with opt-out options).\n\n6. Who do we share your personal data with?\n1. Affiliates and service providers.\n2. Third parties for specific purposes.\n3. In case of merger or transfer of ownership.\n4. Legal compliance and protection of rights.\n\n7. How do we store your personal data and for how long?\nWe store your data only for as long as necessary for the purposes stated or as required by law. Factors considered include data sensitivity, risk level, purpose achievement, and legal requirements.\nWe may anonymize data for indefinite research or statistical use.\n\n8. What security measures do we apply?\nWe use commercially reasonable technical, administrative, and physical safeguards, such as encryption, firewalls, restricted access, and PCI DSS compliance.\nYou are also responsible for protecting your account information.\n\n9. Your rights regarding your personal data:\n1. Right to information.\n2. Right to access.\n3. Right to request deletion.\n4. Right to withdraw consent or object.\n5. Right to correct data.\n6. No fee for exercising rights (unless legally required).\n\n10. How do we update our Privacy Policy?\nWe may update it to reflect changes in our operations. Updates will be posted on the platform and become effective upon posting (or a stated effective date).\n\n11. Contact us:\nFor any inquiries:\n• WhatsApp: +971551228825\n• Email: info@kolshy.ae\nPlease include details in your message for faster assistance.';
+  String get legalMumboJumboPolicyText =>
+      '• 1. No collection of children\'s data\nThis platform is intended for adults only, in accordance with applicable laws defining the age of majority.\nThe platform is not in any way targeted at individuals under the legal age.\nHowever, we cannot always prevent some users, including minors, from providing false information about their age to access the platform.\nIf you are a parent or legal guardian and believe that we have inadvertently collected personal information about your child, please contact us immediately using the contact methods specified in Clause 12 of this Privacy Policy.\n\n• 2. What personal data do we collect from or about you?\nWe collect your personal data to continuously provide and improve our services and platform.\n\"Personal data\" means any information that can be used to identify you as an individual through direct or indirect identifiers.\nPersonal data does not include information that has been anonymized (where all identifiers have been removed).\nWe collect, store, use, and transfer various types of personal data, which can be classified as follows:\n1. Identity data: first name, middle name, last name, username or similar identifiers, gender, title, nationality, and date of birth.\n2. Contact data: residential address, email address, and phone number.\n3. Transaction data: details of payments received or made, payment methods used, and data about products or services purchased from us.\n4. Technical data: IP address, login information, browser type and version, operating system, mobile app version, time zone settings, location data, device type, advertising identifiers (e.g., in iOS), and other internet usage information. This may be collected using cookies, sessions, web beacons, and other tracking tools.\n5. Profile data: username, password, your interests and preferences, comments, preferred language, and responses to surveys.\n6. Purchase data: all previous orders, account purchases, refund information, fulfillment details, and browsing records of products and services.\n7. Interaction data: related to how you interact with our website, products, and services.\n8. Marketing and communication data: preferences for receiving promotional offers or marketing messages from us or third parties, and your preferred communication method.\nAdditionally, we may collect, use, and share statistical or demographic data known as \"aggregated data.\" These are derived from your personal data but do not reveal your identity after removing all identifiers.\nExample: we may use aggregated browsing data to analyze the percentage of users engaging with a specific feature on the platform.\n\n3. How do we collect your personal data?\nWe collect your personal data through three main methods:\n1. Directly from you:\nWe collect your data directly when you:\n- Register on the platform or log in via social media or any other registration method.\n- Make payments, request refunds, or select your preferred payment method.\n- Participate in competitions, promotions, or special programs.\n- Provide comments, reviews, or testimonials.\n- Submit support requests or complaints related to services.\n- Communicate with us via phone, email, or other channels (where correspondence is recorded).\n- Browse or engage in any activity within the platform.\n2. Indirectly:\nWe may obtain your personal data from third parties or related parties, such as:\n- Friends or relatives making purchases for you or on your behalf.\n- Partner vendors or service providers, such as logistics and fulfillment partners, marketing providers, and payment processors.\n- Interactions via platforms like Facebook, Google, etc.\nIf you share personal data about others (e.g., friends or family), you confirm you have their consent to share it under this Privacy Policy.\n3. Automatically:\nWe collect some data automatically while you use the platform, using technologies such as:\n- Log files: including IP address, browser type, pages visited, operating system, timestamps, and other technical details.\n- Cookies & sessions: small files stored on your device to improve your experience by enabling platform features, remembering your preferences, understanding your interactions, showing personalized ads, and analyzing traffic.\nIf you do not agree to the use of cookies, you may disable them in your browser settings or stop using the platform. However, disabling some data types may affect your full experience of our services.\n\n4. Why do we collect your personal data?\nWe collect and use your personal data to enhance your experience with us, including:\n1. Providing information and services.\n2. Location-based services.\n3. Fulfilling contractual obligations.\n4. Improving services and communication.\n5. Optimizing content display.\n6. Offering personalized services for special occasions.\n7. Notifying you about updates.\n8. Improving your overall experience.\n9. Managing reward programs.\n10. Improving technical performance.\n11. Complying with local laws.\n12. Preventing fraud and ensuring security.\n\n5. How do we use your personal data?\nWe use your personal data only when necessary, including:\n1. Contract execution.\n2. Legal compliance.\n3. Legitimate interests.\n4. Marketing and communication (with opt-out options).\n\n6. Who do we share your personal data with?\n1. Affiliates and service providers.\n2. Third parties for specific purposes.\n3. In case of merger or transfer of ownership.\n4. Legal compliance and protection of rights.\n\n7. How do we store your personal data and for how long?\nWe store your data only for as long as necessary for the purposes stated or as required by law. Factors considered include data sensitivity, risk level, purpose achievement, and legal requirements.\nWe may anonymize data for indefinite research or statistical use.\n\n8. What security measures do we apply?\nWe use commercially reasonable technical, administrative, and physical safeguards, such as encryption, firewalls, restricted access, and PCI DSS compliance.\nYou are also responsible for protecting your account information.\n\n9. Your rights regarding your personal data:\n1. Right to information.\n2. Right to access.\n3. Right to request deletion.\n4. Right to withdraw consent or object.\n5. Right to correct data.\n6. No fee for exercising rights (unless legally required).\n\n10. How do we update our Privacy Policy?\nWe may update it to reflect changes in our operations. Updates will be posted on the platform and become effective upon posting (or a stated effective date).\n\n11. Contact us:\nFor any inquiries:\n• WhatsApp: +971551228825\n• Email: info@kolshy.ae\nPlease include details in your message for faster assistance.';
 
   @override
   String get adminNews => 'Admin News';
@@ -605,7 +653,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get issueFixed => 'Issue Fixed';
 
   @override
-  String get issueFixedContent => 'The reported issue has been fixed successfully.';
+  String get issueFixedContent =>
+      'The reported issue has been fixed successfully.';
 
   @override
   String get newFeature => 'New Feature';
@@ -617,7 +666,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverMaintenance => 'Server Maintenance';
 
   @override
-  String get serverMaintenanceContent => 'Scheduled maintenance is in progress.';
+  String get serverMaintenanceContent =>
+      'Scheduled maintenance is in progress.';
 
   @override
   String get deliveryIssues => 'Delivery Issues';
@@ -653,7 +703,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paymentGatewayUpdated => 'Payment Gateway Updated';
 
   @override
-  String get paymentGatewayUpdatedContent => 'The payment gateway has been updated.';
+  String get paymentGatewayUpdatedContent =>
+      'The payment gateway has been updated.';
 
   @override
   String get bugFixes => 'Bug Fixes';
@@ -689,7 +740,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subject => 'Subject';
 
   @override
-  String get subjectTooltip => 'Enter a clear and concise subject for your request.';
+  String get subjectTooltip =>
+      'Enter a clear and concise subject for your request.';
 
   @override
   String get inputHint => 'Input your text';
@@ -1197,10 +1249,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invoiceDetailsTitle => 'Invoice and Packing Slip Details';
 
   @override
-  String get invoiceDetailsSubtitle => 'Add your address, VAT, and tax information for PDF documents';
+  String get invoiceDetailsSubtitle =>
+      'Add your address, VAT, and tax information for PDF documents';
 
   @override
-  String get invoiceDetailsHint => 'Enter your company address, VAT number, tax information...';
+  String get invoiceDetailsHint =>
+      'Enter your company address, VAT number, tax information...';
 
   @override
   String get saveInfoButton => 'Save Information';
@@ -1212,7 +1266,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveInfoSuccess => 'Information saved successfully!';
 
   @override
-  String get invoiceDetailsFooter => 'This information will be included in all your PDF invoices and packing slips.';
+  String get invoiceDetailsFooter =>
+      'This information will be included in all your PDF invoices and packing slips.';
 
   @override
   String get nameAndDescriptionTitle => 'Name & Description';
@@ -1221,7 +1276,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productTitleLabel => 'Product Title';
 
   @override
-  String get productTitleHelp => 'Enter the full product name (e.g., Apple iPhone 14 Pro).';
+  String get productTitleHelp =>
+      'Enter the full product name (e.g., Apple iPhone 14 Pro).';
 
   @override
   String get requiredField => 'Required';
@@ -1260,16 +1316,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get descriptionLabel => 'Description';
 
   @override
-  String get descriptionHelp => 'Detailed description of features, materials, sizing, etc.';
+  String get descriptionHelp =>
+      'Detailed description of features, materials, sizing, etc.';
 
   @override
   String get shortDescriptionLabel => 'Short Description';
 
   @override
-  String get shortDescriptionHelp => 'Short summary (1–2 sentences) for listings/search results.';
-
-  @override
-  String get skuLabel => 'SKU';
+  String get shortDescriptionHelp =>
+      'Short summary (1–2 sentences) for listings/search results.';
 
   @override
   String get skuHelp => 'Unique stock keeping unit (e.g., SKU-12345).';
@@ -1299,7 +1354,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get specialPriceLabel2 => 'Special price';
 
   @override
-  String get specialPriceHelp2 => 'Discounted price that overrides the regular amount.';
+  String get specialPriceHelp2 =>
+      'Discounted price that overrides the regular amount.';
 
   @override
   String get priceExample => 'e.g., 24.99';
@@ -1308,13 +1364,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minAmountLabel => 'Minimum amount';
 
   @override
-  String get minAmountHelp => 'Minimum quantity a customer is allowed to purchase.';
+  String get minAmountHelp =>
+      'Minimum quantity a customer is allowed to purchase.';
 
   @override
   String get maxAmountLabel => 'Maximum amount';
 
   @override
-  String get maxAmountHelp => 'Maximum quantity a customer is allowed to purchase.';
+  String get maxAmountHelp =>
+      'Maximum quantity a customer is allowed to purchase.';
 
   @override
   String get taxesLabel => 'Taxes';
@@ -1347,7 +1405,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get allowedQuantityLabel => 'Allowed Quantity per Customer';
 
   @override
-  String get allowedQuantityHelp => 'Optional: maximum number of units a single customer can buy for this product.';
+  String get allowedQuantityHelp =>
+      'Optional: maximum number of units a single customer can buy for this product.';
 
   @override
   String get allowedQuantityExample => 'e.g., 5';
@@ -1371,7 +1430,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get visibilityLabel => 'Visibility';
 
   @override
-  String get visibilityHelp => 'Invisible products are hidden from the storefront.';
+  String get visibilityHelp =>
+      'Invisible products are hidden from the storefront.';
 
   @override
   String get visibilityInvisible => 'Invisible';
@@ -1410,13 +1470,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get metaDescriptionLabel => 'Meta Description';
 
   @override
-  String get metaDescriptionHelp => 'Short paragraph for search engines (150–160 chars).';
+  String get metaDescriptionHelp =>
+      'Short paragraph for search engines (150–160 chars).';
 
   @override
   String get coverImagesLabel => 'Cover images';
 
   @override
-  String get coverImagesHelp => 'Upload a clear, high-resolution product image.';
+  String get coverImagesHelp =>
+      'Upload a clear, high-resolution product image.';
 
   @override
   String get clickOrDropImage => 'Click or drop Image';
@@ -1428,9 +1490,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get publishNowButton => 'Publish now';
 
   @override
-  String get deleteButton => 'Delete';
-
-  @override
   String get draftSaved => 'Draft saved';
 
   @override
@@ -1440,9 +1499,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String productDeleted(Object name) {
     return '\"$name\" has been deleted';
   }
-
-  @override
-  String get draftsTitle => 'Drafts';
 
   @override
   String get searchDraft => 'Search draft';
@@ -1457,7 +1513,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pendingReview => 'Pending Review';
 
   @override
-  String get noDraftsMatchSearch => 'No drafts match your search.';
+  String get noProductsFound => 'No drafts match your search.';
 
   @override
   String get deleteDraftQuestion => 'Delete draft?';
@@ -1469,21 +1525,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancelButton => 'Cancel';
-
-  @override
-  String get quantityLabel => 'Quantity';
-
-  @override
-  String get createdLabel => 'Created at';
-
-  @override
-  String get statusLabel => 'Status';
-
-  @override
-  String get actionLabel => 'Action';
-
-  @override
-  String get editButton => 'Edit';
 
   @override
   String get editProduct => 'Edit Product';
@@ -1659,7 +1700,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productImagesLabel => 'Product Images';
 
   @override
-  String get productImagesHelp => 'It is preferable to upload 3 images of the product.';
+  String get productImagesHelp =>
+      'It is preferable to upload 3 images of the product.';
 
   @override
   String get threeImagesWarning => '⚠️ Preferably upload at least 3 images';
@@ -1677,7 +1719,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_product_title => 'Product title';
 
   @override
-  String get help_product_title => 'Enter the full product name (e.g., Apple iPhone 14 Pro).';
+  String get help_product_title =>
+      'Enter the full product name (e.g., Apple iPhone 14 Pro).';
 
   @override
   String get hint_input_text => 'Input your text';
@@ -1689,7 +1732,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_category => 'Category';
 
   @override
-  String get help_category => 'Select the category that best fits your product.';
+  String get help_category =>
+      'Select the category that best fits your product.';
 
   @override
   String get lbl_tags => 'Tags';
@@ -1704,13 +1748,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_description => 'Description';
 
   @override
-  String get help_description => 'Detailed description of features, materials, sizing, etc.';
+  String get help_description =>
+      'Detailed description of features, materials, sizing, etc.';
 
   @override
   String get lbl_short_description => 'Short Description';
 
   @override
-  String get help_short_description => 'Short summary (1–2 sentences) for listings/search results.';
+  String get help_short_description =>
+      'Short summary (1–2 sentences) for listings/search results.';
 
   @override
   String get lbl_sku => 'SKU';
@@ -1746,7 +1792,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_special_price => 'Special price';
 
   @override
-  String get help_special_price => 'Discounted price that overrides the regular amount.';
+  String get help_special_price =>
+      'Discounted price that overrides the regular amount.';
 
   @override
   String get hint_price_example => 'e.g., 24.99';
@@ -1755,13 +1802,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_min_qty => 'Minimum amount';
 
   @override
-  String get help_min_qty => 'Minimum quantity a customer is allowed to purchase.';
+  String get help_min_qty =>
+      'Minimum quantity a customer is allowed to purchase.';
 
   @override
   String get lbl_max_qty => 'Maximum amount';
 
   @override
-  String get help_max_qty => 'Maximum quantity a customer is allowed to purchase.';
+  String get help_max_qty =>
+      'Maximum quantity a customer is allowed to purchase.';
 
   @override
   String get lbl_taxes => 'Taxes';
@@ -1794,7 +1843,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_allowed_qty_per_customer => 'Allowed Quantity per Customer';
 
   @override
-  String get help_allowed_qty_per_customer => 'Optional: maximum number of units a single customer can buy for this product.';
+  String get help_allowed_qty_per_customer =>
+      'Optional: maximum number of units a single customer can buy for this product.';
 
   @override
   String get hint_allowed_qty => 'e.g., 5';
@@ -1812,7 +1862,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_visibility => 'Visibility';
 
   @override
-  String get help_visibility => 'Invisible products are hidden from the storefront.';
+  String get help_visibility =>
+      'Invisible products are hidden from the storefront.';
 
   @override
   String get sec_meta_infos => 'Meta Infos';
@@ -1845,19 +1896,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_meta_description => 'Meta Description';
 
   @override
-  String get help_meta_description => 'Short paragraph for search engines (150–160 chars).';
+  String get help_meta_description =>
+      'Short paragraph for search engines (150–160 chars).';
 
   @override
   String get lbl_product_images => 'Product Images';
 
   @override
-  String get help_product_images => 'It is preferable to upload 3 images of the product.';
+  String get help_product_images =>
+      'It is preferable to upload 3 images of the product.';
 
   @override
   String get btn_click_or_drop_image => 'Click or drop image';
 
   @override
-  String get warn_prefer_three_images => '⚠️ Preferably upload at least 3 images';
+  String get warn_prefer_three_images =>
+      '⚠️ Preferably upload at least 3 images';
 
   @override
   String get sec_linked_products => 'Linked Products';
@@ -1917,7 +1971,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get empty_no_linked_products => 'No linked products yet';
 
   @override
-  String get empty_no_linked_products_desc => 'Add related, up-sell or cross-sell products to improve discovery and increase AOV.';
+  String get empty_no_linked_products_desc =>
+      'Add related, up-sell or cross-sell products to improve discovery and increase AOV.';
 
   @override
   String get btn_add_product => 'Add Product';
@@ -1962,7 +2017,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get err_add_three_images => 'Please add at least 3 product images';
 
   @override
-  String get err_special_lower_than_amount => 'Special price must be less than Amount';
+  String get err_special_lower_than_amount =>
+      'Special price must be less than Amount';
 
   @override
   String get toast_draft_saved => 'Draft saved';
@@ -2052,7 +2108,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_display_name => 'Display name';
 
   @override
-  String get help_display_name => 'The name that will be displayed on your vendor profile';
+  String get help_display_name =>
+      'The name that will be displayed on your vendor profile';
 
   @override
   String get hint_company => 'Company';
@@ -2094,7 +2151,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_payment_details => 'Payment Details';
 
   @override
-  String get help_payment_details => 'Details on how customers can pay for products.';
+  String get help_payment_details =>
+      'Details on how customers can pay for products.';
 
   @override
   String get lbl_social_ids => 'Social Media IDs';
@@ -2154,7 +2212,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get help_meta_keywords_profile => 'Add your company’s meta keywords.';
 
   @override
-  String get help_meta_description_profile => 'A short description of your company for search engines.';
+  String get help_meta_description_profile =>
+      'A short description of your company for search engines.';
 
   @override
   String get lbl_google_analytics => 'Google Analytic ID';
@@ -2166,7 +2225,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_profile_target => 'Profile Page Target Url Path';
 
   @override
-  String get help_profile_target => 'This is the final URL of your profile page.';
+  String get help_profile_target =>
+      'This is the final URL of your profile page.';
 
   @override
   String get lbl_profile_request => 'Profile Page Request Url Path';
@@ -2178,13 +2238,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_collection_target => 'Collection Page Target Url Path';
 
   @override
-  String get help_collection_target => 'The final URL for your product collection page.';
+  String get help_collection_target =>
+      'The final URL for your product collection page.';
 
   @override
   String get lbl_collection_request => 'Collection Page Request Url Path';
 
   @override
-  String get help_collection_request => 'Customize the URL of your collection page.';
+  String get help_collection_request =>
+      'Customize the URL of your collection page.';
 
   @override
   String get lbl_review_target => 'Review Page Target Url Path';
@@ -2208,13 +2270,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lbl_location_request => 'Location Page Request Url Path';
 
   @override
-  String get help_location_request => 'Customize the URL for your location page.';
+  String get help_location_request =>
+      'Customize the URL for your location page.';
 
   @override
   String get lbl_privacy_request => 'Privacy Policy Page Request Url Path';
 
   @override
-  String get help_privacy_request => 'Customize the URL for your privacy policy page.';
+  String get help_privacy_request =>
+      'Customize the URL for your privacy policy page.';
 
   @override
   String get btn_view_profile => 'View Profile';
@@ -2365,15 +2429,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reviewStatus(String status) {
-    String _temp0 = intl.Intl.selectLogic(
-      status,
-      {
-        'approved': 'Approved',
-        'pending': 'Pending',
-        'rejected': 'Rejected',
-        'other': 'Unknown',
-      },
-    );
+    String _temp0 = intl.Intl.selectLogic(status, {
+      'approved': 'Approved',
+      'pending': 'Pending',
+      'rejected': 'Rejected',
+      'other': 'Unknown',
+    });
     return '$_temp0';
   }
 
@@ -2428,7 +2489,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get country_uae => 'United Arab Emirates';
 
   @override
-  String get hiThere => 'Hi there!';
+  String get egyptCountry => 'Egypt';
 
   @override
   String get download => 'download';
@@ -2437,13 +2498,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearFilter => 'clear Filter';
 
   @override
-  String get downloadCompleted => ' Download Completed';
-
-  @override
-  String get noTransactionsForDateRange =>'No transactions tor date range';
-
-  @override
-  String get noTransactionsAvailable => 'No transactions available';
+  String get filterAll => 'All';
 
   @override
   String get filterEnabledProducts => 'Enabled Products';
@@ -2455,13 +2510,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterLowStock => 'Low Stock';
 
   @override
-  String get filterOutOfStock=> 'Out of Stock';
+  String get filterOutOfStock => 'Out of Stock';
 
   @override
   String get filterDeniedProduct => 'Denied Product';
-
-  @override
-  String get filterAll => 'All';
 
   @override
   String get confirmLogout => 'Confirm Logout';
@@ -2477,4 +2529,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noReviewsAvailable => 'There are no reviews available';
+
+  @override
+  String get draft => 'Drafts';
+
+  @override
+  String get statusDraft => 'Draft';
+
+  @override
+  String get noTransactionsForDateRange => 'No transactions in this date range';
+
+  @override
+  String get noTransactionsAvailable => 'No transactions available yet';
 }

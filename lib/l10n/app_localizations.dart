@@ -63,7 +63,8 @@ import 'app_localizations_fr.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale)
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -71,7 +72,8 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -83,18 +85,19 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('ar'),
     Locale('en'),
-    Locale('fr')
+    Locale('fr'),
   ];
 
   /// No description provided for @hello.
@@ -102,6 +105,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'hello'**
   String get hello;
+
+  /// No description provided for @hiThere.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi There'**
+  String get hiThere;
 
   /// No description provided for @welcome.
   ///
@@ -222,6 +231,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create'**
   String get createSimple;
+
+  /// No description provided for @appName.
+  ///
+  /// In en, this message translates to:
+  /// **'Kolshy Vendor'**
+  String get appName;
+
+  /// No description provided for @draftsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts'**
+  String get draftsTitle;
+
+  /// No description provided for @errorLoadingDrafts.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading drafts'**
+  String get errorLoadingDrafts;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @noDraftsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No drafts found'**
+  String get noDraftsFound;
+
+  /// No description provided for @skuLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SKU'**
+  String get skuLabel;
+
+  /// No description provided for @quantityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get quantityLabel;
+
+  /// No description provided for @createdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Created at'**
+  String get createdLabel;
+
+  /// No description provided for @statusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get statusLabel;
+
+  /// No description provided for @actionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Action'**
+  String get actionLabel;
+
+  /// No description provided for @editButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get editButton;
+
+  /// No description provided for @deleteButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteButton;
 
   /// No description provided for @createAnAccountLogin.
   ///
@@ -2557,12 +2638,6 @@ abstract class AppLocalizations {
   /// **'Short summary (1–2 sentences) for listings/search results.'**
   String get shortDescriptionHelp;
 
-  /// No description provided for @skuLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'SKU'**
-  String get skuLabel;
-
   /// No description provided for @skuHelp.
   ///
   /// In en, this message translates to:
@@ -2875,12 +2950,6 @@ abstract class AppLocalizations {
   /// **'Publish now'**
   String get publishNowButton;
 
-  /// No description provided for @deleteButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete'**
-  String get deleteButton;
-
   /// No description provided for @draftSaved.
   ///
   /// In en, this message translates to:
@@ -2898,12 +2967,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{name}\" has been deleted'**
   String productDeleted(Object name);
-
-  /// No description provided for @draftsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Drafts'**
-  String get draftsTitle;
 
   /// No description provided for @searchDraft.
   ///
@@ -2929,11 +2992,11 @@ abstract class AppLocalizations {
   /// **'Pending Review'**
   String get pendingReview;
 
-  /// No description provided for @noDraftsMatchSearch.
+  /// No description provided for @noProductsFound.
   ///
   /// In en, this message translates to:
   /// **'No drafts match your search.'**
-  String get noDraftsMatchSearch;
+  String get noProductsFound;
 
   /// No description provided for @deleteDraftQuestion.
   ///
@@ -2952,36 +3015,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get cancelButton;
-
-  /// No description provided for @quantityLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Quantity'**
-  String get quantityLabel;
-
-  /// No description provided for @createdLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Created at'**
-  String get createdLabel;
-
-  /// No description provided for @statusLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Status'**
-  String get statusLabel;
-
-  /// No description provided for @actionLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Action'**
-  String get actionLabel;
-
-  /// No description provided for @editButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit'**
-  String get editButton;
 
   /// No description provided for @editProduct.
   ///
@@ -4813,46 +4846,117 @@ abstract class AppLocalizations {
   /// **'United Arab Emirates'**
   String get country_uae;
 
-  String get hiThere;
+  /// No description provided for @egyptCountry.
+  ///
+  /// In en, this message translates to:
+  /// **'Egypt'**
+  String get egyptCountry;
 
+  /// No description provided for @download.
+  ///
+  /// In en, this message translates to:
+  /// **'download'**
   String get download;
 
-  String get downloadCompleted;
-
+  /// No description provided for @clearFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'clear Filter'**
   String get clearFilter;
 
-  String get noTransactionsForDateRange ;
-
-  String get noTransactionsAvailable;
-
-  String get filterEnabledProducts;
-
-  String get filterDisabledProducts;
-
-  String get filterLowStock;
-
-  String get filterOutOfStock;
-
-  String get filterDeniedProduct;
-
+  /// No description provided for @filterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
   String get filterAll;
 
+  /// No description provided for @filterEnabledProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled Products'**
+  String get filterEnabledProducts;
+
+  /// No description provided for @filterDisabledProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled Products'**
+  String get filterDisabledProducts;
+
+  /// No description provided for @filterLowStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Low Stock'**
+  String get filterLowStock;
+
+  /// No description provided for @filterOutOfStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of Stock'**
+  String get filterOutOfStock;
+
+  /// No description provided for @filterDeniedProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Denied Product'**
+  String get filterDeniedProduct;
+
+  /// No description provided for @confirmLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Logout'**
   String get confirmLogout;
 
+  /// No description provided for @logoutSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout Successful'**
   String get logoutSuccessful;
 
+  /// No description provided for @logoutFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout Failed'**
   String get logoutFailed;
 
+  /// No description provided for @noDraftsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No drafts available'**
   String get noDraftsAvailable;
 
-  String get noReviewsAvailable ;
+  /// No description provided for @noReviewsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no reviews available'**
+  String get noReviewsAvailable;
 
+  /// No description provided for @draft.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts'**
+  String get draft;
 
+  /// No description provided for @statusDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get statusDraft;
 
+  /// No description provided for @noTransactionsForDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions in this date range'**
+  String get noTransactionsForDateRange;
 
+  /// No description provided for @noTransactionsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions available yet'**
+  String get noTransactionsAvailable;
 }
 
-class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -4861,26 +4965,28 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
   }
 
   @override
-  bool isSupported(Locale locale) => <String>['ar', 'en', 'fr'].contains(locale.languageCode);
+  bool isSupported(Locale locale) =>
+      <String>['ar', 'en', 'fr'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
-
-
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'ar': return AppLocalizationsAr();
-    case 'en': return AppLocalizationsEn();
-    case 'fr': return AppLocalizationsFr();
+    case 'ar':
+      return AppLocalizationsAr();
+    case 'en':
+      return AppLocalizationsEn();
+    case 'fr':
+      return AppLocalizationsFr();
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-          'an issue with the localizations generation tool. Please file an issue '
-          'on GitHub with a reproducible sample app and the gen-l10n configuration '
-          'that was used.'
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
   );
 }

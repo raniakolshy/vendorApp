@@ -22,6 +22,21 @@
   "firstName": "First Name",
   "lastName": "Last Name",
   "createSimple":"Create",
+
+  "@@locale": "en",
+  "appName": "Kolshy Vendor",
+  "draftsTitle": "Draft Products",
+  "errorLoadingDrafts": "Error loading drafts",
+  "retry": "Retry",
+  "noDraftsFound": "No drafts found.",
+  "skuLabel": "SKU",
+  "quantityLabel": "Quantity",
+  "createdLabel": "Created At",
+  "statusLabel": "Status",
+  "actionLabel": "Actions",
+  "editButton": "Edit",
+  "deleteButton": "Delete",
+
   "createAnAccountLogin": "create an account",
   "email": "Email",
   "phone": "Phone",
@@ -631,7 +646,7 @@
   "drafts": "Drafts",
   "pendingReview": "Pending Review",
   "loadMore": "Load more",
-  "noDraftsMatchSearch": "No drafts match your search.",
+  "noProductsFound": "No drafts match your search.",
   "deleteDraftQuestion": "Delete draft?",
   "deleteDraftConfirmation": "This will delete \"{name}\".",
   "@deleteDraftConfirmation": {
@@ -1159,7 +1174,7 @@
   "loading": "Loading...",
   "loadMore": "Load more",
   "country_uae": "United Arab Emirates",
-  "Egypte": "Egypte",
+  "egyptCountry": "Egypt",
   "download" : "download",
   "clearFilter": "clear Filter",
   "filterAll": "All",
@@ -1172,5 +1187,17 @@
   "logoutSuccessful" : "Logout Successful",
   "logoutFailed": "Logout Failed",
   "noDraftsAvailable": "No drafts available",
-  "noReviewsAvailable": "There are no reviews available"
+  "noReviewsAvailable": "There are no reviews available",
+  "draft": "Drafts",
+  "statusDraft": "Draft",
+
+  "noTransactionsForDateRange": "No transactions in this date range",
+  "noTransactionsAvailable": "No transactions available yet",
+
+
+
+"errorLoadingDrafts": "Error loading drafts",
+  "retry": "Retry",
+  "noDraftsFound": "No drafts found"
+
 }

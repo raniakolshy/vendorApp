@@ -1,5 +1,6 @@
 import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:kolshy_vendor/data/models/vendor_profile_model.dart';
 import '../../services/api_client.dart';
 import 'package:dio/dio.dart';
 
@@ -25,21 +26,27 @@ class _AskAdminScreenState extends State<AskAdminScreen> {
       return;
     }
 
-    setState(() {
-      _isSending = true;
-    });
+    setState(() => _isSending = true);
 
     try {
-      final VendorProfile me = await VendorApiClient().getVendorProfile();
-      // Use typed properties instead of map access
-      final name = '${me.companyName ?? ''}'.trim();
-      final email = '';
-      final messageBody = '[${_subjectController.text.trim()}]\n\n${_queryController.text.trim()}';
+      final VendorProfileModel me = await VendorApiClient().getVendorProfile();
+
+      final first = me.firstname?.trim() ?? '';
+      final last = me.lastname?.trim() ?? '';
+      final String name = (first + ' ' + last).trim().isNotEmpty
+          ? (first + ' ' + last).trim()
+          : 'App User';
+
+      final String email = me.email?.trim() ?? 'no-reply@kolshy.ae';
+      final String telephone = me.phone?.trim() ?? '';
+
+      final messageBody =
+          '[${_subjectController.text.trim()}]\n\n${_queryController.text.trim()}';
 
       await VendorApiClient().sendContactMessage(
-        name: name.isNotEmpty ? name : 'App User',
-        email: email.isNotEmpty ? email : 'no-reply@kolshy.ae',
-        telephone: '',
+        name: name,
+        email: email,
+        telephone: telephone,
         comment: messageBody,
       );
 
@@ -47,13 +54,14 @@ class _AskAdminScreenState extends State<AskAdminScreen> {
       _subjectController.clear();
       _queryController.clear();
     } on DioException catch (e) {
-      _showSnackBar('Failed to send: ${e.response?.data['message'] ?? e.message}', Colors.red);
+      final err = e.response?.data is Map && e.response?.data['message'] != null
+          ? e.response?.data['message'].toString()
+          : e.message ?? 'Unknown error';
+      _showSnackBar('Failed to send: $err', Colors.red);
     } catch (e) {
       _showSnackBar('Failed to send: $e', Colors.red);
     } finally {
-      setState(() {
-        _isSending = false;
-      });
+      if (mounted) setState(() => _isSending = false);
     }
   }
 
@@ -121,11 +129,8 @@ class _AskAdminScreenState extends State<AskAdminScreen> {
                       const SizedBox(width: 5),
                       Tooltip(
                         message: loc.subjectTooltip,
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
+                        child: Icon(Icons.info_outline,
+                            size: 16, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -141,7 +146,8 @@ class _AskAdminScreenState extends State<AskAdminScreen> {
                       decoration: InputDecoration(
                         hintText: loc.inputHint,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 12),
                       ),
                     ),
                   ),
@@ -182,9 +188,7 @@ class _AskAdminScreenState extends State<AskAdminScreen> {
                         ),
                       ),
                       child: _isSending
-                          ? const CircularProgressIndicator(
-                        color: Colors.white,
-                      )
+                          ? const CircularProgressIndicator(color: Colors.white)
                           : Text(
                         loc.send,
                         style: const TextStyle(

@@ -1,6 +1,14 @@
+
+
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:kolshy_vendor/services/api_client.dart' as api;
+import 'package:kolshy_vendor/data/models/review_model.dart';
+import 'package:kolshy_vendor/data/models/product_model.dart';
+
+
 
 class ReviewsScreen extends StatefulWidget {
   const ReviewsScreen({
@@ -29,9 +37,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   bool _loading = false;
 
   final List<Review> _allReviews = [];
-  final Map<String, _ProductLite> _productCache = {};
-
-  String get _mediaBase => api.VendorApiClient().mediaBaseUrlForCatalog;
+  final Map<String, ProductModel> _productCache = {};
 
   @override
   void initState() {
@@ -73,23 +79,26 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
 
       final api.ReviewPage pageData =
       await api.VendorApiClient().getProductReviewsAdmin(
-        page: _page,
+        currentPage: _page,
         pageSize: widget.pageSize,
         statusEq: statusEq,
       );
 
       _totalCount = pageData.totalCount;
-      final List<api.MagentoReview> items = pageData.items;
+
+      final List<MagentoReview> items = (pageData.items as List)
+          .map((e) => MagentoReview.fromJson(e as Map<String, dynamic>))
+          .toList();
 
       for (final r in items) {
-        final String sku = _extractSkuFromReview(r) ?? '';
+        final String? sku = r.productSku;
 
-        _ProductLite? p = _productCache[sku];
-        if (p == null && sku.isNotEmpty) {
-          final Map<String, dynamic> pj =
-          await api.VendorApiClient().getProductLiteBySku(sku: sku);
-          p = _ProductLite.fromJson(pj);
-          _productCache[sku] = p;
+        ProductModel? p = _productCache[sku];
+        if (p == null && (sku?.isNotEmpty ?? false)) {
+
+          final Map<String, dynamic> lite = await api.VendorApiClient().getProductLiteBySkuMap(sku: sku!);
+          p = ProductModel.fromJson(lite);
+          _productCache[sku!] = p;
         }
 
         _allReviews.add(_mapMagentoToReview(r, p));
@@ -104,8 +113,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-          Text('${AppLocalizations.of(context)!.failedToExport} $e'),
+          content: Text('${AppLocalizations.of(context)!.failedToExport} $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -115,42 +123,23 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   }
 
   String? _extractSkuFromReview(dynamic r) {
-    if (r is api.MagentoReview) {
+    if (r is MagentoReview) {
       if ((r.productSku ?? '').isNotEmpty) return r.productSku!;
     }
-    try {
-      if (r is Map<String, dynamic>) {
-        final ext = r['extension_attributes'];
-        if (ext is Map && ext['sku'] is String) return ext['sku'] as String;
-        if (r['product_sku'] is String) return r['product_sku'] as String;
-      }
-    } catch (_) {}
+
     return null;
   }
 
-  Review _mapMagentoToReview(dynamic r, _ProductLite? p) {
-    int? statusCode;
-    if (r is api.MagentoReview) {
-      statusCode = r.status;
-    } else if (r is Map && r['status_id'] is num) {
-      statusCode = (r['status_id'] as num).toInt();
-    }
+  Review _mapMagentoToReview(dynamic r, ProductModel? p) {
+    int? statusCode = (r is MagentoReview) ? r.status : null;
 
     double? price, value, quality;
     int votesCount = 0;
 
-    List ratingsList = const [];
-    if (r is api.MagentoReview) {
-      ratingsList = r.ratings ?? const [];
-    } else if (r is Map<String, dynamic>) {
-      if (r['ratings'] is List) {
-        ratingsList = r['ratings'] as List;
-      } else if (r['rating_votes'] is List) {
-        ratingsList = r['rating_votes'] as List;
-      }
-    }
+    List ratingsList = (r is MagentoReview) ? (r.ratings ?? []) : const [];
 
     if (ratingsList.isNotEmpty) {
+
       for (final v in ratingsList) {
         final name = (v is Map && v['rating_name'] != null)
             ? v['rating_name'].toString().toLowerCase()
@@ -163,8 +152,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
         final val = (v is Map && v['value'] is num)
             ? (v['value'] as num).toDouble()
             : null;
-        final double? stars =
-        percent != null ? (percent / 20.0) : (val);
+        final double? stars = percent != null ? (percent / 20.0) : (val);
         if (name.contains('price')) price = stars;
         if (name.contains('value')) value = stars;
         if (name.contains('quality')) quality = stars;
@@ -175,32 +163,19 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
         if (value != null) value!,
         if (quality != null) quality!,
       ];
-      final avg =
-      all.isNotEmpty ? (all.reduce((a, b) => a + b) / all.length) : 0.0;
+      final avg = all.isNotEmpty ? (all.reduce((a, b) => a + b) / all.length) : 0.0;
       price ??= avg;
       value ??= avg;
       quality ??= avg;
     }
 
-    String title = '';
-    String detail = '';
-    if (r is api.MagentoReview) {
-      title = (r.title ?? '').toString();
-      detail = (r.detail ?? '').toString();
-    } else if (r is Map<String, dynamic>) {
-      title = (r['title'] ?? '').toString();
-      detail = (r['detail'] ?? '').toString();
-    }
+    String title = (r is MagentoReview) ? (r.title ?? '') : '';
+    String detail = (r is MagentoReview) ? (r.detail ?? '') : '';
 
     final st = _statusFromMagento(statusCode);
 
-    String productImagePath = p?.image ?? '';
-    if (productImagePath.startsWith('/')) {
-      productImagePath = productImagePath.substring(1);
-    }
-    final imageUrl = (_mediaBase.isNotEmpty && productImagePath.isNotEmpty)
-        ? '$_mediaBase/$productImagePath'
-        : '';
+
+    final imageUrl = api.VendorApiClient().productImageUrl(p?.imageUrl);
 
     return Review(
       productImage: imageUrl.isEmpty ? 'assets/img_square.jpg' : imageUrl,
@@ -218,8 +193,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
 
   List<Review> get _filtered {
     final q = _searchCtrl.text.trim().toLowerCase();
-    final all =
-    _allReviews.where((r) => r.productName.toLowerCase().contains(q));
+    final all = _allReviews.where((r) => r.productName.toLowerCase().contains(q));
     return all.toList();
   }
 
@@ -696,6 +670,19 @@ class _ProductLite {
       name: (j['name'] ?? '').toString(),
       typeId: (j['type_id'] ?? '').toString(),
       image: image,
+    );
+  }
+
+
+  factory _ProductLite.fromMagento(api.MagentoProductLite m) {
+    final String? firstImage =
+    (m.imageFiles.isNotEmpty) ? m.imageFiles.first : null;
+
+    return _ProductLite(
+      sku: m.sku,
+      name: m.name,
+      typeId: 'simple',
+      image: firstImage,
     );
   }
 }

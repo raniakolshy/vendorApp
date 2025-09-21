@@ -138,6 +138,21 @@
   "shipping": "الشحن",
   "free": "مجاني",
   "total": "المجموع",
+
+  "@@locale": "ar",
+  "appName": "Kolshy بائع",
+  "draftsTitle": "مسودات المنتجات",
+  "errorLoadingDrafts": "حدث خطأ أثناء تحميل المسودات",
+  "retry": "إعادة المحاولة",
+  "noDraftsFound": "لم يتم العثور على مسودات.",
+  "skuLabel": "وحدة التخزين",
+  "quantityLabel": "الكمية",
+  "createdLabel": "تاريخ الإنشاء",
+  "statusLabel": "الحالة",
+  "actionLabel": "الإجراءات",
+  "editButton": "تعديل",
+  "deleteButton": "حذف",
+
   "checkoutTitle": "الدفع",
   "orderDetails": "تفاصيل الطلب",
   "editDetails": "تعديل التفاصيل",
@@ -1144,5 +1159,12 @@
   "confirmLogout" :"تأكيد تسجيل الخروج",
   "logoutSuccessful" : "تم تسجيل الخروج بنجاح",
   "logoutFailed": "فشل تسجيل الخروج",
-  "noReviewsAvailable": "لا توجد مراجعات متاحة"
+  "noReviewsAvailable": "لا توجد مراجعات متاحة",
+  "draft": "المسودات",
+  "statusDraft": "مسودة",
+
+  "noTransactionsForDateRange": "لا توجد معاملات في هذا النطاق الزمني",
+  "noTransactionsAvailable": "لا توجد معاملات متاحة بعد"
+
+
 }

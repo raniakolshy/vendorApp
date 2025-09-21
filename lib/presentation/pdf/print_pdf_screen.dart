@@ -145,7 +145,7 @@ class _PrintPdfScreenState extends State<PrintPdfScreen> {
       await VendorApiClient().addInvoiceComment(
         invoiceId: widget.invoiceId!,
         comment: text,
-        isVisibleOnFront: true,
+
       );
 
       if (!mounted) return;

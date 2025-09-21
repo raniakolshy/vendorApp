@@ -1,14 +1,14 @@
+
+
 import 'package:kolshy_vendor/services/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kolshy_vendor/state_management/locale_provider.dart';
 import 'package:kolshy_vendor/l10n/app_localizations.dart';
-import 'presentation/auth/login/login_screen.dart';
 import 'presentation/Translation/Language.dart';
 import 'presentation/admin/admin_news_screen.dart';
 import 'presentation/admin/ask_admin_screen.dart';
 import 'presentation/pdf/print_pdf_screen.dart';
-import 'presentation/profile/edit_profile_screen.dart';
 import 'presentation/analytics/customer_analytics_screen.dart';
 import 'presentation/dashboard/dashboard_screen.dart';
 import 'presentation/orders/orders_list_screen.dart';
@@ -21,14 +21,46 @@ import 'presentation/transactions/transactions_screen.dart' as transactions_scre
 import 'presentation/common/app_shell.dart';
 import 'presentation/common/nav_key.dart';
 import 'presentation/auth/login/welcome_screen.dart';
+import 'presentation/profile/view_profile.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final localeProvider = LocaleProvider();
-  await localeProvider.loadSavedLocale();
-  await VendorApiClient().init();
-  runApp(MyApp(localeProvider: localeProvider));
+  try {
+    print('Starting app initialization...');
+
+    final localeProvider = LocaleProvider();
+    print('Loading saved locale...');
+    await localeProvider.loadSavedLocale();
+
+    print('Initializing VendorApiClient...');
+    await VendorApiClient().init();
+
+    print('App initialization completed successfully.');
+    runApp(MyApp(localeProvider: localeProvider));
+
+  } catch (e) {
+    print('App initialization failed with an error: $e');
+    runApp(const ErrorApp());
+  }
+}
+
+class ErrorApp extends StatelessWidget {
+  const ErrorApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Text(
+            'An error occurred during app startup. Please check the logs.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -80,6 +112,7 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _isLoading = true;
   bool _isLoggedIn = false;
+  final _apiClient = VendorApiClient();
 
   @override
   void initState() {
@@ -89,9 +122,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   Future<void> _checkAuthStatus() async {
     try {
-      final hasToken = VendorApiClient().hasToken;
+      final hasToken = _apiClient.hasToken;
       if (hasToken) {
-        await VendorApiClient().getVendorProfile();
+        await _apiClient.getVendorProfile();
         setState(() {
           _isLoggedIn = true;
           _isLoading = false;
@@ -103,7 +136,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
         });
       }
     } catch (e) {
-      await VendorApiClient.removeToken();
+      final apiClient = VendorApiClient();
+      await apiClient.removeToken();
       setState(() {
         _isLoggedIn = false;
         _isLoading = false;
@@ -137,40 +171,11 @@ class _HomeState extends State<Home> {
   NavKey _selected = NavKey.dashboard;
   int _bottomIndex = 1;
   int _unreadCount = 4;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAuthentication();
-  }
-
-  Future<void> _checkAuthentication() async {
-    final isLoggedIn = VendorApiClient().hasToken;
-
-    if (!isLoggedIn) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
+    print('Building Home screen...');
+
     return AppShell(
       scaffoldKey: _scaffoldKey,
       selected: _selected,
@@ -216,7 +221,7 @@ class _HomeState extends State<Home> {
       case NavKey.review:
         return const ReviewsScreen();
       case NavKey.profileSettings:
-        return const ProfileScreen();
+        return const VendorProfileScreen();
       case NavKey.printPdf:
         return const PrintPdfScreen();
       case NavKey.adminNews:

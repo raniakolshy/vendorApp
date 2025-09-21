@@ -1,79 +1,11 @@
-import 'package:kolshy_vendor/l10n/app_localizations.dart';
+
+
 import 'package:flutter/material.dart';
-import '../../services/api_client.dart';
-import '../../services/vendor_graphql_manager.dart';
-import 'add_product_screen.dart';
+import 'package:kolshy_vendor/l10n/app_localizations.dart';
+import 'package:kolshy_vendor/services/api_client.dart';
+import 'package:kolshy_vendor/data/models/product_model.dart';
+import 'package:dio/dio.dart';
 
-// ===== Models =====
-
-enum DraftStatus {
-  draft,
-  pendingReview,
-}
-
-
-class _Draft {
-  _Draft({
-    required this.id,
-    required this.name,
-    required this.sku,
-    required this.qty,
-    required this.price,
-    required this.created,
-    required this.status,
-    this.thumbnail,
-  });
-
-  final int id;
-  final String name;
-  final String sku;
-  final int qty;
-  final double price;
-  final DateTime created;
-  final DraftStatus status;
-  final String? thumbnail;
-
-  factory _Draft.fromMagentoProduct(Map<String, dynamic> product) {
-    return _Draft(
-      id: product['id'] ?? 0,
-      name: product['name'] ?? 'No Name',
-      sku: product['sku'] ?? 'No SKU',
-      qty: product['extension_attributes']?['stock_item']?['qty']?.toInt() ?? 0,
-      price: (product['price'] ?? 0.0).toDouble(),
-      created: DateTime.parse(product['created_at'] ?? DateTime.now().toString()),
-      status: _parseStatus(product['status']),
-      thumbnail: product['media_gallery_entries']?[0]?['file'],
-    );
-  }
-  static DraftStatus _parseStatus(dynamic status) {
-    if (status == null) return DraftStatus.draft;
-    final statusStr = status.toString();
-    if (statusStr == '2') return DraftStatus.draft;
-    if (statusStr == '1') return DraftStatus.pendingReview;
-    return DraftStatus.draft;
-  }
-}
-
-class Product {
-  Product({
-    required this.name,
-    required this.sku,
-    required this.quantity,
-    required this.price,
-  });
-
-  final String name;
-  final String sku;
-  final int quantity;
-  final double price;
-}
-
-String _fmtDate(DateTime d) {
-  final dd = d.day.toString().padLeft(2, '0');
-  final mm = d.month.toString().padLeft(2, '0');
-  final yyyy = d.year.toString();
-  return '$dd / $mm / $yyyy';
-}
 class DraftsListScreen extends StatefulWidget {
   const DraftsListScreen({super.key});
 
@@ -82,347 +14,110 @@ class DraftsListScreen extends StatefulWidget {
 }
 
 class _DraftsListScreenState extends State<DraftsListScreen> {
-  final TextEditingController _searchCtrl = TextEditingController();
-  String? _filter;
-  static const int _pageSize = 2;
-  int _currentPage = 1;
-  int _shown = _pageSize;
-  bool _loadingMore = false;
-  bool _isLoading = true;
-  List<_Draft> _all = [];
-  final VendorGraphQLManager _vendorManager = VendorGraphQLManager();
+  final VendorApiClient _apiClient = VendorApiClient();
+  late Future<List<ProductModel>> _draftsFuture;
 
   @override
   void initState() {
     super.initState();
-    _searchCtrl.addListener(_onSearchChanged);
-    _initAndLoadDrafts();
+    _draftsFuture = _fetchDrafts();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final localizations = AppLocalizations.of(context)!;
-    _filter ??= localizations.allDrafts;
-  }
-
-  @override
-  void dispose() {
-    _searchCtrl.removeListener(_onSearchChanged);
-    _searchCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _initAndLoadDrafts() async {
-    await _vendorManager.initVendorSession();
-    _loadDrafts();
-  }
-
-  Future<void> _loadDrafts() async {
-    if (!_vendorManager.hasToken) {
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    setState(() => _isLoading = true);
+  Future<List<ProductModel>> _fetchDrafts() async {
     try {
-      final products = await _vendorManager.getDraftProducts(
-        pageSize: _pageSize,
-        currentPage: _currentPage,
+      if (!_apiClient.hasToken) {
+        await _apiClient.init();
+        await _apiClient.loginVendor('test_vendor@example.com', 'password');
+      }
+
+      final vendorId = _apiClient.vendorId;
+      if (vendorId == null) {
+        throw Exception("Vendor ID is not available.");
+      }
+
+      final List<dynamic> draftData = await _apiClient.getVendorProducts(
+        vendorId: vendorId,
+        productStatus: '2',
       );
-      _all = products.map((product) => _Draft.fromMagentoProduct(product)).toList();
+
+      return draftData.map((e) => ProductModel.fromJson(e as Map<String, dynamic>)).toList();
+
+    } on DioException catch (e) {
+      print('Error fetching drafts: ${e.response?.data}');
+      return Future.error('${e.response?.data['message'] ?? e.message}');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load drafts: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
+      print('An unexpected error occurred: $e');
+      return Future.error('An unexpected error occurred: $e');
     }
-  }
-
-  List<_Draft> get _filtered {
-    final _localizations = AppLocalizations.of(context)!;
-    final q = _searchCtrl.text.trim().toLowerCase();
-    final byText = _all.where((d) =>
-    d.name.toLowerCase().contains(q) ||
-        d.sku.toLowerCase().contains(q)
-    );
-    switch (_filter) {
-      case 'En attente de révision':
-      case 'Pending Review':
-        return byText.where((d) => d.status == DraftStatus.pendingReview).toList();
-      case 'Brouillons':
-      case 'Drafts':
-        return byText.where((d) => d.status == DraftStatus.draft).toList();
-      default:
-        return byText.toList();
-    }
-  }
-
-  Future<void> _loadMore() async {
-    if (_loadingMore) return;
-
-    setState(() => _loadingMore = true);
-    try {
-      _currentPage++;
-      final moreProducts = await _vendorManager.getDraftProducts(
-        pageSize: _pageSize,
-        currentPage: _currentPage,
-      );
-
-      setState(() {
-        _all.addAll(moreProducts.map((product) => _Draft.fromMagentoProduct(product)));
-        _loadingMore = false;
-      });
-    } catch (e) {
-      setState(() => _loadingMore = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load more: $e')),
-      );
-    }
-  }
-
-  void _onSearchChanged() {
-    setState(() => _shown = _pageSize);
-  }
-
-  void _onFilterChanged(String? v) {
-    if (v == null) return;
-    setState(() {
-      _filter = v;
-      _shown = _pageSize;
-    });
-  }
-
-  void _onEdit(_Draft d) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddProductScreen()));
-  }
-
-  Future<void> _onDelete(_Draft d) async {
-    final localizations = AppLocalizations.of(context)!;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        elevation: 10,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.0),
-        ),
-        title: Text(
-          localizations.deleteDraftQuestion,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(localizations.deleteDraftConfirmation(d.name)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(
-                localizations.cancelButton,
-                style: TextStyle(color: Colors.grey[700]),
-              )),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: Text(
-                localizations.deleteButton,
-                style: const TextStyle(color: Colors.red),
-              )),
-        ],
-      ),
-    );
-    if (ok == true && mounted) setState(() => _all.remove(d));
   }
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
-    final visible = _filtered.take(_shown).toList();
-    final canLoadMore = _shown < _filtered.length && !_loadingMore;
-
-    final filters = [
-      localizations.allDrafts,
-      localizations.drafts,
-      localizations.pendingReview,
-    ];
-
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(14),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x0F000000),
-                      blurRadius: 20,
-                      offset: Offset(0, 10),
-                    )
-                  ],
-                ),
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      localizations.draftsTitle,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w800, fontSize: 22),
-                    ),
-                    const SizedBox(height: 16),
-                    _InputSurface(
-                      child: TextField(
-                        controller: _searchCtrl,
-                        decoration: InputDecoration(
-                          hintText: localizations.searchDraft,
-                          hintStyle: TextStyle(
-                            color: Colors.black.withOpacity(.35),
-                          ),
-                          border: InputBorder.none,
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            size: 22,
-                            color: Colors.black54,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    DropdownButtonFormField<String>(
-                      value: _filter,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                          color: Colors.black54),
-                      dropdownColor: Colors.white,
-                      elevation: 8,
-                      borderRadius: BorderRadius.circular(12),
-                      isExpanded: true,
-                      style: const TextStyle(color: Colors.black, fontSize: 16),
-                      items: filters.map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                          .toList(),
-                      onChanged: _onFilterChanged,
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    ListView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      itemCount: visible.length,
-                      itemBuilder: (context, i) => _DraftRow(
-                        draft: visible[i],
-                        onEdit: () => _onEdit(visible[i]),
-                        onDelete: () => _onDelete(visible[i]),
-                      ),
-                    ),
-
-                    const SizedBox(height: 22),
-
-                    if (_filtered.isNotEmpty)
-                      Center(
-                        child: Opacity(
-                          opacity: canLoadMore ? 1 : 0.6,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(28),
-                            onTap: canLoadMore ? _loadMore : null,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(28),
-                                border: Border.all(
-                                  color: const Color(0x22000000),
-                                ),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x0C000000),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 4),
-                                  )
-                                ],
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 18, vertical: 12),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (_loadingMore)
-                                      const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      )
-                                    else
-                                      Image.asset(
-                                        'assets/icons/loading.png',
-                                        width: 18,
-                                        height: 18,
-                                      ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      localizations.loadMore,
-                                      style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    if (_filtered.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Center(
-                          child: Text(
-                            localizations.noDraftsMatchSearch,
-                            style: const TextStyle(color: Colors.black54),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+      appBar: AppBar(
+        title: Text(localizations?.draftsTitle ?? 'Draft Products'),
+      ),
+      body: FutureBuilder<List<ProductModel>>(
+        future: _draftsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('${localizations?.errorLoadingDrafts ?? 'Error loading drafts'}: ${snapshot.error}'),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _draftsFuture = _fetchDrafts();
+                      });
+                    },
+                    child: Text(localizations?.retry ?? 'Retry'),
+                  ),
+                ],
               ),
-            ),
-          ),
-        ],
+            );
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(
+              child: Text(localizations?.noDraftsFound ?? 'No drafts found.'),
+            );
+          } else {
+            final drafts = snapshot.data!;
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: drafts.length,
+              itemBuilder: (context, index) {
+                final product = drafts[index];
+                return _DraftRow(
+                  product: product,
+                  onEdit: () {
+                    // TODO: Implement edit functionality
+                  },
+                  onDelete: () {
+                    // TODO: Implement delete functionality
+                  },
+                );
+              },
+            );
+          }
+        },
       ),
     );
   }
 }
 
+// ===== UI pieces remains the same =====
 class _DraftRow extends StatelessWidget {
   const _DraftRow({
-    required this.draft,
+    required this.product,
     required this.onEdit,
     required this.onDelete,
   });
 
-  final _Draft draft;
+  final ProductModel product;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -439,6 +134,17 @@ class _DraftRow extends StatelessWidget {
         ?.copyWith(
         fontWeight: FontWeight.w600, color: Colors.black.withOpacity(.85));
 
+    String quantityText = 'N/A';
+    if (product.customAttributes != null) {
+      final quantityAttr = product.customAttributes?.firstWhere(
+            (attr) => attr['attribute_code'] == 'quantity_per_source',
+        orElse: () => null,
+      );
+      if (quantityAttr != null && quantityAttr['value'] != null) {
+        quantityText = quantityAttr['value'].toString();
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       child: Column(
@@ -454,65 +160,65 @@ class _DraftRow extends StatelessWidget {
                     width: 86,
                     height: 86,
                     color: const Color(0xFFEDEEEF),
+                    child: product.imageUrl != null
+                        ? Image.network(product.imageUrl!, fit: BoxFit.cover, errorBuilder: (ctx, err, stack) => const Icon(Icons.error))
+                        : const Icon(Icons.image, size: 50, color: Colors.black54),
                   ),
                 ),
               ),
-
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      draft.name,
+                      product.name ?? 'Untitled Product',
                       style: Theme.of(context)
                           .textTheme
                           .titleMedium
                           ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 6),
-                    _PriceChip('\$${draft.price.toStringAsFixed(2)}'),
+                    _PriceChip('\$${product.price?.toStringAsFixed(2) ?? '0.00'}'),
                     const SizedBox(height: 6),
                     Text(
-                      localizations.drafts,
+                      product.typeId ?? 'N/A',
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
                           ?.copyWith(color: Colors.black54),
                     ),
                     const SizedBox(height: 16),
-
-                    // Key-value pairs
                     _RowKVText(
-                      k: localizations.skuLabel,
-                      vText: draft.sku,
+                      k: localizations.skuLabel ?? 'SKU',
+                      vText: product.sku ?? 'N/A',
                       keyStyle: keyStyle,
                       valStyle: valStyle,
                     ),
                     const SizedBox(height: 12),
                     _RowKVText(
-                      k: localizations.quantityLabel,
-                      vText: draft.qty.toString(),
+                      k: localizations.quantityLabel ?? 'Quantity',
+                      vText: quantityText,
                       keyStyle: keyStyle,
                       valStyle: valStyle,
                     ),
                     const SizedBox(height: 12),
                     _RowKVText(
-                      k: localizations.createdLabel,
-                      vText: _fmtDate(draft.created),
+                      k: localizations.createdLabel ?? 'Created At',
+                      vText: product.createdAt ?? 'N/A',
                       keyStyle: keyStyle,
                       valStyle: valStyle,
                     ),
                     const SizedBox(height: 12),
                     _RowKVText(
-                      k: localizations.statusLabel,
-                      v: _StatusPill(status: draft.status),
+                      k: localizations.statusLabel ?? 'Status',
+                      v: _StatusPill(status: product.status),
                       keyStyle: keyStyle,
                       valStyle: valStyle,
                       isWidgetValue: true,
                     ),
                     const SizedBox(height: 12),
                     _RowKVText(
-                      k: localizations.actionLabel,
+                      k: localizations.actionLabel ?? 'Actions',
                       v: Row(
                         children: [
                           IconButton(
@@ -523,7 +229,7 @@ class _DraftRow extends StatelessWidget {
                               height: 20,
                               color: Colors.black54,
                             ),
-                            tooltip: localizations.editButton,
+                            tooltip: localizations.editButton ?? 'Edit',
                           ),
                           IconButton(
                             onPressed: onDelete,
@@ -533,7 +239,7 @@ class _DraftRow extends StatelessWidget {
                               height: 20,
                               color: Colors.black54,
                             ),
-                            tooltip: localizations.deleteButton,
+                            tooltip: localizations.deleteButton ?? 'Delete',
                           ),
                         ],
                       ),
@@ -554,87 +260,9 @@ class _DraftRow extends StatelessWidget {
   }
 }
 
-class _InputSurface extends StatelessWidget {
-  const _InputSurface({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F7F8),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0x22000000)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: child,
-      ),
-    );
-  }
-}
-
-class _PriceChip extends StatelessWidget {
-  const _PriceChip(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xE6EAF3FF),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0x3382A9FF)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Text(
-          text,
-          style: Theme.of(context)
-              .textTheme
-              .labelLarge
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-      ),
-    );
-  }
-}
-
-class _RowKVText extends StatelessWidget {
-  const _RowKVText({
-    required this.k,
-    this.vText,
-    this.v,
-    required this.keyStyle,
-    required this.valStyle,
-    this.isWidgetValue = false,
-  }) : assert((vText != null) ^ (v != null), 'Provide either vText or v');
-
-  final String k;
-  final String? vText;
-  final Widget? v;
-  final TextStyle? keyStyle;
-  final TextStyle? valStyle;
-  final bool isWidgetValue;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: Text(k, style: keyStyle)),
-        const SizedBox(width: 8),
-        if (isWidgetValue && v != null)
-          v!
-        else
-          Text(vText ?? '', style: valStyle),
-      ],
-    );
-  }
-}
-
 class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.status});
-  final DraftStatus status;
+  final ProductStatus status;
 
   @override
   Widget build(BuildContext context) {
@@ -644,23 +272,47 @@ class _StatusPill extends StatelessWidget {
     final Color textColor;
 
     switch (status) {
-      case DraftStatus.draft:
-        label = localizations.drafts;
-        bgColor = const Color(0xFFFFF4CC);
-        textColor = const Color(0xFFF57F17);
+      case ProductStatus.active:
+        label = localizations.statusActive ?? 'Active';
+        bgColor = const Color(0xFFDFF7E3);
+        textColor = const Color(0xFF2E7D32);
         break;
-      case DraftStatus.pendingReview:
-        label = localizations.pendingReview;
+      case ProductStatus.disabled:
+        label = localizations.statusDisabled ?? 'Disabled';
+        bgColor = const Color(0xFFFFE0E0);
+        textColor = const Color(0xFFC62828);
+        break;
+      case ProductStatus.lowStock:
+        label = localizations.statusLowStock ?? 'Low Stock';
+        bgColor = const Color(0xFFFFF4CC);
+        textColor = const Color(0xFFF9A825);
+        break;
+      case ProductStatus.outOfStock:
+        label = localizations.statusOutOfStock ?? 'Out of Stock';
+        bgColor = const Color(0xFFFFE0E0);
+        textColor = const Color(0xFFC62828);
+        break;
+      case ProductStatus.denied:
+        label = localizations.statusDenied ?? 'Denied';
+        bgColor = const Color(0xFFFFCCCC);
+        textColor = const Color(0xFFB71C1C);
+        break;
+      case ProductStatus.draft:
+        label = localizations.drafts ?? 'Draft';
         bgColor = const Color(0xFFE3F2FD);
         textColor = const Color(0xFF1565C0);
+        break;
+      case ProductStatus.unknown:
+      default:
+        label = 'N/A';
+        bgColor = Colors.grey[200]!;
+        textColor = Colors.grey[700]!;
         break;
     }
 
     return DecoratedBox(
-      decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(10)
-      ),
+      decoration:
+      BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
@@ -668,12 +320,95 @@ class _StatusPill extends StatelessWidget {
           style: Theme.of(context)
               .textTheme
               .labelLarge
-              ?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: textColor
-          ),
+              ?.copyWith(fontWeight: FontWeight.w700, color: textColor),
         ),
       ),
+    );
+  }
+}
+
+class _InputSurface extends StatelessWidget {
+  const _InputSurface({
+    required this.child,
+    this.padding = const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+  });
+
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F6F6),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _PriceChip extends StatelessWidget {
+  const _PriceChip(this.priceText);
+
+  final String priceText;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Text(
+          priceText,
+          style: Theme.of(context)
+              .textTheme
+              .labelLarge
+              ?.copyWith(fontWeight: FontWeight.w700, color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+class _RowKVText extends StatelessWidget {
+  const _RowKVText({
+    required this.k,
+    this.v,
+    this.vText,
+    this.keyStyle,
+    this.valStyle,
+    this.isWidgetValue = false,
+  }) : assert((vText != null) ^ (v != null), 'Provide either vText or v');
+  final String k;
+  final Widget? v;
+  final String? vText;
+  final TextStyle? keyStyle;
+  final TextStyle? valStyle;
+  final bool isWidgetValue;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$k: ',
+          style: keyStyle,
+        ),
+        if (isWidgetValue && v != null) Expanded(child: v!),
+        if (!isWidgetValue && vText != null)
+          Expanded(
+            child: Text(
+              vText!,
+              style: valStyle,
+            ),
+          ),
+      ],
     );
   }
 }

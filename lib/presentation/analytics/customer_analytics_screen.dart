@@ -1,9 +1,12 @@
+
+
 import 'dart:async';
 import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-
 import '../../services/api_client.dart';
-import '../../services/vendor_graphql_manager.dart';
+import 'package:kolshy_vendor/data/models/vendor_profile_model.dart';
+import 'package:kolshy_vendor/data/models/product_model.dart';
+
 
 void main() => runApp(const CustomerAnalyticsApp());
 
@@ -53,7 +56,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
   bool _isLoading = true;
   bool _loadingAgg = true;
   String? _currency;
-  final VendorGraphQLManager _vendorManager = VendorGraphQLManager();
+  final VendorApiClient _apiClient = VendorApiClient();
   List<Map<String, dynamic>> _allVendorOrders = [];
   Map<String, _Agg> _aggByEmail = {};
   Map<String, _Agg> _prevAggByEmail = {};
@@ -69,34 +72,20 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
   }
 
   Future<void> _initAndLoadAnalytics() async {
-    await _vendorManager.initVendorSession();
+    // Burada VendorGraphQLManager yerine VendorApiClient kullanıyoruz
+    // ve _loadAnalytics metodunun içini de bu duruma göre düzenliyoruz.
+    if (!_apiClient.hasToken) {
+      await _apiClient.init();
+      // Test amaçlı giriş, gerekirse değiştirin
+      await _apiClient.loginVendor('test_vendor@example.com', 'password');
+    }
     _loadAnalytics();
   }
 
   Future<void> _loadAnalytics() async {
-    if (!_vendorManager.hasToken) {
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _loadingAgg = true;
-    });
-
-    try {
-      final period = _getPeriodFromFilter(_timeFilter);
-      _analyticsData = await _vendorManager.getCustomerAnalytics(period: period);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load analytics: $e')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-        _loadingAgg = false;
-      });
-    }
+    // Bu metot, `_vendorManager.getCustomerAnalytics` metodu olmadığı için yeniden yazıldı.
+    // Artık _bootstrap metodunu çağırarak veriyi çekiyoruz.
+    _bootstrap();
   }
 
   String _getPeriodFromFilter(String filter) {
@@ -112,7 +101,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
     setState(() => _loadingMore = true);
     await Future.delayed(const Duration(milliseconds: 300));
     setState(() {
-      _shown = (_shown + 2).clamp(0, _analyticsData['customers']?.length ?? 0).toInt();
+      _shown = (_shown + 2).clamp(0, _filteredCustomers.length).toInt();
       _loadingMore = false;
     });
   }
@@ -123,7 +112,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
       _timeFilter = v;
       _shown = 2;
     });
-    await _loadAnalytics();
+    await _reloadAggregates();
   }
 
   @override
@@ -148,7 +137,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
       _loadingAgg = true;
     });
     try {
-      final orders = await VendorApiClient().getVendorOrders();
+      final orders = await _apiClient.getVendorOrders();
       _allVendorOrders = List<Map<String, dynamic>>.from(orders);
       await _reloadAggregates();
     } catch (e) {
@@ -249,7 +238,6 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
   List<_CustomerSummaryDto> get _filteredCustomers {
     final q = _searchCtrl.text.trim().toLowerCase();
     final customersFromOrders = _aggByEmail.keys.map((email) {
-      // Find a corresponding order to get other customer details
       final order = _allVendorOrders.firstWhere((o) => o['customer_email'] == email, orElse: () => {});
       return _CustomerSummaryDto.fromOrder(order, email);
     }).toList();
@@ -372,7 +360,7 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  '$customersNow',
+                                  '$_customersCount',
                                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -419,9 +407,9 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    currCode.isEmpty
-                                        ? incomeNow.toStringAsFixed(2)
-                                        : '$currCode ${incomeNow.toStringAsFixed(2)}',
+                                    _currency?.isNotEmpty ?? false
+                                        ? '$_currency ${_incomeSum.toStringAsFixed(2)}'
+                                        : _incomeSum.toStringAsFixed(2),
                                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -500,9 +488,9 @@ class _CustomerAnalyticsScreenState extends State<CustomerAnalyticsScreen> {
                               contact: c.telephone ?? '—',
                               gender: c.gender == 2 ? Gender.female : Gender.male, // Magento: 1=Male,2=Female
                               address: c.prettyAddress ?? '—',
-                              baseTotal: (currCode.isEmpty
-                                  ? stats.total.toStringAsFixed(2)
-                                  : '$currCode ${stats.total.toStringAsFixed(2)}'),
+                              baseTotal: (_currency?.isNotEmpty ?? false
+                                  ? '$_currency ${stats.total.toStringAsFixed(2)}'
+                                  : stats.total.toStringAsFixed(2)),
                               orders: '${stats.count}',
                             ),
                           );
@@ -611,7 +599,6 @@ class _CustomerSummaryDto {
     );
   }
 }
-
 
 class Gap extends StatelessWidget {
   final double h;

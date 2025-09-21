@@ -1,8 +1,10 @@
 import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:kolshy_vendor/data/models/vendor_profile_model.dart';
 import '../../services/api_client.dart';
 import '../auth/login/welcome_screen.dart';
 import 'nav_key.dart';
+
 
 
 const kIconGray = Color(0xFF8E9196);
@@ -378,16 +380,18 @@ class _ProfileButton extends StatefulWidget {
 }
 
 class _ProfileButtonState extends State<_ProfileButton> {
-  VendorProfile? _vendorProfile;
+
+  VendorProfileModel? _vendorProfile = null;
+
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadVendorProfile();
+    _loadProfile();
   }
 
-  Future<void> _loadVendorProfile() async {
+  Future<void> _loadProfile() async {
     try {
       final profile = await VendorApiClient().getVendorProfile();
       setState(() {
@@ -395,9 +399,11 @@ class _ProfileButtonState extends State<_ProfileButton> {
         _isLoading = false;
       });
     } catch (e) {
+
       setState(() {
         _isLoading = false;
       });
+
     }
   }
 

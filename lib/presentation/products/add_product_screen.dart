@@ -1,6 +1,7 @@
+
+
 import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
@@ -8,10 +9,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dropzone/flutter_dropzone.dart';
-
 import '../../services/api_client.dart';
 import '../common/description_markdown_field.dart';
 
+// ===== Models =====
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
 
@@ -23,9 +24,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
   final _scroll = ScrollController();
 
-  static const String _ADMIN_TOKEN = '87igct1wbbphdok6dk1roju4i83kyub9';
-
   // Controllers
+  final String _ADMIN_TOKEN = 'Bearer 87igct1wbbphdok6dk1roju4i83kyub9';
   final _title = TextEditingController();
   final _sku = TextEditingController();
   final _desc = TextEditingController();
@@ -41,14 +41,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _metaTitle = TextEditingController();
   final _metaKeywords = TextEditingController();
   final _metaDesc = TextEditingController();
-
   final _tagInput = TextEditingController();
-  List<String> _tags = [];
 
+  List<String> _tags = [];
   List<Uint8List> _images = [];
   List<String> _imageNames = [];
   DropzoneViewController? _dzCtrl;
-
   bool _hasSpecial = false;
   bool _taxes = true;
   String _stockAvail = 'In Stock';
@@ -155,7 +153,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Future<void> _loadMagentoCategories() async {
     try {
-      final items = await VendorApiClient().getAllCategories();
+      final raw = await VendorApiClient().getAllCategories();
+      // raw List<dynamic> gelebilir → güvenli Map casting
+      final items = (raw as List)
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+
       String? firstSelectableId;
       for (final c in items) {
         final level = (c['level'] as num?)?.toInt() ?? 0;
@@ -185,12 +188,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     if (!_formKey.currentState!.validate()) return;
-
     if (_images.length < 3) {
       _snack(l10n.err_add_three_images, error: true);
       return;
     }
-
     if (_hasSpecial && _sp.text.trim().isNotEmpty) {
       final p = double.tryParse(_amount.text);
       final s = double.tryParse(_sp.text);
@@ -205,11 +206,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Future<void> _submit({required bool isDraft}) async {
     final l10n = AppLocalizations.of(context)!;
     setState(() => _submitting = true);
-
     try {
       final payload = _buildMagentoPayload(isDraft: isDraft);
-      await VendorApiClient().createProductAsAdmin(payload);
-
+      await VendorApiClient().createProductAsVendor(payload);
       _snack(isDraft ? l10n.toast_draft_saved : l10n.toast_product_published);
     } on DioException catch (e) {
       _snack(VendorApiClient().parseMagentoError(e), error: true);
@@ -235,17 +234,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Map<String, dynamic> _buildMagentoPayload({required bool isDraft}) {
     final visibility = _visibility == 'Visible' ? 4 : 1;
     final status = isDraft ? 2 : 1;
-
     final inStock = _stockAvail == 'In Stock';
     final qty = int.tryParse(_stock.text) ?? 0;
-
     final price = double.tryParse(_amount.text) ?? 0.0;
     final specialPrice = _hasSpecial && _sp.text.trim().isNotEmpty
         ? double.tryParse(_sp.text.trim())
         : null;
-
     final weightVal = double.tryParse(_weight.text.trim().isEmpty ? '0' : _weight.text.trim()) ?? 0;
-
     final categoryLinks = <Map<String, dynamic>>[];
     if (_selectedCategoryId != null && _selectedCategoryId!.isNotEmpty) {
       categoryLinks.add({"position": 0, "category_id": _selectedCategoryId});
@@ -297,9 +292,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (specialPrice != null) {
       customAttrs.add({"attribute_code": "special_price", "value": specialPrice.toString()});
     }
-
     final sku = _sku.text.trim().isEmpty ? _autoSku() : _sku.text.trim();
-
     final product = {
       "sku": sku,
       "name": _title.text.trim(),
@@ -320,7 +313,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (customAttrs.isNotEmpty) "custom_attributes": customAttrs,
       if (mediaEntries.isNotEmpty) "media_gallery_entries": mediaEntries,
     };
-
     return {"product": product, "saveOptions": true};
   }
 
@@ -845,6 +837,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 }
+
 class LinkedProductsTabs extends StatefulWidget {
   const LinkedProductsTabs({super.key, this.height = 600, required this.l10n, required this.adminToken});
   final double height;
@@ -988,7 +981,35 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
       _error = null;
     });
     try {
-      final items = await VendorApiClient().getProductsAdmin(pageSize: 1000);
+      final raw = await VendorApiClient().getProductsAdmin(pageSize: 1000);
+
+      // getProductsAdmin iki olasılık dönebilir:
+      // 1) List<Map<String, dynamic>>
+      // 2) List<MagentoProduct> (model)
+      List<Map<String, dynamic>> items;
+
+      if (raw is List && raw.isNotEmpty && raw.first is Map) {
+        items = List<Map<String, dynamic>>.from(
+          raw.map((e) => Map<String, dynamic>.from(e as Map)),
+        );
+      } else if (raw is List) {
+        // MagentoProduct listesi gibi davran: mümkün olan alanları taşı, diğerlerine varsayılan ver.
+        items = raw.map<Map<String, dynamic>>((e) {
+          final d = e as dynamic;
+          return <String, dynamic>{
+            'id': d.id ?? '',
+            'sku': d.sku ?? '',
+            'name': d.name ?? '',
+            'type_id': (d.typeId ?? d.type_id ?? 'simple').toString(),
+            'price': (d.price ?? 0),
+            'status': (d.status ?? 1),
+            'extension_attributes': d.extensionAttributes ?? d.extension_attributes,
+          };
+        }).toList();
+      } else {
+        items = const [];
+      }
+
       setState(() {
         _allProducts = items;
       });
@@ -1187,7 +1208,7 @@ class _ProductsTableShellState extends State<ProductsTableShell> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [Icon(Icons.filter_alt, size: 16), SizedBox(width: 6),],
+          children: const [Icon(Icons.filter_alt, size: 16), SizedBox(width: 6)],
         ),
       );
     }

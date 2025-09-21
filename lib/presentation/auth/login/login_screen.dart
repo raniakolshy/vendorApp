@@ -1,4 +1,5 @@
-// presentation/auth/login/login_screen.dart
+
+
 import 'package:kolshy_vendor/l10n/app_localizations.dart';
 import 'package:kolshy_vendor/main.dart';
 import 'package:kolshy_vendor/presentation/auth/forgot_password/forgot_password_screen.dart';
@@ -93,6 +94,8 @@ class _LoginFormState extends State<LoginForm> {
       _showMessage("Login successful!");
 
       if (!mounted) return;
+      print('Navigating to Home screen...');
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const Home()),

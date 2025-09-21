@@ -12,6 +12,7 @@ import '../../services/api_client.dart';
 import '../common/description_markdown_field.dart';
 import 'View_profile.dart';
 import 'package:kolshy_vendor/services/api_client.dart' as api;
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -113,18 +114,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadFromMagento();
   }
+// ... (The rest of the code before _loadFromMagento)
 
   Future<void> _loadFromMagento() async {
     setState(() => _loading = true);
     try {
-      final vp = await VendorApiClient().getVendorProfileMe();
+      final vp = await VendorApiClient().getVendorProfile();
       _customerId = vp.customerId;
       _companyName.text = vp.companyName ?? '';
       _bio.text = vp.bio ?? '';
       _selectedCountry = vp.country?.isNotEmpty == true ? vp.country! : _selectedCountry;
       _phoneNumber.text = vp.phone ?? '';
-      _lowStockQuantity.text = vp.lowStockQty ?? '';
-      _taxVatNumber.text = vp.vatNumber ?? '';
+      _lowStockQuantity.text = vp.lowStockQty?.toString() ?? ''; // Corrected for type mismatch
+      _taxVatNumber.text = vp.vatNumber ?? ''; // Corrected
       _paymentDetails.text = vp.paymentDetails ?? '';
 
       _twitterId.text = vp.twitter ?? '';
@@ -157,7 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _collectionPageRequestUrlPath.text = vp.collectionPathReq ?? '';
       _reviewPageRequestUrlPath.text = vp.reviewPathReq ?? '';
       _locationPageRequestUrlPath.text = vp.locationPathReq ?? '';
-      _privacyPolicyRequestUrlPath.text = vp.privacyPathReq ?? '';
+      _privacyPolicyRequestUrlPath.text = vp.privacyPath ?? '';
 
       // Images
       _logoUrl = vp.logoUrl;
@@ -168,12 +170,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (vp.bannerBase64?.isNotEmpty == true) {
         _bannerBytes = base64Decode(vp.bannerBase64!.split(',').last);
       }
-        } catch (e) {
+    } catch (e) {
       _snack('Failed to load profile: $e', error: true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+// ... (The rest of the code after _loadFromMagento)
 
   Widget _sectionCard({required String title, required List<Widget> children}) {
     return Container(
@@ -261,7 +265,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         bannerBase64: _bannerBytes != null ? 'data:image/*;base64,${base64Encode(_bannerBytes!)}' : null,
       );
 
-      await VendorApiClient().updateVendorProfileMe(vp as Map<String, dynamic>);
+      await VendorApiClient().updateVendorProfile(vp as Map<String, dynamic>);
       _snack(AppLocalizations.of(context)!.toast_profile_saved);
     } catch (e) {
       _snack('Failed to save profile: $e', error: true);

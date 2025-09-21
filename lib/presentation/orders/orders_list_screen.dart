@@ -64,10 +64,12 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
     try {
       final magentoOrdersDynamic = await _apiClient.getVendorOrders();
-      final magentoOrders = List<MagentoOrder>.from(magentoOrdersDynamic.map((json) => MagentoOrder.fromJson(json)));
+      final magentoOrders = List<MagentoOrder>.from(
+        magentoOrdersDynamic.map((json) => MagentoOrder.fromJson(json)),
+      );
 
       final convertedOrders = await Future.wait(
-        magentoOrders.map(_convertMagentoOrderToUiOrder).toList(),
+        magentoOrders.map((order) => _convertMagentoOrderToUiOrder(order)).toList(),
       );
 
       setState(() {
@@ -85,24 +87,38 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
   Future<Order> _convertMagentoOrderToUiOrder(MagentoOrder magentoOrder) async {
     final firstItem = magentoOrder.items.isNotEmpty ? magentoOrder.items[0] : null;
 
+    // Varsayılan görsel (asset)
     String thumb = 'assets/img_square.jpg';
-    if (firstItem != null) {
+
+    if (firstItem?.sku != null && firstItem!.sku!.isNotEmpty) {
       try {
-        final productData = await _apiClient.getProductDetailsBySku(firstItem.sku);
-        thumb = OrderUtils.getProductImageUrl(productData.mediaGalleryEntries);
+        // HATA KAYNAĞI BURADAYDI:
+        // Map/dynamic dönen getProductDetailsBySku yerine,
+        // model döndüren "lite" metodu kullanıyoruz:
+        final lite = await _apiClient.getProductLiteBySku(sku: firstItem.sku!);
+        String imagePath = '';
+        if (lite.imageFiles.isNotEmpty) {
+          imagePath = lite.imageFiles.first;
+        }
+        if (imagePath.isNotEmpty) {
+          thumb = VendorApiClient().productImageUrl(imagePath);
+        }
       } catch (e) {
         debugPrint("Failed to fetch product image for SKU ${firstItem.sku}: $e");
       }
     }
 
+
+    final double price = firstItem?.price ?? 0.0;
+
     return Order(
       thumbnailAsset: thumb,
       name: firstItem?.name ?? 'Multiple Products',
-      price: firstItem != null ? double.tryParse(firstItem.price) ?? 0.0 : 0.0,
-      type: firstItem != null ? 'Product' : 'Order',
+      price: price,
+      type: firstItem?.typeId ?? 'Order',
       status: OrderUtils.mapMagentoStatusToOrderStatus(magentoOrder.status),
-      orderId: magentoOrder.incrementId,
-      purchasedOn: OrderUtils.formatOrderDate(magentoOrder.createdAt),
+      orderId: magentoOrder.incrementId, // modelde String
+      purchasedOn: OrderUtils.formatOrderDate(magentoOrder.createdAt), // modelde String
       baseTotal: magentoOrder.subtotal,
       purchasedTotal: magentoOrder.grandTotal,
       customer: magentoOrder.customerName,
@@ -118,15 +134,19 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
     try {
       final statusFilter = _getMagentoStatusFromFilter(_filter);
-      final magentoOrders = await _apiClient.searchVendorOrders(
+      final magentoOrdersDynamic = await _apiClient.searchVendorOrders(
         _searchCtrl.text.trim(),
         status: statusFilter,
         pageSize: _pageSize,
         currentPage: 1,
       );
 
+      final magentoOrders = List<MagentoOrder>.from(
+        magentoOrdersDynamic.map((item) => MagentoOrder.fromJson(item)),
+      );
+
       final convertedOrders = await Future.wait(
-        magentoOrders.map(_convertMagentoOrderToUiOrder).toList(),
+        magentoOrders.map((order) => _convertMagentoOrderToUiOrder(order)).toList(),
       );
 
       setState(() {
@@ -150,7 +170,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
       case FilterOption.cancelled:
         return 'canceled';
       case FilterOption.all:
-      return null;
+        return null;
     }
   }
 
@@ -169,7 +189,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
       case FilterOption.cancelled:
         return byText.where((o) => o.status == OrderStatus.cancelled).toList();
       case FilterOption.all:
-      return byText.toList();
+        return byText.toList();
     }
   }
 
@@ -197,7 +217,9 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
     try {
       _currentPage++;
       final magentoOrdersDynamic = await _apiClient.getVendorOrders();
-      final newOrders = List<MagentoOrder>.from(magentoOrdersDynamic.map((json) => MagentoOrder.fromJson(json)));
+      final newOrders = List<MagentoOrder>.from(
+        magentoOrdersDynamic.map((json) => MagentoOrder.fromJson(json)),
+      );
 
       final convertedNewOrders = await Future.wait(
         newOrders.map(_convertMagentoOrderToUiOrder).toList(),
@@ -353,7 +375,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                           padding: EdgeInsets.symmetric(vertical: 16),
                           child: Divider(height: 1, thickness: 1, color: Color(0x11000000)),
                         ),
-                        itemBuilder: (context, i) => Container(),
+                        itemBuilder: (context, i) => Container(), // TODO: Order tile UI
                       ),
 
                     const SizedBox(height: 24),

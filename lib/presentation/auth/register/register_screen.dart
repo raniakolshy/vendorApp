@@ -112,14 +112,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _loading = true);
     try {
-      await VendorApiClient().registerVendor(
-        _email.text.trim(),
-        _first.text.trim(),
-        _last.text.trim(),
-        _pass.text.trim(),
-        _shopUrl.text.trim(),
-        _phone.text.trim(),
-      );
+      final registerData = {
+        'firstname': _first.text.trim(),
+        'lastname': _last.text.trim(),
+        'email': _email.text.trim(),
+        'password': _pass.text.trim(),
+        'telephone': _phone.text.trim(),
+        'custom_attributes': [
+          {'attribute_code': 'company_url', 'value': _shopUrl.text.trim()},
+        ],
+      };
+
+      await VendorApiClient().registerVendor(registerData);
 
       await VendorApiClient().loginVendor(
         _email.text.trim(),
@@ -279,7 +283,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: inputFill,
-                    hintText: t?.passworConfirmation ?? 'Password confirmation',
+                    // IMPORTANT: passwordConfirmation anahtarı yoksa derleme hatası verir.
+                    // Bu yüzden düz metin kullandık:
+                    hintText: 'Confirm password',
                     hintStyle: const TextStyle(color: greyText, fontSize: 16),
                     prefixIcon: const Icon(Icons.lock_outline, color: greyText),
                     suffixIcon: IconButton(
@@ -301,8 +307,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       style: GoogleFonts.poppins(color: Colors.black87),
                       children: [
                         TextSpan(text: '${t?.byClickingThe ?? 'By clicking the'} '),
-                        TextSpan(text: t?.signUp ?? 'Sign up',
-                            style: GoogleFonts.poppins(color: primaryPink, fontWeight: FontWeight.bold)),
+                        TextSpan(
+                          text: t?.signUp ?? 'Sign up',
+                          style: GoogleFonts.poppins(color: primaryPink, fontWeight: FontWeight.bold),
+                        ),
                         TextSpan(text: ' ${t?.publicOffer ?? 'you accept the public offer'}'),
                       ],
                     ),
