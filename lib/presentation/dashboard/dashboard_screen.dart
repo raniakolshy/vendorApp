@@ -672,9 +672,7 @@ class _MiniStatCard extends StatelessWidget {
   }
 }
 
-/// =============================================================
-/// Section card
-/// =============================================================
+
 class SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
@@ -721,9 +719,7 @@ class SectionCard extends StatelessWidget {
   }
 }
 
-/// =============================================================
-/// TOTAL SALES card
-/// =============================================================
+
 class TotalSalesCard extends StatefulWidget {
   final String rangeKey;
   final ValueChanged<String> onRangeChanged;
@@ -946,9 +942,7 @@ class _LinePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// =============================================================
-/// Animated Donut
-/// =============================================================
+
 class _CustomersCard extends StatefulWidget {
   final Map<String, int>? customerBreakdown;
   const _CustomersCard({this.customerBreakdown});
@@ -1079,9 +1073,7 @@ String _formatCount(double part, double total) {
   return '$pct%';
 }
 
-/// =============================================================
-/// AOV section
-/// =============================================================
+
 class AOVSection extends StatelessWidget {
   final String rangeKey;
   final Map<String, double>? salesHistory;
@@ -1201,9 +1193,7 @@ class _LegendDot extends StatelessWidget {
   }
 }
 
-/// =============================================================
-/// Carousels
-/// =============================================================
+
 class ProductCarousel extends StatelessWidget {
   final List<ProductTileData> products;
   const ProductCarousel({super.key, required this.products});
@@ -1344,11 +1334,9 @@ class _EmptyStripe extends StatelessWidget {
   }
 }
 
-/// =============================================================
-/// Ratings triple
-/// =============================================================
+
 class RatingsPanel extends StatelessWidget {
-  final Map<int, double> price;   // 5..1 -> percent 0..100
+  final Map<int, double> price;
   final Map<int, double> value;
   final Map<int, double> quality;
 
@@ -1437,9 +1425,7 @@ class _RatingCard extends StatelessWidget {
   }
 }
 
-/// =============================================================
-/// Modern Reviews list
-/// =============================================================
+
 class LatestReviewsList extends StatelessWidget {
   final List<Review> reviews;
   const LatestReviewsList({super.key, required this.reviews});
@@ -1646,9 +1632,7 @@ class _TwoUpGrid extends StatelessWidget {
   }
 }
 
-/// =============================================================
-/// Donut plumbing: model + painter + helpers
-/// =============================================================
+
 class _DonutSegment {
   final String label;
   final double value;

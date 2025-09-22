@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kolshy_vendor/data/models/vendor_profile_model.dart';
 import 'package:kolshy_vendor/data/models/product_model.dart';
-import 'package:kolshy_vendor/data/models/review_model.dart';
+
 
 
 class ReviewPage {
@@ -119,17 +119,17 @@ class VendorProfile {
     return VendorProfile(customerId: _s<int>('customerId', 'customer_id'), firstname: _s<String>('firstname'), lastname: _s<String>('lastname'), companyName: _s<String>('companyName', 'company_name'), bio: _s<String>('bio'), country: _s<String>('country'), phone: _s<String>('phone', 'telephone'), lowStockQty: _s<String>('lowStockQty', 'low_stock_qty'), vatNumber: _s<String>('vatNumber', 'vat_number'), paymentDetails: _s<String>('paymentDetails', 'payment_details'), twitter: _s<String>('twitter'), facebook: _s<String>('facebook'), instagram: _s<String>('instagram'), youtube: _s<String>('youtube'), vimeo: _s<String>('vimeo'), pinterest: _s<String>('pinterest'), moleskine: _s<String>('moleskine'), tiktok: _s<String>('tiktok'), returnPolicy: _s<String>('returnPolicy', 'return_policy'), shippingPolicy: _s<String>('shippingPolicy', 'shipping_policy'), privacyPolicy: _s<String>('privacyPolicy', 'privacy_policy'), metaKeywords: _s<String>('metaKeywords', 'meta_keywords'), metaDescription: _s<String>('metaDescription', 'meta_description'), googleAnalyticsId: _s<String>('googleAnalyticsId', 'google_analytics_id'), profilePathReq: _s<String>('profilePathReq', 'profile_path_req'), collectionPathReq: _s<String>('collectionPathReq', 'collection_path_req'), reviewPathReq: _s<String>('reviewPathReq', 'review_path_req'), locationPathReq: _s<String>('locationPathReq', 'location_path_req'), privacyPathReq: _s<String>('privacyPathReq', 'privacy_path_req'), logoUrl: _s<String>('logoUrl', 'logo_url'), bannerUrl: _s<String>('bannerUrl', 'banner_url'), logoBase64: _s<String>('logoBase64', 'logo_base64'), bannerBase64: _s<String>('bannerBase64', 'banner_base64'),);
   }
 }
-// ------ Ana Sınıf ------
+
 class VendorApiClient {
-  // ---- Singleton ----
+
   static final VendorApiClient _instance = VendorApiClient._internal();
   factory VendorApiClient() => _instance;
   VendorApiClient._internal();
 
-  // ---- State ----
+
   final _secureStorage = const FlutterSecureStorage();
-  late final Dio _dio; // vendor/customer çağrıları
-  late final Dio _adminDio; // admin çağrıları
+  late final Dio _dio;
+  late final Dio _adminDio;
 
   String? _adminToken;
   String? _vendorToken;
@@ -144,14 +144,14 @@ class VendorApiClient {
   static const String _tokenKey = 'vendor_auth_token';
   static const String _adminTokenKey = 'admin_auth_token';
 
-// ---- Init / Base URLs ----
+
   Future<void> init() async {
     if (this.vendorProfile != null) {
       return;
     }
 
-    // Gecikme süresini artırıyoruz
-    const base = 'https://kolshy.ae/rest/V1/';
+
+    const base = 'http://91.99.125.241/rest/V1/';
     _dio = Dio(BaseOptions(
       baseUrl: base,
       connectTimeout: const Duration(seconds: 120),
@@ -170,7 +170,7 @@ class VendorApiClient {
     _setAdminAuthHeader(_adminToken);
   }
 
-// Authorization başlıklarını ayarlamak için yardımcı metotlar
+
   void _setAuthHeader(String? token) {
     if (token != null && token.isNotEmpty) {
       _dio.options.headers['Authorization'] = 'Bearer $token';
@@ -219,14 +219,12 @@ class VendorApiClient {
     }
   }
 
-  // -------------------------------------------------------------
-  // AUTH
-  // -------------------------------------------------------------
+
   Future<void> loginVendor(String username, String password) async {
     try {
       print('Attempting to login with username: $username');
       final res = await _dio.post(
-        'integration/vendor/token',
+        'integration/customer/token',
         data: {'username': username, 'password': password},
       );
 
@@ -255,7 +253,7 @@ class VendorApiClient {
       throw Exception(_handleDioError(e));
     }
   }
-
+// ...
   Future<void> login(String username, String password) => loginVendor(username, password);
   Future<void> loginAdmin(String username, String password) async {
     try {
@@ -309,21 +307,33 @@ class VendorApiClient {
     _vendorProfile = null;
     _setAuthHeader(null);
   }
-  // -------------------------------------------------------------
-  // VENDOR PROFILE
-  // -------------------------------------------------------------
+
+
   Future<VendorProfileModel> getVendorProfile() async {
     try {
       if (_dio == null) await init();
       _setAuthHeader(_vendorToken);
-      final res = await _dio.get('vendor/me');
+
+      print('Attempting to get vendor profile...');
+
+
+      final res = await _dio.get('customers/me');
+
+      print('Successfully got vendor profile.');
+      print('Status Code: ${res.statusCode}');
+      print('Response Data: ${res.data}');
+
       final model = VendorProfileModel.fromJson(res.data);
       _vendorProfile = model;
       return model;
     } on DioException catch (e) {
+      print('Failed to get vendor profile. Server response:');
+      print('Status Code: ${e.response?.statusCode}');
+      print('Response Data: ${e.response?.data}');
       throw Exception('Failed to get vendor profile: ${_handleDioError(e)}');
     }
   }
+
   Future<void> updateVendorProfile(Map<String, dynamic> payload) async {
     try {
       if (_dio == null) await init();
@@ -336,9 +346,7 @@ class VendorApiClient {
   Future<VendorProfileModel> getVendorInfo() async {
     return await getVendorProfile();
   }
-  // -------------------------------------------------------------
-  // PRODUCTS
-  // -------------------------------------------------------------
+
   Future<List<ProductModel>> getVendorProducts({
     required int vendorId,
     int pageSize = 20,
@@ -449,9 +457,7 @@ class VendorApiClient {
       throw Exception(_handleDioError(e));
     }
   }
-  // -------------------------------------------------------------
-  // ORDERS
-  // -------------------------------------------------------------
+
   Future<Map<String, dynamic>> getOrders({
     required int currentPage,
     required int pageSize,
@@ -573,9 +579,7 @@ class VendorApiClient {
       throw Exception(_handleDioError(e));
     }
   }
-  // -------------------------------------------------------------
-  // INVOICES
-  // -------------------------------------------------------------
+
   Future<Map<String, dynamic>> getInvoiceById({required int invoiceId}) async {
     try {
       if (_adminToken == null && _vendorToken == null) {
@@ -636,9 +640,7 @@ class VendorApiClient {
       throw Exception(_handleDioError(e));
     }
   }
-  // -------------------------------------------------------------
-  // DASHBOARD / ANALYTICS (özet)
-  // -------------------------------------------------------------
+
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
       if (vendorId == null) throw Exception('Vendor ID is not available.');
@@ -699,7 +701,7 @@ class VendorApiClient {
         'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
         'searchCriteria[pageSize]': 100,
       };
-      // Hatalı sözdizimi düzeltildi
+
       qp['searchCriteria[filterGroups][1][filters][0][field]'] = 'created_at';
       qp['searchCriteria[filterGroups][1][filters][0][value]'] = start;
       qp['searchCriteria[filterGroups][1][filters][0][conditionType]'] = 'gteq';
@@ -823,9 +825,7 @@ class VendorApiClient {
       throw Exception(_handleDioError(e));
     }
   }
-  // -------------------------------------------------------------
-  // CONTACT
-  // -------------------------------------------------------------
+
   Future<void> sendContactMessage({
     required String name,
     required String email,
@@ -848,9 +848,6 @@ class VendorApiClient {
       throw Exception(_handleDioError(e));
     }
   }
-  // -------------------------------------------------------------
-  // HELPERS
-  // -------------------------------------------------------------
   String _handleDioError(DioException e) {
     if (e.response != null && e.response!.data is Map) {
       final data = e.response!.data as Map;

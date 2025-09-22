@@ -7,6 +7,7 @@ import 'package:kolshy_vendor/data/models/product_model.dart';
 
 
 
+
 class ProductsListScreen extends StatefulWidget {
   const ProductsListScreen({super.key});
 
@@ -66,8 +67,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         _isLoading = true;
         _currentPage = 1;
         _allProducts.clear();
-      });
-    }
+       });
+     }
 
     try {
       final vendorId = _apiClient.vendorId;
@@ -107,7 +108,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
   List<ProductModel> get _filtered {
     final q = _searchCtrl.text.trim().toLowerCase();
-    // Arama sadece ürün adı üzerinden yapılıyor
+
     return _allProducts.where((p) => (p.name?.toLowerCase().contains(q) ?? false)).toList();
   }
 
@@ -121,7 +122,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       _filter = v;
       _shown = _pageSize;
     });
-    _loadProducts(); // Filtre değişince veriyi yeniden çekiyoruz
+    _loadProducts();
   }
 
   Future<void> _loadMore() async {
@@ -163,11 +164,11 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   }
 
   void _deleteProduct(ProductModel product) {
-    // ... (Your existing delete logic) ...
+
   }
 
   void _editProduct(ProductModel product) {
-    // ... (Your existing edit logic) ...
+
   }
 
   @override
@@ -345,7 +346,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         padding: const EdgeInsets.only(top: 12),
                         child: Center(
                           child: Text(
-                            localizations.noProductsFound, // Mesajı daha genel hale getirdik
+                            localizations.noProductsFound,
                             style: const TextStyle(color: Colors.black54),
                           ),
                         ),
