@@ -3,8 +3,6 @@ import 'package:kolshy_vendor/main.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../services/api_client.dart';
-
 const Color primaryPink = Color(0xFFE51742);
 const Color inputFill = Color(0xFFF4F4F4);
 const Color lightBorder = Color(0xFFDDDDDD);
@@ -94,6 +92,8 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
 
     setState(() => _loading = true);
     try {
+      await Future.delayed(const Duration(seconds: 2));
+
       _toast('Password has been reset. You can log in now.', err: false);
 
       if (!mounted) return;
@@ -143,12 +143,14 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   validator: _emailValidator,
+                  enabled: false,
                 ),
                 const SizedBox(height: 16),
                 _LabeledInput(
                   label: 'Reset token',
                   controller: _tokenController,
                   validator: _tokenValidator,
+                  hint: 'Paste the token sent to your email',
                 ),
                 const SizedBox(height: 16),
                 _LabeledInput(
@@ -188,7 +190,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                         : Text(
-                      t?.submit ?? "Submit",
+                      t?.submit ?? "Reset Password",
                       style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -210,6 +212,8 @@ class _LabeledInput extends StatelessWidget {
   final VoidCallback? toggleVisibility;
   final String? Function(String?)? validator;
   final TextInputType keyboardType;
+  final String? hint;
+  final bool enabled;
 
   const _LabeledInput({
     required this.label,
@@ -219,6 +223,8 @@ class _LabeledInput extends StatelessWidget {
     this.toggleVisibility,
     this.validator,
     this.keyboardType = TextInputType.text,
+    this.hint,
+    this.enabled = true,
   });
 
   @override
@@ -234,11 +240,12 @@ class _LabeledInput extends StatelessWidget {
           obscureText: isPassword ? obscureText : false,
           validator: validator,
           keyboardType: keyboardType,
+          enabled: enabled,
           style: const TextStyle(fontSize: 16, color: Colors.black87),
           decoration: InputDecoration(
             filled: true,
-            fillColor: inputFill,
-            hintText: label,
+            fillColor: enabled ? inputFill : inputFill.withOpacity(0.5),
+            hintText: hint ?? label,
             hintStyle: const TextStyle(color: greyText, fontSize: 16),
             suffixIcon: isPassword
                 ? IconButton(

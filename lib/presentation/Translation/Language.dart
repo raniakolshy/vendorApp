@@ -58,6 +58,12 @@ class _LanguageScreenState extends State<LanguageScreen> {
             flag: '🇸🇦',
             locale: const Locale('ar'),
           ),
+          _LangItem(
+            label: 'Français',
+            value: 'french',
+            flag: '🇫🇷',
+            locale: const Locale('fr'),
+          ),
         ];
 
         final q = _searchController.text.trim().toLowerCase();
