@@ -23,6 +23,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _isChecked = false;
   bool _isLoading = false;
 
+  // presentation/auth/forgot_password/forgot_password_screen.dart
+
+// ...
+
   void _submit() async {
     final email = _emailController.text.trim();
 
@@ -38,21 +42,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final success = await VendorApiClient().forgotPassword(email);
 
-      if (success) {
-        _showSnackbar(AppLocalizations.of(context)?.mailSent ?? 'Reset email sent', isError: false);
+      await VendorApiClient().forgotPassword(email);
 
-        // Only navigate if the email was sent successfully
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => VerificationCodeScreen(email: _emailController.text.trim()),
-          ),
-        );
-      } else {
-        _showSnackbar('Failed to send reset email. Please try again.', isError: true);
-      }
+      _showSnackbar(AppLocalizations.of(context)?.mailSent ?? 'Reset email sent', isError: false);
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VerificationCodeScreen(email: _emailController.text.trim()),
+        ),
+      );
     } catch (e) {
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       _showSnackbar(errorMessage, isError: true);
@@ -60,6 +61,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       setState(() => _isLoading = false);
     }
   }
+
+// ...
 
   void _showSnackbar(String msg, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
